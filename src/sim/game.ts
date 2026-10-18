@@ -2,15 +2,19 @@
 import { createNewGame } from './state';
 import * as rules from './rules';
 import { resolveEvent } from './events';
-import type { AnimalId, CommandResult, CropId, GameState, ProductId, Speed } from './types';
+import { upgradeBuilding } from './buildings';
+import * as villagers from './villagers';
+import type { AnimalId, BuildingId, CommandResult, CropId, GameState, JobId, Notice, ProductId, Speed } from './types';
 
 export type GameEvent =
   | { type: 'change' }
   | { type: 'day'; day: number }
   | { type: 'result'; result: CommandResult; x?: number; y?: number }
-  | { type: 'notice'; notice: CommandResult }
+  | { type: 'notice'; notice: Notice }
   | { type: 'choosePlant'; x: number; y: number; crops: CropId[] }
   | { type: 'offerLand'; x: number; y: number; cost: number }
+  | { type: 'offerLease'; x: number; y: number; cost: number }
+  | { type: 'building'; building: BuildingId }
   | { type: 'levelUp'; level: number }
   | { type: 'event'; id: string }
   | { type: 'mapChanged' }
@@ -44,6 +48,7 @@ export class Game {
     const { days, notices } = rules.tick(this.state, realMs);
     for (let i = 0; i < days; i++) this.emit({ type: 'day', day: this.state.day });
     for (const notice of notices) this.emit({ type: 'notice', notice });
+    if (notices.some((n) => n.card === 'rank' || n.msg === 'msg.villagerLeftHunger')) this.emit({ type: 'mapChanged' });
     if (days > 0 || before !== this.state.dayProgress) this.emit({ type: 'change' });
     this.announcePendingEvent();
   }
@@ -76,6 +81,12 @@ export class Game {
       case 'offerLand':
         this.emit({ type: 'offerLand', x: r.x, y: r.y, cost: r.cost });
         break;
+      case 'offerLease':
+        this.emit({ type: 'offerLease', x: r.x, y: r.y, cost: r.cost });
+        break;
+      case 'building':
+        this.emit({ type: 'building', building: r.building });
+        break;
       default:
         this.report(r.outcome, x, y);
     }
@@ -91,6 +102,45 @@ export class Game {
     this.report(out, x, y);
   }
 
+  lease(x: number, y: number): void {
+    const out = rules.lease(this.state, x, y);
+    if (out.result.ok) this.emit({ type: 'mapChanged' });
+    this.report(out, x, y);
+  }
+
+  /** Abre el panel de un edificio desde la interfaz (sin tocar el mapa). */
+  openBuilding(building: BuildingId): void {
+    this.emit({ type: 'building', building });
+  }
+
+  upgradeBuilding(building: BuildingId): void {
+    const out = upgradeBuilding(this.state, building);
+    if (out.result.ok) this.emit({ type: 'mapChanged' });
+    this.report(out);
+  }
+
+  hireVillager(): void {
+    this.villagerCommand(villagers.hireVillager(this.state));
+  }
+
+  setJob(id: number, job: JobId): void {
+    this.villagerCommand(villagers.setJob(this.state, id, job));
+  }
+
+  upgradeTool(id: number): void {
+    this.villagerCommand(villagers.upgradeTool(this.state, id));
+  }
+
+  dismissVillager(id: number): void {
+    this.villagerCommand(villagers.dismissVillager(this.state, id));
+  }
+
+  private villagerCommand(result: CommandResult): void {
+    // Los aldeanos se ven en el mapa: cualquier cambio redibuja.
+    if (result.ok) this.emit({ type: 'mapChanged' });
+    this.report({ result, levelUps: [] });
+  }
+
   buyAnimal(animal: AnimalId): void {
     const out = rules.buyAnimal(this.state, animal);
     if (out.result.ok) this.emit({ type: 'mapChanged' });
@@ -103,9 +153,10 @@ export class Game {
 
   /** Elige una opcion del evento pendiente. */
   chooseEventOption(optionId: string): void {
-    const herdsBefore = JSON.stringify(this.state.herds);
+    const visible = () => JSON.stringify([this.state.herds, this.state.villagers.length]);
+    const before = visible();
     const out = resolveEvent(this.state, optionId);
-    if (JSON.stringify(this.state.herds) !== herdsBefore) this.emit({ type: 'mapChanged' });
+    if (visible() !== before) this.emit({ type: 'mapChanged' });
     this.announcePendingEvent();
     this.report(out);
     this.emit({ type: 'change' });

@@ -20,19 +20,22 @@
       "M": "market",
       "T": "tree",
       "W": "well",
-      "K": "rocks"
+      "K": "rocks",
+      "B": "granary",
+      "X": "wild"
     },
     "rows": [
-      "TTGGGGGGTT",
-      "TGGGRGGGKT",
-      "GGHGRGGGGG",
-      "GWGGRGSSGG",
-      "GRRRRRSSGG",
-      "GGGGRGGGGG",
-      "GCGGRGPPGG",
-      "GGGGRGPPGG",
-      "TKGGRGGGGT",
-      "TTGGMGGGTT"
+      "TTGGGGGGTTXXTXX",
+      "TGGGRGGGKTXXXXT",
+      "GGHBRGGGGGTXXXX",
+      "GWGGRGSSGGXXXTX",
+      "GRRRRRSSGGXXXXX",
+      "GGGGRGGGGGXTXXX",
+      "GCGGRGPPGGXXXXX",
+      "GGGGRGPPGGXXXTX",
+      "TKGGRGGGGTTXXXX",
+      "TTGGMGGGTTXXTXX"
     ]
-  }
+  },
+  "villagers": 0
 }

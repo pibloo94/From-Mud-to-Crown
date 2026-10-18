@@ -2,6 +2,7 @@
 import { PRODUCTS, PRODUCT_IDS } from './data';
 import { dateFromDay } from './calendar';
 import { random } from './random';
+import { multiplier } from './modifiers';
 import type { GameState, ProductId } from './types';
 
 /** Recalcula la variacion aleatoria de cada producto (se llama cada semana y al cambiar de estacion). */
@@ -15,7 +16,7 @@ export function rollPrices(state: GameState): void {
 export function priceOf(state: GameState, p: ProductId): number {
   const def = PRODUCTS[p];
   const season = dateFromDay(state.day).season;
-  const boost = state.marketBoost && state.day < state.marketBoost.untilDay ? state.marketBoost.mult : 1;
+  const boost = (state.marketBoost && state.day < state.marketBoost.untilDay ? state.marketBoost.mult : 1) * multiplier(state, 'priceAll');
   return Math.max(1, Math.round(def.price * def.season[season] * (state.priceMult[p] ?? 1) * boost));
 }
 

@@ -180,23 +180,25 @@ describe('cultivos', () => {
     if (r.kind === 'choosePlant') expect(r.crops).toEqual(['wheat', 'carrot']);
   });
 
-  it('los jornaleros aceleran el crecimiento y cobran cada dia', () => {
+  it('una cosecha que no cabe en el granero se queda en el campo', () => {
     const s = newGame();
     const [x, y] = firstPlot(s);
     plant(s, x, y, 'wheat');
-    s.workers = 2;
-    const coins = s.coins;
-    days(s, 3); // 3 dias x 1,5 = 4,5 >= 4
+    days(s, CROPS.wheat.growDays);
+    s.inventory.milk = 29; // capacidad inicial 30
+    expect(harvest(s, x, y).result.msg).toBe('msg.granaryFull');
     expect(isRipe(s.plots[plotKey(x, y)])).toBe(true);
-    expect(s.coins).toBe(coins - 3 * 2 * PROGRESSION.workers.wage);
+    s.inventory.milk = 0;
+    expect(harvest(s, x, y).result.ok).toBe(true);
   });
 
-  it('un jornalero sin paga se marcha', () => {
+  it('los vales del monje permiten sembrar gratis', () => {
     const s = newGame();
-    s.workers = 1;
+    s.seedVouchers = 1;
     s.coins = 0;
-    expect(advanceDay(s).map((n) => n.msg)).toContain('msg.workerLeft');
-    expect(s.workers).toBe(0);
+    const [x, y] = firstPlot(s);
+    expect(plant(s, x, y, 'wheat').result.msg).toBe('msg.plantedFree');
+    expect(s.seedVouchers).toBe(0);
   });
 });
 
@@ -262,17 +264,22 @@ describe('animales', () => {
     expect(s.herds.cow.stored).toBe(3);
   });
 
-  it('se compran gallinas desde el nivel 4 y vacas desde el 7', () => {
+  it('se compran gallinas desde el nivel 4 y vacas desde el 5, si caben', () => {
     const s = newGame();
     s.coins = 500;
     expect(buyAnimal(s, 'chicken').result.ok).toBe(false);
     s.level = 4;
     expect(buyAnimal(s, 'chicken').result.ok).toBe(true);
     expect(s.herds.chicken.count).toBe((START.herds.chicken ?? 0) + 1);
-    expect(buyAnimal(s, 'cow').result.ok).toBe(false);
-    s.level = 7;
+    expect(buyAnimal(s, 'cow').result.msg).toBe('msg.animalLocked');
+    s.level = 5;
+    expect(buyAnimal(s, 'cow').result.msg).toBe('msg.animalLimit');
+    s.buildings.pen = 2; // pesebre + establo: caben dos vacas
     expect(buyAnimal(s, 'cow').result.ok).toBe(true);
     expect(buyAnimal(s, 'cow').result.msg).toBe('msg.animalLimit');
+    // el gallinero tambien tiene tope
+    s.herds.chicken.count = 6;
+    expect(buyAnimal(s, 'chicken').result.msg).toBe('msg.animalLimit');
   });
 });
 

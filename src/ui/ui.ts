@@ -3,10 +3,25 @@ import type { Game } from '../sim/game';
 import { createNewGame } from '../sim/state';
 import { ANIMAL_IDS, CROPS, EVENTS, PRODUCTS, PRODUCT_IDS, PROGRESSION, type EventOptionDef } from '../sim/data';
 import { dateFromDay } from '../sim/calendar';
-import { hasFeature, levelProgress, nextLevelXp, rankOf, unlocksAt } from '../sim/progress';
+import { hasFeature, levelProgress, nextLevelXp, unlocksAt } from '../sim/progress';
+import { animalCapacity } from '../sim/rules';
+import { storageCapacity, storageUsed } from '../sim/buildings';
+import { beds, foodDays } from '../sim/villagers';
+import { activeModifiers } from '../sim/modifiers';
+import {
+  buildingView,
+  modifierText,
+  progressView,
+  rankView,
+  scrollTreeToCurrent,
+  seasonView,
+  type BuildingTab,
+  type PanelCtx,
+  type ProgressTab,
+} from './panels';
 import { boostActive, priceOf, priceTrend } from '../sim/market';
 import { optionAvailable } from '../sim/events';
-import type { AnimalId, CommandResult, CropId, ProductId, Speed } from '../sim/types';
+import type { AnimalId, BuildingId, CommandResult, CropId, ProductId, RankId, Speed } from '../sim/types';
 import { getLang, onLangChange, setLang, t, type Lang } from '../i18n/i18n';
 import { autosave, forgetLinkedFile, hasLinkedFile, loadGameFromFile, readBackup, saveGame, supportsFilePicker } from '../save/storage';
 import { SaveError } from '../save/serialize';
@@ -28,11 +43,18 @@ type Modal =
   | { kind: 'market' }
   | { kind: 'plant'; x: number; y: number; crops: CropId[] }
   | { kind: 'land'; x: number; y: number; cost: number }
+  | { kind: 'lease'; x: number; y: number; cost: number }
+  | { kind: 'building'; building: BuildingId; tab: BuildingTab }
+  | { kind: 'progress'; tab: ProgressTab }
   | { kind: 'levelup'; level: number }
+  | { kind: 'season'; params: Record<string, string | number> }
+  | { kind: 'rank'; rank: RankId }
   | { kind: 'event'; id: string; result?: CommandResult };
 
 /** Todas las ventanas detienen el tiempo mientras estan abiertas; al cerrarlas vuelve la velocidad anterior. */
-const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'levelup', 'event'];
+const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'progress', 'levelup', 'season', 'rank', 'event'];
+/** Ventanas que se cierran con Escape o tocando fuera. */
+const DISMISSABLE: Modal['kind'][] = ['menu', 'market', 'plant', 'land', 'lease', 'building', 'progress'];
 
 export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI {
   let lastSpeed: Speed = 1;
@@ -52,8 +74,8 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   const xpFill = h('span', { class: 'xp-fill' });
   const xpText = h('span', { class: 'xp-text' });
   const levelBox = h(
-    'div',
-    { class: 'level-box' },
+    'button',
+    { class: 'level-box', onclick: () => openModal({ kind: 'progress', tab: 'levels' }) },
     h('span', { class: 'level-shield' }, levelNum),
     h('div', { class: 'level-info' }, rankText, h('span', { class: 'xp-bar' }, xpFill), xpText),
   );
@@ -64,27 +86,43 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     amounts.set(id, n);
     return h('div', { class: 'chip', 'data-res': id }, icon(iconName), n);
   };
-  const workersChip = chip('workers', 'icon_worker');
   const resources = h(
     'div',
     { class: 'resources panel' },
     levelBox,
     chip('coins', 'icon_coin'),
     ...PRODUCT_IDS.map((p) => chip(p, PRODUCTS[p].icon)),
-    workersChip,
   );
+
+  // Fila de estado: granero, aldeanos y efectos activos.
+  const storageText = h('b', {});
+  const storageFill = h('span', { class: 'mini-fill' });
+  const storagePill = h(
+    'button',
+    { class: 'status-pill', onclick: () => openModal({ kind: 'building', building: 'granary', tab: 'upgrades' }) },
+    h('span', { class: 'status-inner' }, icon('icon_granary'), storageText, h('span', { class: 'mini-bar' }, storageFill)),
+  );
+  const villagersText = h('b', {});
+  const villagersPill = h(
+    'button',
+    { class: 'status-pill', onclick: () => openModal({ kind: 'building', building: 'house', tab: 'villagers' }) },
+    h('span', { class: 'status-inner' }, icon('icon_worker'), villagersText),
+  );
+  const modsBox = h('div', { class: 'mods' });
+  const statusRow = h('div', { class: 'status-row' }, storagePill, villagersPill, modsBox);
 
   const speedButtons = SPEEDS.map((sp) =>
     h('button', { class: 'speed-btn', 'data-speed': sp, onclick: () => setSpeed(sp) }, sp === 0 ? '❚❚' : '▶'.repeat(sp)),
   );
   const speedBox = h('div', { class: 'speed panel', role: 'group' }, ...speedButtons);
 
-  const topbar = h('header', { class: 'topbar' }, dateBox, resources, speedBox);
+  const topbar = h('header', { class: 'topbar' }, dateBox, resources, speedBox, statusRow);
 
   // ---------------------------------------------------------------- barra inferior
   const marketBtn = h('button', { class: 'big-btn', onclick: () => openModal({ kind: 'market' }) }, icon('icon_coin'), h('span', {}));
+  const progressBtn = h('button', { class: 'big-btn', onclick: () => openModal({ kind: 'progress', tab: 'levels' }) }, icon('icon_scroll'), h('span', {}));
   const menuBtn = h('button', { class: 'big-btn', onclick: () => openModal({ kind: 'menu' }) }, h('span', { class: 'burger' }, '☰'), h('span', {}));
-  const bottombar = h('footer', { class: 'bottombar' }, marketBtn, menuBtn);
+  const bottombar = h('footer', { class: 'bottombar' }, marketBtn, progressBtn, menuBtn);
 
   const toasts = h('div', { class: 'toasts', 'aria-live': 'polite' });
   const overlay = h('div', { class: 'overlay', hidden: true });
@@ -99,7 +137,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
 
   document.addEventListener('keydown', (e) => {
     if (e.target instanceof HTMLInputElement) return;
-    if (e.key === 'Escape' && modal && ['menu', 'market', 'plant', 'land'].includes(modal.kind)) {
+    if (e.key === 'Escape' && modal && DISMISSABLE.includes(modal.kind)) {
       closeModal();
       return;
     }
@@ -111,6 +149,8 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       setSpeed(Number(e.key) as Speed);
     } else if (e.key.toLowerCase() === 'm') {
       openModal({ kind: 'market' });
+    } else if (e.key.toLowerCase() === 'p') {
+      openModal({ kind: 'progress', tab: 'levels' });
     }
   });
 
@@ -143,6 +183,12 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       case 'offerLand':
         openModal({ kind: 'land', x: e.x, y: e.y, cost: e.cost });
         break;
+      case 'offerLease':
+        openModal({ kind: 'lease', x: e.x, y: e.y, cost: e.cost });
+        break;
+      case 'building':
+        openModal({ kind: 'building', building: e.building, tab: 'upgrades' });
+        break;
       case 'levelUp':
         showCard({ kind: 'levelup', level: e.level });
         break;
@@ -150,7 +196,9 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
         showCard({ kind: 'event', id: e.id });
         break;
       case 'notice':
-        toast(t(e.notice.msg, e.notice.params), e.notice.ok ? 'good' : 'warn');
+        if (e.notice.card === 'season') showCard({ kind: 'season', params: e.notice.params ?? {} });
+        else if (e.notice.card === 'rank') showCard({ kind: 'rank', rank: e.notice.params?.rank as RankId });
+        else toast(t(e.notice.msg, e.notice.params), e.notice.ok ? 'good' : 'warn');
         break;
       case 'result':
         if (modal?.kind !== 'event') onResult(e.result, e.x !== undefined);
@@ -164,7 +212,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     const shownOnMap = r.ok && hasTile && (r.params?.amount !== undefined || r.msg === 'msg.planted' || r.msg === 'msg.landBought');
     const text = t(r.msg, r.params);
     if (!shownOnMap && text) toast(text, r.ok ? 'good' : 'warn');
-    if (modal?.kind === 'market') renderModal();
+    if (modal && ['market', 'building', 'progress'].includes(modal.kind)) renderModal();
   }
 
   // ---------------------------------------------------------------- avisos
@@ -180,13 +228,13 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   function renderHud(): void {
     const s = sim.state;
     const d = dateFromDay(s.day);
-    dateText.textContent = t('date.format', { season: t(`season.${d.season}`), day: d.dayOfSeason, year: d.year });
+    dateText.textContent = t('date.format', { season: d.season, day: d.dayOfSeason, year: d.year });
     dayBar.style.width = `${Math.round(s.dayProgress * 100)}%`;
     pausedPill.textContent = t('hud.paused');
     pausedPill.hidden = s.speed !== 0;
 
     levelNum.textContent = String(s.level);
-    rankText.textContent = t(`rank.${rankOf(s.level)}`);
+    rankText.textContent = t(`rank.${s.rank}`);
     xpFill.style.width = `${Math.round(levelProgress(s) * 100)}%`;
     levelBox.style.setProperty('--xp', `${Math.round(levelProgress(s) * 100)}%`);
     const next = nextLevelXp(s.level);
@@ -201,9 +249,31 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       const crop = Object.values(CROPS).find((c) => c.product === p);
       resources.querySelector<HTMLElement>(`[data-res="${p}"]`)!.hidden = !!crop && s.level < crop.unlockLevel && s.inventory[p] === 0;
     }
-    amounts.get('workers')!.textContent = String(s.workers);
-    workersChip.hidden = s.workers === 0;
-    workersChip.title = t('hud.workers');
+    const used = storageUsed(s);
+    const cap = storageCapacity(s);
+    storageText.textContent = `${used}/${cap}`;
+    storageFill.style.width = `${Math.min(100, Math.round((used / cap) * 100))}%`;
+    storagePill.classList.toggle('full', used >= cap);
+    storagePill.title = t('hud.storage', { used, cap });
+    storagePill.setAttribute('aria-label', storagePill.title);
+    const days = foodDays(s);
+    villagersText.textContent = `${s.villagers.length}/${beds(s)}`;
+    const hungry = s.villagers.some((v) => v.hungry > 0) || (s.villagers.length > 0 && days < 3);
+    villagersPill.classList.toggle('warn', hungry);
+    villagersPill.title = `${t('hud.villagers', { n: s.villagers.length, beds: beds(s) })}${s.villagers.length ? ` · ${t('hud.foodDays', { days })}` : ''}`;
+    villagersPill.setAttribute('aria-label', villagersPill.title);
+    villagersPill.hidden = beds(s) === 0 && s.villagers.length === 0;
+    const mods = activeModifiers(s);
+    const modsKey = mods.map((m) => `${m.kind}${m.value}${m.untilDay - s.day}`).join('|');
+    if (modsBox.dataset.key !== modsKey) {
+      modsBox.dataset.key = modsKey;
+      modsBox.replaceChildren(
+        ...mods.map((m) => {
+          const mt = modifierText(m, s.day);
+          return h('button', { class: `status-pill mod mod-${m.kind}`, onclick: () => openModal({ kind: 'progress', tab: 'ranks' }) }, h('span', { class: 'status-inner' }, `${mt.text} · ${mt.days}`));
+        }),
+      );
+    }
 
     speedButtons.forEach((b, i) => {
       b.classList.toggle('active', SPEEDS[i] === s.speed);
@@ -213,6 +283,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     resources.querySelector<HTMLElement>('[data-res="coins"]')!.title = t('hud.coins');
     for (const p of PRODUCT_IDS) resources.querySelector<HTMLElement>(`[data-res="${p}"]`)!.title = t(`product.${p}`);
     marketBtn.lastElementChild!.textContent = t('hud.market');
+    progressBtn.lastElementChild!.textContent = t('hud.progress');
     menuBtn.lastElementChild!.textContent = t('hud.menu');
   }
 
@@ -260,15 +331,49 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       market: marketView,
       plant: plantView,
       land: landView,
+      lease: leaseView,
+      building: () => {
+        const m = modal as Extract<Modal, { kind: 'building' }>;
+        return buildingView(panelCtx, m.building, m.tab);
+      },
+      progress: () => progressView(panelCtx, (modal as Extract<Modal, { kind: 'progress' }>).tab),
       levelup: levelUpView,
+      season: () => seasonView(panelCtx, (modal as Extract<Modal, { kind: 'season' }>).params),
+      rank: () => rankView(panelCtx, (modal as Extract<Modal, { kind: 'rank' }>).rank),
       event: eventView,
     };
+    // Al repintar la misma ventana se conserva el desplazamiento (p. ej. al mejorar algo de la lista).
+    const prevBody = overlay.querySelector<HTMLElement>('.progress-body');
+    const keepScroll = overlay.dataset.view === viewKey(modal) ? { overlay: overlay.scrollTop, body: prevBody?.scrollTop ?? 0 } : null;
     overlay.replaceChildren(views[modal.kind]());
     overlay.className = `overlay overlay-${modal.kind}`;
+    overlay.dataset.view = viewKey(modal);
+    if (keepScroll) {
+      overlay.scrollTop = keepScroll.overlay;
+      const body = overlay.querySelector<HTMLElement>('.progress-body');
+      if (body) body.scrollTop = keepScroll.body;
+    } else if (modal.kind === 'progress' && modal.tab === 'levels') {
+      scrollTreeToCurrent(overlay);
+    }
   }
 
+  function viewKey(m: Modal): string {
+    if (m.kind === 'building') return `building:${m.building}:${m.tab}`;
+    if (m.kind === 'progress') return `progress:${m.tab}`;
+    return m.kind;
+  }
+
+  const panelCtx: PanelCtx = {
+    sim,
+    close: () => closeModal(),
+    rerender: () => renderModal(),
+    openBuilding: (b, tab = 'upgrades') => openModal({ kind: 'building', building: b, tab }),
+    openProgress: (tab = 'levels') => openModal({ kind: 'progress', tab }),
+    openMarket: () => openModal({ kind: 'market' }),
+  };
+
   overlay.addEventListener('click', (e) => {
-    if (e.target === overlay && modal && ['menu', 'market', 'plant', 'land'].includes(modal.kind)) closeModal();
+    if (e.target === overlay && modal && DISMISSABLE.includes(modal.kind)) closeModal();
   });
 
   function langSwitch(): HTMLElement {
@@ -393,6 +498,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       const unlocked = hasFeature(s, offer.unlock);
       const unlockLevel = PROGRESSION.levels.findIndex((l) => l.unlocks?.includes(offer.unlock)) + 1;
       const count = s.herds[a].count;
+      const max = animalCapacity(s, a);
       return h(
         'div',
         { class: `market-row ${unlocked ? '' : 'locked'}` },
@@ -401,12 +507,12 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
           'div',
           { class: 'market-info' },
           h('b', {}, t(`animal.${a}`)),
-          h('small', {}, unlocked ? t('market.have', { n: count, max: offer.max }) : t('market.lockedAt', { level: unlockLevel })),
+          h('small', {}, unlocked ? t('market.have', { n: count, max }) : t('market.lockedAt', { level: unlockLevel })),
         ),
         h('span', {}),
         h(
           'button',
-          { class: 'btn small', disabled: !unlocked || count >= offer.max || s.coins < offer.price, onclick: () => sim.buyAnimal(a) },
+          { class: 'btn small', disabled: !unlocked || count >= max || s.coins < offer.price, onclick: () => sim.buyAnimal(a) },
           t('market.buy', { price: offer.price }),
         ),
       );
@@ -478,22 +584,52 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     );
   }
 
+  function leaseView(): HTMLElement {
+    const m = modal as Extract<Modal, { kind: 'lease' }>;
+    return h(
+      'div',
+      { class: 'sheet compact' },
+      h('h2', {}, t('lease.title')),
+      h('p', { class: 'howto plain' }, t('lease.text', { rent: PROGRESSION.lands.rentPerSeason })),
+      h(
+        'div',
+        { class: 'stack' },
+        h('button', {
+          class: 'btn primary',
+          disabled: sim.state.coins < m.cost,
+          onclick: () => {
+            closeModal();
+            sim.lease(m.x, m.y);
+          },
+        }, t('lease.buy', { cost: m.cost })),
+        h('button', { class: 'btn', onclick: () => closeModal() }, t('lease.cancel')),
+      ),
+    );
+  }
+
   function levelUpView(): HTMLElement {
     const m = modal as Extract<Modal, { kind: 'levelup' }>;
     const u = unlocksAt(m.level);
     const items: string[] = [];
-    if (u.rank) items.push(t('levelup.rank', { rank: t(`rank.${u.rank}`) }));
-    for (const c of u.crops) items.push(t('levelup.unlock.crop', { crop: t(`product.${CROPS[c].product}`) }));
+    if (u.rank) items.push(t('levelup.rank', { rank: u.rank }));
+    for (const c of u.crops) items.push(t('levelup.unlock.crop', { name: t(`product.${CROPS[c].product}`) }));
     for (const f of u.features) items.push(t(`levelup.unlock.${f}`));
     if (u.maxPlots) items.push(t('levelup.maxPlots', { max: u.maxPlots }));
+    for (const up of u.upgrades) items.push(t('progress.unlock.upgrade', { building: up.building, upgrade: up.id, cost: up.cost }));
+    for (const tl of u.tools) items.push(t('progress.unlock.tool', { tier: t(`tool.tier.${tl.tier}`), cost: tl.cost }));
     return h(
       'div',
       { class: `sheet levelup ${u.rank ? 'rank-up' : ''}` },
       h('div', { class: 'level-seal' }, String(m.level)),
       h('h2', {}, t('levelup.title', { level: m.level })),
-      h('p', { class: 'tagline' }, t(`rank.${rankOf(m.level)}`)),
+      h('p', { class: 'tagline' }, t(`rank.${u.rank ?? sim.state.rank}`)),
       items.length > 0 && h('ul', { class: 'unlocks' }, ...items.map((i) => h('li', {}, i))),
-      h('button', { class: 'btn primary', onclick: () => closeModal() }, t('levelup.continue')),
+      h(
+        'div',
+        { class: 'stack' },
+        h('button', { class: 'btn primary', onclick: () => closeModal() }, t('levelup.continue')),
+        h('button', { class: 'btn small', onclick: () => openModal({ kind: 'progress', tab: 'levels' }) }, t('hud.progress')),
+      ),
     );
   }
 
@@ -503,11 +639,31 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     const fx = opt.effects ?? {};
     if (fx.xp) parts.push(t('fx.xp', { n: fx.xp }));
     if (fx.coins && fx.coins < 0) parts.push(t('fx.coinsLose'));
-    if (fx.workers) parts.push(t('fx.workers'));
+    if (fx.villagers) parts.push(t('fx.villager'));
     if (fx.marketBoost) parts.push(t('fx.boost', { mult: fx.marketBoost.mult, days: fx.marketBoost.days }));
     if (fx.sellAll) parts.push(t('fx.sellAll', { mult: fx.sellAll.mult }));
     if (fx.herds?.chicken && fx.herds.chicken > 0) parts.push(t('fx.hen'));
-    if (opt.risk) parts.push(t('fx.risk'));
+    if (fx.seedVouchers) parts.push(t('fx.vouchers', { n: fx.seedVouchers }));
+    const signed = (n: number) => (n > 0 ? `+${n}` : `${n}`);
+    if (fx.rep?.baron) parts.push(t('fx.repBaron', { n: signed(fx.rep.baron) }));
+    if (fx.rep?.village) parts.push(t('fx.repVillage', { n: signed(fx.rep.village) }));
+    if (fx.modifier) {
+      const m = fx.modifier;
+      if (m.kind === 'idle') parts.push(t('fx.away', { n: m.days ?? 0 }));
+      else {
+        const duration = m.seasons ? t('fx.seasons') : t('fx.days', { n: m.days ?? 0 });
+        parts.push(t('fx.modifier', { text: t(`modifier.${m.kind}`, { pct: Math.round(m.value * 100) }), duration }));
+      }
+    }
+    if (opt.risk) {
+      const r = opt.risk.effects;
+      let what = '';
+      if (r.herds?.chicken) what = t('fx.loseHen');
+      else if (r.loseFraction) what = t('fx.loseStock');
+      else if (r.cropSetback) what = t('fx.setback');
+      else if (r.modifier) what = t(`modifier.${r.modifier.kind}`, { pct: Math.round(r.modifier.value * 100) });
+      parts.push(`${t('fx.riskChance', { pct: Math.round(opt.risk.chance * 100) })}${what ? `: ${what}` : ''}`);
+    }
     return parts.join(' · ');
   }
 
@@ -517,6 +673,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     const s = sim.state;
     const head = [
       h('div', { class: 'event-seal' }, icon(ev.icon, 'event-icon')),
+      h('span', { class: `event-cat cat-${ev.category}` }, t(`event.cat.${ev.category}`)),
       h('h2', {}, t(`event.${m.id}.title`)),
     ];
     if (m.result) {

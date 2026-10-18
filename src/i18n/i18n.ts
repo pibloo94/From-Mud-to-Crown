@@ -40,14 +40,26 @@ export function onLangChange(fn: () => void): void {
   listeners.add(fn);
 }
 
-/** Traduce una clave; los parametros {nombre} se sustituyen. Un parametro "product" o "crop" se traduce tambien. */
+/** Parametros que llegan como identificador y se muestran traducidos. */
+const TRANSLATED: Record<string, (v: string, all: Record<string, string | number>) => string> = {
+  product: (v) => t(`product.${v}`).toLowerCase(),
+  crop: (v) => t(`crop.${v}`),
+  season: (v) => t(`season.${v}`),
+  rank: (v) => t(`rank.${v}`),
+  building: (v) => t(`building.${v}`),
+  upgrade: (v, all) => t(`upgrade.${all.building}.${v}`),
+  job: (v) => t(`job.${v}`),
+  tool: (v) => t(`tool.${v}`),
+};
+
+/** Traduce una clave; los parametros {nombre} se sustituyen. Los identificadores conocidos (producto, edificio...) se traducen. */
 export function t(key: string, params: Record<string, string | number> = {}): string {
   const dict = LANGS[current] as Record<string, string>;
   let text = dict[key] ?? (LANGS.es as Record<string, string>)[key] ?? key;
   for (const [name, value] of Object.entries(params)) {
     let v = typeof value === 'number' && !Number.isInteger(value) ? value.toLocaleString(current) : String(value);
-    if (name === 'product') v = t(`product.${value}`).toLowerCase();
-    if (name === 'crop') v = t(`crop.${value}`);
+    const tr = TRANSLATED[name];
+    if (tr && typeof value === 'string') v = tr(value, params);
     text = text.replaceAll(`{${name}}`, v);
   }
   return text;

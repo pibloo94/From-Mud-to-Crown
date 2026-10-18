@@ -24,7 +24,10 @@
     },
     {
       "xp": 750,
-      "maxPlots": 11
+      "maxPlots": 11,
+      "unlocks": [
+        "buyCow"
+      ]
     },
     {
       "xp": 1250,
@@ -32,10 +35,7 @@
     },
     {
       "xp": 2000,
-      "maxPlots": 14,
-      "unlocks": [
-        "buyCow"
-      ]
+      "maxPlots": 14
     },
     {
       "xp": 3000,
@@ -58,6 +58,12 @@
     {
       "id": "freeFarmer",
       "level": 5
+    },
+    {
+      "id": "landowner",
+      "level": 8,
+      "days": 240,
+      "baron": 60
     }
   ],
   "xpPerCoinSold": 0.15,
@@ -68,24 +74,41 @@
   "animalsForSale": {
     "chicken": {
       "price": 12,
-      "max": 10,
       "unlock": "buyChicken"
     },
     "cow": {
       "price": 45,
-      "max": 2,
       "unlock": "buyCow"
     }
-  },
-  "workers": {
-    "growthBonus": 0.25,
-    "wage": 1,
-    "max": 2
   },
   "events": {
     "firstDay": 4,
     "minGap": 4,
     "dailyChance": 0.3
   },
-  "priceDays": 7
+  "priceDays": 7,
+  "taxes": {
+    "titheRate": 0.1,
+    "tributeBase": 5,
+    "tributePerPlot": 2,
+    "lowBaron": 30,
+    "lowBaronMult": 1.25,
+    "unpaidBaron": -10,
+    "graceSeasons": 1,
+    "rankTribute": {
+      "peasant": 1,
+      "freeFarmer": 1.5,
+      "landowner": 2.5
+    }
+  },
+  "reputation": {
+    "start": 50,
+    "highVillage": 70
+  },
+  "lands": {
+    "eastFrom": 10,
+    "leaseBaseCost": 40,
+    "leaseGrowth": 1.2,
+    "rentPerSeason": 10
+  }
 }

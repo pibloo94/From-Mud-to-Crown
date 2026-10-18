@@ -2,12 +2,13 @@
 // No contiene reglas del juego: todo pasa por `Game`.
 import Phaser from 'phaser';
 import type { Game, GameEvent } from '../sim/game';
-import { CROPS } from '../sim/data';
-import { canExpandAt, cropStage, plotCount } from '../sim/rules';
+import { CROPS, PROGRESSION } from '../sim/data';
+import { canExpandAt, canLeaseAt, cropStage, plotCount } from '../sim/rules';
+import { visualStage } from '../sim/buildings';
 import { hasFeature, levelDef } from '../sim/progress';
 import { dateFromDay, type Season } from '../sim/calendar';
 import { plotKey } from '../sim/state';
-import type { AnimalId, Tile } from '../sim/types';
+import type { AnimalId, BuildingId, JobId, Tile } from '../sim/types';
 import { t } from '../i18n/i18n';
 import { depthOf, TILE_H, TILE_W, tileCenter, toScreen, toTile } from './iso';
 
@@ -18,8 +19,10 @@ const SPRITES = [
   'wheat_0', 'wheat_1', 'wheat_2', 'wheat_3',
   'carrot_0', 'carrot_1', 'carrot_2', 'carrot_3',
   'cabbage_0', 'cabbage_1', 'cabbage_2', 'cabbage_3',
-  'house', 'coop', 'market', 'well', 'rocks', 'tree_a', 'tree_b',
-  'cow', 'chicken', 'bubble', 'icon_egg', 'icon_milk', 'icon_wheat', 'icon_coin',
+  'house_1', 'house_2', 'house_3', 'granary_1', 'granary_2', 'granary_3', 'coop_1', 'coop_2', 'coop_3', 'pen_shed',
+  'market', 'well', 'rocks', 'tree_a', 'tree_b', 'wild', 'boundary', 'tenant',
+  'cow', 'chicken', 'villager_farmer', 'villager_herder', 'villager_carter',
+  'bubble', 'icon_egg', 'icon_milk', 'icon_wheat', 'icon_coin',
 ];
 
 /**
@@ -48,6 +51,15 @@ interface Bubble {
   tile: { x: number; y: number };
   box: Phaser.GameObjects.Container;
   label: Phaser.GameObjects.Text;
+}
+
+/** Rellena un cuadrilatero dado como [x0, y0, x1, y1, ...]. */
+function fillQuad(g: Phaser.GameObjects.Graphics, p: number[]): void {
+  g.beginPath();
+  g.moveTo(p[0], p[1]);
+  for (let i = 2; i < p.length; i += 2) g.lineTo(p[i], p[i + 1]);
+  g.closePath();
+  g.fillPath();
 }
 
 export class FarmScene extends Phaser.Scene {
@@ -123,10 +135,16 @@ export class FarmScene extends Phaser.Scene {
     const avail = H - top - bottom;
     this.fitZoom = Math.min(W / bw, avail / bh) * 0.96;
     // En vertical (movil) el mapa entero queda diminuto: se encuadra la parte central y se puede arrastrar.
-    const portraitZoom = Math.min(W / (bw * 0.64), avail / bh);
-    const zoom = H > W ? Math.max(this.fitZoom, portraitZoom) : this.fitZoom;
+    // En vertical se encuadra la granja (sin las tierras cerradas del este, que se ven arrastrando).
+    const portrait = H > W;
+    const homeW = this.sim.state.rank === 'landowner' ? mw : Math.min(mw, PROGRESSION.lands.eastFrom);
+    const homeBw = (homeW + mh) * (TILE_W / 2);
+    const portraitZoom = Math.min(W / (homeBw * 0.64), avail / bh);
+    const zoom = portrait ? Math.max(this.fitZoom, portraitZoom) : this.fitZoom;
     cam.setZoom(zoom);
-    cam.centerOn((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2 - (top - bottom) / 2 / zoom);
+    const cx = portrait ? ((homeW - mh) * (TILE_W / 2)) / 2 : (b.minX + b.maxX) / 2;
+    const cy = portrait ? ((homeW + mh) * (TILE_H / 2)) / 2 - 40 : (b.minY + b.maxY) / 2;
+    cam.centerOn(cx, cy - (top - bottom) / 2 / zoom);
   }
 
   private zoomBy(factor: number): void {
@@ -171,7 +189,14 @@ export class FarmScene extends Phaser.Scene {
   private addGround(tile: Tile): void {
     const { sx, sy } = toScreen(tile.x, tile.y);
     const grass = ['grass_a', 'grass_b', 'grass_c'][(tile.x * 7 + tile.y * 13) % 3];
-    const key = tile.kind === 'soil' ? 'soil' : tile.kind === 'path' || tile.kind === 'market' ? 'path' : grass;
+    const key =
+      tile.kind === 'soil' || tile.kind === 'tenant'
+        ? 'soil'
+        : tile.kind === 'path' || tile.kind === 'market'
+          ? 'path'
+          : tile.kind === 'wild'
+            ? 'wild'
+            : grass;
     this.seasonal.push(this.img(key, sx, sy, 0.5, 0, 1));
   }
 
@@ -180,11 +205,21 @@ export class FarmScene extends Phaser.Scene {
     const bottom = sy + TILE_H;
     switch (tile.kind) {
       case 'house':
-        this.img('house', sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 5));
+        this.img(this.stageKey('house'), sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 5));
+        break;
+      case 'granary':
+        this.img(this.stageKey('granary'), sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 5));
         break;
       case 'coop':
-        this.img('coop', sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 5));
+        this.img(this.stageKey('coop'), sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 5));
         this.addBubble('chicken', tile, sx + 18, sy - 44, 'icon_egg');
+        break;
+      case 'tenant':
+        this.img('tenant', sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 1));
+        break;
+      case 'wild':
+        // Mojones del baron en la linde de sus tierras
+        if (tile.x === PROGRESSION.lands.eastFrom && tile.y % 2 === 0) this.img('boundary', sx - TILE_W / 4, sy + TILE_H * 0.75, 0.5, 1, depthOf(tile.x, tile.y, 3));
         break;
       case 'market':
         this.img('market', sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 5));
@@ -206,6 +241,10 @@ export class FarmScene extends Phaser.Scene {
       default:
         break;
     }
+  }
+
+  private stageKey(b: BuildingId): string {
+    return `${b}_${Math.max(1, visualStage(this.sim.state, b))}`;
   }
 
   private penTiles(): Tile[] {
@@ -231,16 +270,56 @@ export class FarmScene extends Phaser.Scene {
     const back = this.add.graphics().setDepth(depthOf(x0, y0, -5));
     const front = this.add.graphics().setDepth(depthOf(x1, y1, 8));
     this.built.push(back, front);
-    this.drawFence(back, leftV, topV);
-    this.drawFence(back, topV, rightV);
-    this.drawFence(front, rightV, bottomV);
-    this.drawFence(front, bottomV, leftV);
+    const stage = visualStage(this.sim.state, 'pen');
+    // Con el establo, un cobertizo con heno en la esquina del fondo.
+    if (stage >= 2) this.img('pen_shed', topV.x, topV.y + TILE_H + 4, 0.5, 1, depthOf(x0, y0, -4));
+    this.drawFence(back, leftV, topV, stage);
+    this.drawFence(back, topV, rightV, stage);
+    this.drawFence(front, rightV, bottomV, stage);
+    this.drawFence(front, bottomV, leftV, stage);
     const midX = (topV.x + bottomV.x) / 2;
     const midY = (topV.y + bottomV.y) / 2;
     this.addBubble('cow', { x: pen[0].x, y: pen[0].y }, midX + 30, midY - 70, 'icon_milk');
   }
 
-  private drawFence(g: Phaser.GameObjects.Graphics, a: { x: number; y: number }, b: { x: number; y: number }): void {
+  /** Valla del corral: estacas toscas, cerca de tablas o muro de piedra segun las mejoras. */
+  private drawFence(g: Phaser.GameObjects.Graphics, a: { x: number; y: number }, b: { x: number; y: number }, stage = 1): void {
+    if (stage >= 3) {
+      const blocks = 10;
+      for (let row = 0; row < 3; row++) {
+        for (let i = 0; i < blocks; i++) {
+          const f0 = (i + (row % 2 ? 0.5 : 0)) / blocks;
+          const f1 = Math.min(1, f0 + 1 / blocks);
+          if (f0 >= 1) continue;
+          const x0 = a.x + (b.x - a.x) * f0;
+          const y0 = a.y + (b.y - a.y) * f0 - row * 8;
+          const x1 = a.x + (b.x - a.x) * f1;
+          const y1 = a.y + (b.y - a.y) * f1 - row * 8;
+          const shade = [0x77715f, 0x8f8873, 0x6a6455][(i + row) % 3];
+          g.fillStyle(0x35322a, 1);
+          fillQuad(g, [x0, y0, x1, y1, x1, y1 - 8, x0, y0 - 8]);
+          g.fillStyle(shade, 1);
+          fillQuad(g, [x0 + 1, y0 - 1, x1 - 1, y1 - 1, x1 - 1, y1 - 7, x0 + 1, y0 - 7]);
+        }
+      }
+      g.lineStyle(3, 0x4f4a3e, 1).lineBetween(a.x, a.y - 25, b.x, b.y - 25);
+      return;
+    }
+    if (stage === 2) {
+      // tablas horizontales mas tupidas y postes cuadrados
+      for (const h of [7, 14, 21]) {
+        g.lineStyle(6, 0x24170e, 1).lineBetween(a.x, a.y - h, b.x, b.y - h);
+        g.lineStyle(4, 0x8a6a44, 1).lineBetween(a.x, a.y - h, b.x, b.y - h);
+      }
+      for (let i = 0; i <= 4; i++) {
+        const f = i / 4;
+        const x = a.x + (b.x - a.x) * f;
+        const y = a.y + (b.y - a.y) * f;
+        g.fillStyle(0x24170e, 1).fillRect(x - 4, y - 29, 8, 30);
+        g.fillStyle(0x6a4a2c, 1).fillRect(x - 3, y - 28, 6, 28);
+      }
+      return;
+    }
     const posts = 5;
     g.lineStyle(4, 0x24170e, 1);
     for (const h of [10, 20]) g.lineBetween(a.x, a.y - h, b.x, b.y - h);
@@ -284,6 +363,15 @@ export class FarmScene extends Phaser.Scene {
     }
     const pen = this.penTiles().map((tl) => ({ x: tl.x, y: tl.y }));
     for (let i = 0; i < this.sim.state.herds.cow.count; i++) this.addAnimal('cow', pen, 0.9);
+    // Aldeanos: cada oficio pasea por donde trabaja.
+    const tiles = this.sim.state.map.tiles;
+    const coopArea = coop ? tiles.filter((tl) => tl.kind === 'grass' && Math.abs(tl.x - coop.x) <= 1 && Math.abs(tl.y - coop.y) <= 1) : [];
+    const areas: Record<JobId, { x: number; y: number }[]> = {
+      farmer: tiles.filter((tl) => tl.kind === 'soil'),
+      herder: [...pen, ...coopArea],
+      carter: tiles.filter((tl) => tl.kind === 'path' && tl.x < PROGRESSION.lands.eastFrom),
+    };
+    for (const v of this.sim.state.villagers) this.addAnimal(`villager_${v.job}`, areas[v.job], 0.95);
   }
 
   private addAnimal(key: string, area: { x: number; y: number }[], oy: number): void {
@@ -336,6 +424,10 @@ export class FarmScene extends Phaser.Scene {
       case 'mapChanged':
         this.build();
         break;
+      case 'notice':
+        // Al ser Terrateniente el encuadre en vertical pasa a incluir las tierras del este.
+        if (e.notice.card === 'rank') this.fit();
+        break;
       case 'change':
         this.refresh();
         this.syncSpeed();
@@ -369,15 +461,18 @@ export class FarmScene extends Phaser.Scene {
   private drawLandHints(): void {
     const s = this.sim.state;
     // Se redibuja solo cuando cambia algo que afecta (la escena refresca en cada fotograma).
-    const key = `${s.level}|${plotCount(s)}`;
+    const key = `${s.level}|${plotCount(s)}|${s.rank}|${s.leases}`;
     if (key === this.hintsKey) return;
     this.hintsKey = key;
     const g = this.landHints;
     g.clear();
-    if (!hasFeature(s, 'buyLand') || plotCount(s) >= levelDef(s.level).maxPlots) return;
-    g.fillStyle(0xe8d08a, 0.75);
+    const canBuy = hasFeature(s, 'buyLand') && plotCount(s) < levelDef(s.level).maxPlots;
     for (const tile of s.map.tiles) {
-      if (!canExpandAt(s, tile.x, tile.y)) continue;
+      const buy = canBuy && canExpandAt(s, tile.x, tile.y);
+      const lease = canLeaseAt(s, tile.x, tile.y);
+      if (!buy && !lease) continue;
+      // Dorado para roturar; rojo del baron para arrendar a un aparcero.
+      g.fillStyle(lease ? 0xc0573f : 0xe8d08a, 0.75);
       const { sx, sy } = toScreen(tile.x, tile.y);
       const corners = [
         [sx, sy + 6],
@@ -410,8 +505,8 @@ export class FarmScene extends Phaser.Scene {
       sprite.setTexture(CROPS[plot.crop].stageSprites[stage]).setVisible(true);
     }
     for (const b of this.bubbles) {
-      const stored = s.herds[b.animal].stored;
-      b.box.setVisible(stored > 0);
+      const stored = Math.floor(s.herds[b.animal].stored);
+      b.box.setVisible(stored >= 1);
       b.label.setText(String(stored));
     }
   }
@@ -536,8 +631,8 @@ export class FarmScene extends Phaser.Scene {
     const { x, y } = toTile(w.x, w.y);
     const s = this.sim.state;
     const tile = x >= 0 && y >= 0 && x < s.map.width && y < s.map.height ? s.map.tiles[y * s.map.width + x] : undefined;
-    const expandable = tile?.kind === 'grass' && hasFeature(s, 'buyLand') && canExpandAt(s, x, y);
-    if (!tile || (!expandable && !['soil', 'coop', 'pen', 'market', 'house'].includes(tile.kind))) {
+    const expandable = tile?.kind === 'grass' && ((hasFeature(s, 'buyLand') && canExpandAt(s, x, y)) || canLeaseAt(s, x, y));
+    if (!tile || (!expandable && !['soil', 'coop', 'pen', 'market', 'house', 'granary', 'tenant'].includes(tile.kind))) {
       this.input.setDefaultCursor('default');
       return;
     }

@@ -1,0 +1,70 @@
+{
+  "hireCost": 10,
+  "foodPerDay": 1,
+  "foodOrder": [
+    "carrot",
+    "cabbage",
+    "wheat",
+    "egg",
+    "milk"
+  ],
+  "hungerDays": 2,
+  "jobs": {
+    "farmer": {
+      "growthBonus": 0.15
+    },
+    "herder": {
+      "animalBonus": 0.08
+    },
+    "carter": {
+      "sellEvery": 7,
+      "priceRate": 0.75,
+      "priceRatePerTier": 0.08,
+      "reserveDays": 7
+    }
+  },
+  "tools": {
+    "efficiency": [
+      1,
+      1.5,
+      2,
+      2.6
+    ],
+    "tiers": [
+      {
+        "cost": 20,
+        "level": 2
+      },
+      {
+        "cost": 70,
+        "level": 5
+      },
+      {
+        "cost": 180,
+        "level": 8
+      }
+    ]
+  },
+  "names": [
+    "Tomás",
+    "Inés",
+    "Martín",
+    "Elvira",
+    "Rodrigo",
+    "Urraca",
+    "Sancho",
+    "Jimena",
+    "Pelayo",
+    "Leonor",
+    "Gonzalo",
+    "Mencía",
+    "Fernán",
+    "Aldonza",
+    "Bermudo",
+    "Toda",
+    "Nuño",
+    "Sol",
+    "Ordoño",
+    "Elo"
+  ]
+}

@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { createNewGame } from '../../src/sim/state';
-import { addXp, hasFeature, levelProgress, nextLevelXp, rankOf, unlocksAt } from '../../src/sim/progress';
+import { addXp, hasFeature, levelProgress, nextLevelXp, unlocksAt, updateRank } from '../../src/sim/progress';
 import { priceOf, priceTrend, rollPrices } from '../../src/sim/market';
 import { eligibleEvents, maybeTriggerEvent, optionAvailable, resolveEvent, startEvent } from '../../src/sim/events';
 import { advanceDay } from '../../src/sim/rules';
 import { EVENTS, MAX_LEVEL, PRODUCTS, PRODUCT_IDS, PROGRESSION } from '../../src/sim/data';
 import { DAYS_PER_SEASON } from '../../src/sim/calendar';
+import { seasonBill } from '../../src/sim/taxes';
+import { multiplier } from '../../src/sim/modifiers';
 
 describe('experiencia y niveles', () => {
   it('sube varios niveles de golpe si hace falta', () => {
@@ -29,10 +31,35 @@ describe('experiencia y niveles', () => {
   });
 
   it('al nivel 5 se es Granjero libre', () => {
-    expect(rankOf(1)).toBe('peasant');
-    expect(rankOf(4)).toBe('peasant');
-    expect(rankOf(5)).toBe('freeFarmer');
+    const s = createNewGame(1);
+    expect(s.rank).toBe('peasant');
+    s.level = 4;
+    expect(updateRank(s)).toBeNull();
+    s.level = 5;
+    expect(updateRank(s)).toBe('freeFarmer');
+    expect(s.rank).toBe('freeFarmer');
     expect(unlocksAt(5).rank).toBe('freeFarmer');
+  });
+
+  it('Terrateniente pide nivel, dias y favor del baron', () => {
+    const s = createNewGame(1);
+    s.level = 8;
+    s.day = 239;
+    s.rep.baron = 60;
+    expect(updateRank(s)).toBe('freeFarmer');
+    s.day = 240;
+    s.rep.baron = 59;
+    expect(updateRank(s)).toBeNull();
+    s.rep.baron = 60;
+    expect(updateRank(s)).toBe('landowner');
+    // no aparece en el arbol de niveles porque no depende solo del nivel
+    expect(unlocksAt(8).rank).toBeNull();
+  });
+
+  it('el arbol informa de mejoras y herramientas por nivel', () => {
+    expect(unlocksAt(1).upgrades.map((u) => u.id)).toContain('pallet');
+    expect(unlocksAt(2).tools).toEqual([{ tier: 1, cost: 20, jobs: ['farmer', 'herder', 'carter'] }]);
+    expect(unlocksAt(9).upgrades.map((u) => `${u.building}.${u.id}`)).toEqual(['granary.stoneBarn', 'pen.dairy']);
   });
 
   it('cada nivel informa de lo que desbloquea', () => {
@@ -99,10 +126,11 @@ describe('eventos', () => {
     for (let i = 1; i < seen.length; i++) expect(seen[i] - seen[i - 1]).toBeGreaterThanOrEqual(PROGRESSION.events.minGap);
   });
 
-  it('el jornalero solo aparece desde el nivel 2 y la feria no en invierno', () => {
+  it('el jornalero necesita una cama libre y la feria no sale en invierno', () => {
     const s = createNewGame(5);
-    expect(eligibleEvents(s)).not.toContain('farmhand');
     s.level = 2;
+    expect(eligibleEvents(s)).not.toContain('farmhand');
+    s.buildings.house = 1;
     expect(eligibleEvents(s)).toContain('farmhand');
     s.day = DAYS_PER_SEASON * 3;
     expect(eligibleEvents(s)).not.toContain('fair');
@@ -129,20 +157,56 @@ describe('eventos', () => {
     expect(s.events.pending).not.toBeNull();
   });
 
-  it('negarse a la leva cuesta monedas sin bajar de cero', () => {
+  it('negarse a la leva enfada al baron y sube el tributo una estacion', () => {
     const s = createNewGame(5);
-    s.coins = 3;
+    s.day = DAYS_PER_SEASON + 10;
+    const bill = seasonBill(s).tribute;
     startEvent(s, 'levy');
     resolveEvent(s, 'refuse');
-    expect(s.coins).toBe(0);
+    expect(s.rep.baron).toBe(40);
+    expect(s.flags).toContain('levyRefused');
+    expect(seasonBill(s).tribute).toBe(Math.round(bill * 1.5));
+    // sigue activo el dia de las cuentas y desaparece despues
+    s.day = 2 * DAYS_PER_SEASON;
+    expect(multiplier(s, 'tribute')).toBe(1.5);
+    s.day = 2 * DAYS_PER_SEASON + 1;
+    expect(multiplier(s, 'tribute')).toBe(1);
   });
 
-  it('contratar al jornalero suma un jornalero', () => {
+  it('rechazar una oferta no tiene ninguna penalizacion', () => {
+    const s = createNewGame(5);
+    s.inventory.egg = 4;
+    const before = JSON.stringify({ ...s, events: null });
+    startEvent(s, 'peddler');
+    resolveEvent(s, 'decline');
+    expect(JSON.stringify({ ...s, events: null })).toBe(before);
+    for (const ev of Object.values(EVENTS).filter((e) => e.category === 'offer')) {
+      const decline = ev.options.find((o) => o.id === 'decline');
+      expect(decline, 'cada oferta se puede rechazar').toBeDefined();
+      expect(decline!.effects ?? {}).toEqual({});
+      expect(decline!.risk).toBeUndefined();
+    }
+  });
+
+  it('los hombres del baron solo vienen tras negarse a la leva', () => {
+    const s = createNewGame(5);
+    s.level = 5;
+    expect(eligibleEvents(s)).not.toContain('baronsMen');
+    s.flags.push('levyRefused');
+    s.coins = 50;
+    expect(eligibleEvents(s)).toContain('baronsMen');
+    startEvent(s, 'baronsMen');
+    resolveEvent(s, 'pay');
+    expect(s.flags).not.toContain('levyRefused');
+  });
+
+  it('contratar al jornalero suma un aldeano', () => {
     const s = createNewGame(5);
     s.level = 2;
+    s.buildings.house = 1;
     startEvent(s, 'farmhand');
     resolveEvent(s, 'hire');
-    expect(s.workers).toBe(1);
+    expect(s.villagers.length).toBe(1);
   });
 
   it('el zorro a veces se lleva una gallina si no se pone cerca', () => {

@@ -604,6 +604,402 @@ def icon_milk() -> str:
     return svg(32, 32, b, defs)
 
 
+
+# ---------------------------------------------------------------- fase 2: edificios por etapas
+
+def iso_box_c(cx, by, hw, hh, wall, left_fill, right_fill, outline, sw=1.0):
+    """Como iso_box, pero con el vertice inferior en (cx, by)."""
+    return iso_box(2 * cx, by, hw, hh, wall, left_fill, right_fill, outline, sw)
+
+
+def timber_frame(p, low, high, sw=3.0):
+    """Entramado de madera oscura entre las alturas `low` y `high` de las dos paredes visibles."""
+    out = ""
+    for a, c in ((p["l"], p["b"]), (p["b"], p["r"])):
+        for f in (0.0, 0.5, 1.0):
+            q = lerp(a, c, f)
+            out += line((q[0], q[1] - low), (q[0], q[1] - high), PAL["timber"], sw)
+        mid = (low + high) / 2
+        out += line((a[0], a[1] - mid), (c[0], c[1] - mid), PAL["timber"], sw - 0.4)
+        for f0, f1 in ((0.0, 0.5), (0.5, 1.0)):
+            q0, q1 = lerp(a, c, f0), lerp(a, c, f1)
+            out += line((q0[0], q0[1] - mid), (q1[0], q1[1] - high), PAL["timber"], sw - 1)
+        out += line((a[0], a[1] - high), (c[0], c[1] - high), PAL["timber"], sw)
+    return out
+
+
+def door_on(a, c, f0, f1, height, fill=None):
+    d0, d1 = lerp(a, c, f0), lerp(a, c, f1)
+    door = [d0, d1, (d1[0], d1[1] - height), (d0[0], d0[1] - height)]
+    out = poly(door, fill or PAL["wood_shade"], PAL["timber"], 1.4)
+    for f in (0.33, 0.66):
+        out += line(lerp(door[0], door[1], f), lerp(door[3], door[2], f), PAL["timber"], 0.8)
+    out += line(lerp(door[0], door[3], 0.3), lerp(door[1], door[2], 0.3), PAL["iron"], 1.4)
+    out += line(lerp(door[0], door[3], 0.75), lerp(door[1], door[2], 0.75), PAL["iron"], 1.4)
+    return out
+
+
+def window_on(a, c, f, low, size=11, lit=True):
+    w0 = lerp(a, c, f)
+    slope = (c[1] - a[1]) / max(1e-6, (c[0] - a[0]))
+    dx = size if c[0] > a[0] else -size
+    win = [(w0[0], w0[1] - low), (w0[0] + dx, w0[1] - low + dx * slope),
+           (w0[0] + dx, w0[1] - low - 10.5 + dx * slope), (w0[0], w0[1] - low - 10.5)]
+    out = poly(win, "#e2a54b" if lit else PAL["ink"], PAL["timber"], 1.6)
+    out += line(lerp(win[0], win[1], 0.5), lerp(win[3], win[2], 0.5), PAL["timber"], 1.2)
+    return out
+
+
+def chimney(base, k=1.0):
+    c = base
+    out = poly([c, (c[0] + 8 * k, c[1] + 4 * k), (c[0] + 8 * k, c[1] - 16 * k), (c[0], c[1] - 20 * k)], PAL["stone"], PAL["mortar"], 1)
+    out += poly([(c[0] + 8 * k, c[1] + 4 * k), (c[0] + 14 * k, c[1] + 1 * k), (c[0] + 14 * k, c[1] - 19 * k), (c[0] + 8 * k, c[1] - 16 * k)],
+                PAL["stone_dark"], PAL["mortar"], 1)
+    out += poly([(c[0], c[1] - 20 * k), (c[0] + 8 * k, c[1] - 16 * k), (c[0] + 14 * k, c[1] - 19 * k), (c[0] + 6 * k, c[1] - 23 * k)], PAL["mortar"])
+    return out
+
+
+def stone_wall_face(a, c, height, rnd, rows=4):
+    """Pared entera de sillares."""
+    out = poly([a, c, (c[0], c[1] - height), (a[0], a[1] - height)], PAL["mortar"])
+    rh = height / rows
+    for r in range(rows):
+        k = -rnd.uniform(0.0, 0.08) if r % 2 else 0.0
+        while k < 1:
+            k2 = min(1, k + rnd.uniform(0.13, 0.2))
+            p0, p1 = lerp(a, c, max(0, k)), lerp(a, c, k2)
+            y0 = r * rh
+            quad = [(p0[0] + 0.7, p0[1] - y0 - 0.7), (p1[0] - 0.7, p1[1] - y0 - 0.7),
+                    (p1[0] - 0.7, p1[1] - y0 - rh + 0.7), (p0[0] + 0.7, p0[1] - y0 - rh + 0.7)]
+            out += poly(quad, rnd.choice([PAL["stone"], PAL["stone_light"], "#6a6455", "#827b67"]))
+            k = k2
+    return out
+
+
+def annex(cx, by, hw, hh, wall, stone, rnd):
+    """Anexo bajo con tejado a cuatro aguas (cobertizo o ampliacion)."""
+    fills = (PAL["stone"], PAL["stone_dark"]) if stone else ("url(#wl)", "url(#wr)")
+    box, p = iso_box_c(cx, by, hw, hh, wall, fills[0], fills[1], PAL["timber"], 1.1)
+    out = box
+    if stone:
+        out += stone_wall_face(p["l"], p["b"], wall, rnd, 3) + stone_wall_face(p["b"], p["r"], wall, rnd, 3)
+    else:
+        out += stone_band(p["l"], p["b"], 8, rnd) + stone_band(p["b"], p["r"], 8, rnd)
+        out += timber_frame(p, 8, wall, 2.4)
+    if stone:
+        roof, _, _ = hip_roof(p, 0.2, 22, PAL["shingle"], PAL["shingle_shade"], PAL["wood_dark"], PAL["wood_dark"], 6)
+    else:
+        roof, _, _ = hip_roof(p, 0.2, 22, "url(#rl)", "url(#rr)", PAL["thatch_line"], PAL["thatch_line"], 6)
+    return out + roof, p
+
+
+def house_stage(stage: int) -> str:
+    """Casa en tres etapas: choza de entramado, casa ampliada y casa de piedra con piso alto."""
+    if stage == 1:
+        return house()
+    rnd = random.Random(3 + stage)
+    w, h = (180, 196) if stage == 2 else (190, 222)
+    cx, by = w / 2, h - 4
+    defs = lin_grad("wl", PAL["plaster"], PAL["plaster_shade"]) + lin_grad("wr", PAL["plaster_shade"], "#7d6a4b")
+    defs += lin_grad("rl", PAL["thatch"], PAL["thatch_shade"]) + lin_grad("rr", PAL["thatch_shade"], "#4f3a18")
+    defs += lin_grad("sl", "#5a3b2b", PAL["shingle"]) + lin_grad("sr", PAL["shingle_shade"], "#2c1c14")
+    body = ellipse(cx - 12, h - 28, 80, 26, PAL["shadow"])
+    # ampliacion a la izquierda, detras de la casa
+    ann, _ = annex(cx - 50, by - 20, 30, 15, 34 if stage == 2 else 40, stage == 3, rnd)
+    body += ann
+    wall = 52 if stage == 2 else 74
+    box, p = iso_box_c(cx, by, 52, 26, wall, "url(#wl)", "url(#wr)", PAL["timber"], 1.2)
+    body += box
+    if stage == 2:
+        body += stone_band(p["l"], p["b"], 12, rnd) + stone_band(p["b"], p["r"], 12, rnd)
+        body += timber_frame(p, 12, wall)
+        body += door_on(p["b"], p["r"], 0.18, 0.42, 28)
+        body += window_on(p["l"], p["b"], 0.22, 34)
+        body += window_on(p["l"], p["b"], 0.62, 34)
+        body += window_on(p["b"], p["r"], 0.66, 34)
+        roof, apex, (L, B, R) = hip_roof(p, 0.18, 48, "url(#rl)", "url(#rr)", PAL["thatch_line"], PAL["thatch_line"], 10)
+        body += roof + line(L, B, PAL["thatch_shade"], 3) + line(B, R, "#4f3a18", 3)
+        # buhardilla del altillo
+        d = lerp(B, apex, 0.42)
+        body += poly([(d[0] - 10, d[1] + 6), (d[0] + 10, d[1] + 1), (d[0] + 10, d[1] - 12), (d[0], d[1] - 20), (d[0] - 10, d[1] - 7)],
+                     PAL["plaster_shade"], PAL["timber"], 1.2)
+        body += poly([(d[0] - 5, d[1] + 1), (d[0] + 5, d[1] - 1.5), (d[0] + 5, d[1] - 10), (d[0] - 5, d[1] - 7.5)], "#e2a54b", PAL["timber"], 1.2)
+        body += poly([(d[0] - 13, d[1] - 5), (d[0], d[1] - 23), (d[0] + 13, d[1] - 11), (d[0], d[1] - 19)], PAL["thatch_shade"], PAL["thatch_line"], 1)
+        body += chimney((apex[0] + 20, apex[1] + 22))
+    else:
+        # planta baja de piedra y piso alto de entramado
+        body += stone_wall_face(p["l"], p["b"], 32, rnd) + stone_wall_face(p["b"], p["r"], 32, rnd)
+        body += timber_frame(p, 34, wall)
+        body += line((p["l"][0], p["l"][1] - 33), (p["b"][0], p["b"][1] - 33), PAL["wood_dark"], 4)
+        body += line((p["b"][0], p["b"][1] - 33), (p["r"][0], p["r"][1] - 33), PAL["wood_dark"], 4)
+        body += door_on(p["b"], p["r"], 0.2, 0.44, 28, PAL["oxblood_dark"])
+        body += window_on(p["l"], p["b"], 0.3, 12, 9, False)
+        body += window_on(p["l"], p["b"], 0.22, 50)
+        body += window_on(p["l"], p["b"], 0.62, 50)
+        body += window_on(p["b"], p["r"], 0.3, 50)
+        body += window_on(p["b"], p["r"], 0.7, 50)
+        roof, apex, (L, B, R) = hip_roof(p, 0.16, 52, "url(#sl)", "url(#sr)", PAL["wood_dark"], "#24170e", 11)
+        body += roof + line(L, B, "#2c1c14", 2.6) + line(B, R, "#24170e", 2.6)
+        body += chimney((apex[0] + 18, apex[1] + 24), 1.25)
+        body += chimney((apex[0] - 30, apex[1] + 34), 0.9)
+        # estandarte familiar
+        pole = (apex[0], apex[1] + 2)
+        body += line(pole, (pole[0], pole[1] - 30), PAL["wood_dark"], 2)
+        body += poly([(pole[0], pole[1] - 30), (pole[0] + 16, pole[1] - 26), (pole[0], pole[1] - 20)], PAL["oxblood"], PAL["oxblood_dark"], 1)
+    return svg(w, h, body, defs)
+
+
+def staddle(x, y):
+    """Seta de piedra sobre la que se apoya un granero para que no entren ratas."""
+    out = poly([(x - 2.5, y), (x + 2.5, y), (x + 2, y - 8), (x - 2, y - 8)], PAL["stone_dark"], PAL["mortar"], 0.8)
+    out += ellipse(x, y - 9, 6, 2.6, PAL["stone"], PAL["mortar"], 0.8)
+    return out
+
+
+def granary(stage: int) -> str:
+    rnd = random.Random(40 + stage)
+    w, h = (128, 150) if stage == 1 else (140, 164) if stage == 2 else (150, 184)
+    cx, by = w / 2, h - 4
+    defs = lin_grad("gl", PAL["wood"], PAL["wood_shade"]) + lin_grad("gr", PAL["wood_shade"], "#3a2716")
+    defs += lin_grad("rl", PAL["thatch"], PAL["thatch_shade"]) + lin_grad("rr", PAL["thatch_shade"], "#4f3a18")
+    body = ellipse(cx, h - 24, 54, 20, PAL["shadow"])
+    if stage < 3:
+        hw, wall, lift = (38, 30, 10) if stage == 1 else (44, 36, 10)
+        _, p0 = iso_box_c(cx, by, hw, hw / 2, 0, "none", "none", "none")
+        for q in (p0["l"], lerp(p0["l"], p0["b"], 0.5), p0["b"], lerp(p0["b"], p0["r"], 0.5), p0["r"]):
+            body += staddle(q[0], q[1] - 2)
+        box, p = iso_box_c(cx, by - lift, hw, hw / 2, wall, "url(#gl)", "url(#gr)", PAL["wood_dark"], 1.2)
+        body += box
+        for a, c in ((p["l"], p["b"]), (p["b"], p["r"])):
+            for k in range(1, 4):
+                y = wall * k / 4
+                body += line((a[0], a[1] - y), (c[0], c[1] - y), PAL["wood_dark"], 0.8, op=0.8)
+            for f in (0.0, 0.5, 1.0):
+                q = lerp(a, c, f)
+                body += line(q, (q[0], q[1] - wall), PAL["wood_dark"], 2.4)
+        body += door_on(p["b"], p["r"], 0.3, 0.62 if stage == 2 else 0.55, wall - 6)
+        roof, apex, (L, B, R) = hip_roof(p, 0.22, 30 if stage == 1 else 34, "url(#rl)", "url(#rr)", PAL["thatch_line"], PAL["thatch_line"], 8)
+        body += roof + line(L, B, PAL["thatch_shade"], 3) + line(B, R, "#4f3a18", 3)
+        if stage == 2:
+            # sacos apilados junto a la pared
+            s0 = lerp(p0["l"], p0["b"], 0.55)
+            for dx, dy in ((0, 0), (9, 3), (4, -6)):
+                body += ellipse(s0[0] + dx, s0[1] + dy - 6, 6, 7, "#a68a5a", PAL["wood_dark"], 0.9)
+                body += line((s0[0] + dx - 2, s0[1] + dy - 12), (s0[0] + dx + 2, s0[1] + dy - 12), PAL["wood_dark"], 1.2)
+    else:
+        box, p = iso_box_c(cx, by, 50, 25, 50, PAL["stone"], PAL["stone_dark"], PAL["mortar"], 1.2)
+        body += box
+        body += stone_wall_face(p["l"], p["b"], 50, rnd, 5) + stone_wall_face(p["b"], p["r"], 50, rnd, 5)
+        # puerta grande en arco
+        d0, d1 = lerp(p["b"], p["r"], 0.25), lerp(p["b"], p["r"], 0.6)
+        mx, my = (d0[0] + d1[0]) / 2, (d0[1] + d1[1]) / 2
+        body += (f'<path d="M{d0[0]:.1f},{d0[1]:.1f} L{d1[0]:.1f},{d1[1]:.1f} L{d1[0]:.1f},{d1[1] - 26:.1f} '
+                 f'Q{mx:.1f},{my - 42:.1f} {d0[0]:.1f},{d0[1] - 26:.1f} Z" fill="{PAL["wood_shade"]}" '
+                 f'stroke="{PAL["timber"]}" stroke-width="1.6"/>')
+        body += line((mx, my), (mx, my - 33), PAL["timber"], 1.2)
+        body += window_on(p["l"], p["b"], 0.4, 32, 8, False)
+        roof, apex, (L, B, R) = hip_roof(p, 0.16, 44, PAL["shingle"], PAL["shingle_shade"], PAL["wood_dark"], "#24170e", 10)
+        body += roof
+        # pescante con polea y saco colgando
+        tip = lerp(B, apex, 0.25)
+        body += line(tip, (tip[0] + 22, tip[1] + 8), PAL["wood_dark"], 3)
+        body += line((tip[0] + 20, tip[1] + 8), (tip[0] + 20, tip[1] + 30), "#8a7a5a", 1)
+        body += ellipse(tip[0] + 20, tip[1] + 36, 5, 6.5, "#a68a5a", PAL["wood_dark"], 0.9)
+    return svg(w, h, body, defs)
+
+
+def coop_stage(stage: int) -> str:
+    if stage == 1:
+        return coop()
+    rnd = random.Random(60 + stage)
+    w, h = (150, 132) if stage == 2 else (156, 146)
+    cx, by = w / 2, h - 4
+    defs = lin_grad("cl", PAL["wood"], PAL["wood_shade"]) + lin_grad("cr", PAL["wood_shade"], "#3a2716")
+    body = ellipse(cx, h - 22, 60, 20, PAL["shadow"])
+    if stage == 2:
+        box_by = by - 10
+        for dx in (-30, 0, 30):
+            body += line((cx + dx, by - abs(dx) * 0.5), (cx + dx, box_by - abs(dx) * 0.5), PAL["wood_dark"], 3)
+        box, p = iso_box_c(cx, box_by, 38, 19, 30, "url(#cl)", "url(#cr)", PAL["wood_dark"], 1.2)
+    else:
+        base, pb = iso_box_c(cx, by, 40, 20, 14, PAL["stone"], PAL["stone_dark"], PAL["mortar"], 1.1)
+        body += base + stone_wall_face(pb["l"], pb["b"], 14, rnd, 2) + stone_wall_face(pb["b"], pb["r"], 14, rnd, 2)
+        box, p = iso_box_c(cx, by - 14, 40, 20, 30, "url(#cl)", "url(#cr)", PAL["wood_dark"], 1.2)
+    body += box
+    for a, c in ((p["l"], p["b"]), (p["b"], p["r"])):
+        for f in (0.2, 0.4, 0.6, 0.8):
+            q = lerp(a, c, f)
+            body += line(q, (q[0], q[1] - 30), PAL["wood_dark"], 0.8, op=0.8)
+    hole = lerp(p["b"], p["r"], 0.3)
+    body += ellipse(hole[0], hole[1] - 15, 4, 6, PAL["ink"])
+    ramp0 = (hole[0], hole[1] - 6)
+    body += poly([ramp0, (ramp0[0] + 8, ramp0[1] - 3), (ramp0[0] + 24, ramp0[1] + 16), (ramp0[0] + 16, ramp0[1] + 19)], PAL["wood"], PAL["wood_dark"], 1)
+    # nidales: cajon con tapa inclinada en el lado derecho
+    n0, n1 = lerp(p["b"], p["r"], 0.58), lerp(p["b"], p["r"], 0.95)
+    lo, hi = 6, 18
+    front = [(n0[0], n0[1] - lo + 5), (n1[0], n1[1] - lo + 5), (n1[0], n1[1] - hi), (n0[0], n0[1] - hi)]
+    body += poly(front, PAL["wood_shade"], PAL["wood_dark"], 1)
+    for f in (0.33, 0.66):
+        q = lerp(front[0], front[1], f)
+        body += line(q, (q[0], q[1] - (hi - lo + 5)), PAL["wood_dark"], 0.9)
+    body += poly([(n0[0] - 2, n0[1] - hi - 1), (n1[0] + 2, n1[1] - hi - 2), (n1[0] - 2, n1[1] - hi - 9), (n0[0] - 6, n0[1] - hi - 8)], PAL["shingle"], PAL["wood_dark"], 1)
+    roof, apex, _ = hip_roof(p, 0.24, 26, PAL["shingle"], PAL["shingle_shade"], PAL["wood_dark"], PAL["wood_dark"], 8)
+    body += roof
+    # cercado de zarzo delante a la izquierda
+    f0, f1 = (cx - 70, by - 26), (cx - 36, by - 9)
+    for k in range(6):
+        q = lerp(f0, f1, k / 5)
+        body += line((q[0], q[1] + 2), (q[0], q[1] - 14), PAL["wood_dark"], 2)
+    for y in (4, 8, 12):
+        body += line((f0[0], f0[1] - y), (f1[0], f1[1] - y), "#7a6038", 1.8)
+    if stage == 3:
+        body += chimney((apex[0] - 4, apex[1] + 16), 0.6)
+    return svg(w, h, body, defs)
+
+
+def pen_shed() -> str:
+    """Cobertizo de establo con heno para la esquina trasera del corral."""
+    w, h = 120, 110
+    cx, by = w / 2, h - 6
+    body = ellipse(cx, h - 18, 44, 14, PAL["shadow"])
+    body += poly([(cx - 40, by - 20), (cx, by - 40), (cx + 40, by - 20), (cx + 40, by - 60), (cx, by - 80), (cx - 40, by - 60)],
+                 PAL["wood_shade"], PAL["wood_dark"], 1)
+    for k in range(1, 4):
+        body += line((cx - 40, by - 20 - k * 10), (cx, by - 40 - k * 10), PAL["wood_dark"], 0.8, op=0.7)
+        body += line((cx, by - 40 - k * 10), (cx + 40, by - 20 - k * 10), PAL["wood_dark"], 0.8, op=0.7)
+    for k in range(5):
+        x = cx - 22 + k * 11
+        body += ellipse(x, by - 26 - abs(k - 2) * 2, 12, 7, PAL["thatch"], PAL["thatch_shade"], 0.8)
+    for q in ((cx - 40, by - 20), (cx + 40, by - 20), (cx, by)):
+        body += line(q, (q[0], q[1] - 46), PAL["wood_dark"], 3)
+    body += poly([(cx - 52, by - 50), (cx, by - 78), (cx + 52, by - 50), (cx, by - 24)], PAL["shingle"], PAL["wood_dark"], 1.2)
+    body += poly([(cx, by - 24), (cx + 52, by - 50), (cx + 50, by - 45), (cx, by - 19)], PAL["shingle_shade"], PAL["wood_dark"], 1)
+    return svg(w, h, body)
+
+
+# ---------------------------------------------------------------- aldeanos
+
+def villager(job: str) -> str:
+    w, h = 28, 46
+    cloth = {"farmer": ("#6a5236", "#4b3a26"), "herder": ("#55603a", "#3c4428"), "carter": ("#6e3a26", "#4a2618")}[job]
+    b = ellipse(14, 43, 8, 2.4, PAL["shadow"])
+    b += line((11, 34), (11, 42), PAL["ink"], 2.6) + line((17, 34), (17, 42), PAL["ink"], 2.6)
+    b += f'<path d="M6 36 C6 24 8 19 14 19 C20 19 22 24 22 36 Z" fill="{cloth[0]}" stroke="{PAL["timber"]}" stroke-width="1"/>'
+    b += line((7, 29), (21, 29), cloth[1], 2)
+    b += ellipse(14, 14, 4.6, 5, "#d8b48a", PAL["timber"], 0.8)
+    if job == "farmer":
+        b += ellipse(14, 10.5, 9, 2.4, "#c8a250", PAL["wheat_gold_dark"], 0.8)
+        b += ellipse(14, 9, 4.6, 3, "#c8a250", PAL["wheat_gold_dark"], 0.8)
+        b += line((22, 12), (19, 40), PAL["wood_dark"], 1.8)
+        b += poly([(19.5, 10), (26, 11.5), (25, 14), (21, 13)], PAL["iron_light"], PAL["iron"], 0.7)
+    elif job == "herder":
+        b += f'<path d="M8 13 C8 5 20 5 20 13 C20 16 18 17 14 17 C10 17 8 16 8 13 Z" fill="{cloth[1]}" stroke="{PAL["timber"]}" stroke-width="0.9"/>'
+        b += ellipse(14, 14, 3.4, 3.6, "#d8b48a")
+        b += line((23, 8), (22, 42), PAL["wood"], 1.8)
+        b += '<path d="M23 8 C23 3 28 3 27.5 7" fill="none" stroke="#6a4a2c" stroke-width="1.8" stroke-linecap="round"/>'
+    else:
+        b += ellipse(14, 9.5, 5, 2.6, "#3b281a")
+        b += ellipse(5.5, 26, 5.5, 7, "#a68a5a", PAL["wood_dark"], 0.9)
+        b += line((3, 20), (8, 20), PAL["wood_dark"], 1.2)
+    return svg(w, h, b)
+
+
+# ---------------------------------------------------------------- tierras del este
+
+def wild() -> str:
+    """Tierra del baron sin roturar: hierba oscura y alta con matorral."""
+    rnd = random.Random(77)
+    body = poly(diamond(), "#36402a")
+    body += grain(rnd, 90, ["#26301c", "#46512f", "#4f5134"], margin=0.0)
+    for _ in range(26):
+        x, y = tile_point(rnd.uniform(0.06, 0.94), rnd.uniform(0.06, 0.94))
+        col = rnd.choice(["#242d19", "#2f3a20", "#4a4a2c"])
+        for dx in (-2.5, -1, 0.5, 2):
+            body += line((x + dx * 0.4, y), (x + dx, y - rnd.uniform(4, 8)), col, 1.1, op=0.9)
+    for _ in range(4):
+        x, y = tile_point(rnd.uniform(0.2, 0.8), rnd.uniform(0.2, 0.8))
+        body += ellipse(x, y - 2, 7, 3.6, "#2a3320", op=0.9)
+        body += ellipse(x + 1, y - 4, 1.1, 1.1, "#5a1e1a", op=0.8)
+    return svg(TW, TH, body)
+
+
+def boundary_stone() -> str:
+    """Mojon del baron que marca el limite de sus tierras."""
+    w, h = 40, 56
+    b = ellipse(20, 50, 13, 4, PAL["shadow"])
+    b += '<path d="M11 50 L11 18 Q20 8 29 18 L29 50 Z" fill="#6a6455" stroke="#35322a" stroke-width="1.2"/>'
+    b += '<path d="M23 50 L23 15 Q27 14 29 18 L29 50 Z" fill="#4f4a3e"/>'
+    b += poly([(15, 26), (15, 21), (17, 21), (17, 19), (19, 19), (19, 21), (21, 21), (21, 26)], "#3a3529")
+    b += ellipse(16, 44, 4, 2, "#4d5a2e", op=0.8)
+    return svg(w, h, b)
+
+
+def tenant() -> str:
+    """Parcela de un aparcero: cebada crecida y una estaca con la cinta del arriendo."""
+    rnd = random.Random(88)
+    w, h = TW, 96
+    oy = h - TH
+    body = ""
+    pts = []
+    for i in range(5):
+        for j in range(5):
+            pts.append(tile_point((i + 0.5) / 5 + rnd.uniform(-0.03, 0.03), (j + 0.5) / 5 + rnd.uniform(-0.03, 0.03), oy))
+    pts.sort(key=lambda p: p[1])
+    for (x, y) in pts:
+        for dx in (-3, 0, 3):
+            top = (x + dx * 1.4, y - rnd.uniform(14, 19))
+            body += line((x + dx * 0.5, y), top, "#8a7a3a", 1.1)
+            body += ellipse(top[0], top[1], 1.6, 3.2, "#b89a48", "#6f5a24", 0.5)
+    sx, sy = tile_point(0.86, 0.14, oy)
+    body += line((sx, sy), (sx, sy - 36), PAL["wood_dark"], 2.4)
+    body += poly([(sx, sy - 35), (sx + 14, sy - 31), (sx, sy - 27)], PAL["oxblood"], PAL["oxblood_dark"], 0.8)
+    return svg(w, h, body)
+
+
+# ---------------------------------------------------------------- iconos de la fase 2
+
+def icon_hammer() -> str:
+    b = line((9, 27), (21, 11), PAL["wood"], 3.2) + line((9, 27), (21, 11), PAL["wood_dark"], 1)
+    b += poly([(15, 6), (25, 3), (29, 12), (19, 15)], PAL["iron_light"], PAL["iron"], 1)
+    b += poly([(25, 3), (28, 2), (31, 10), (29, 12)], PAL["iron"], PAL["iron"], 0.8)
+    return svg(32, 32, b)
+
+
+def icon_granary() -> str:
+    b = poly([(4, 15), (16, 4), (28, 15)], PAL["thatch"], PAL["thatch_line"], 1.2)
+    b += poly([(7, 15), (25, 15), (25, 27), (7, 27)], PAL["wood"], PAL["wood_dark"], 1.2)
+    b += poly([(13, 27), (13, 19), (19, 19), (19, 27)], PAL["wood_dark"])
+    for x in (8, 24):
+        b += line((x, 27), (x, 30), PAL["stone_dark"], 2.4)
+    return svg(32, 32, b)
+
+
+def icon_house() -> str:
+    b = poly([(3, 16), (16, 4), (29, 16)], PAL["thatch"], PAL["thatch_line"], 1.2)
+    b += poly([(7, 15), (25, 15), (25, 28), (7, 28)], PAL["plaster"], PAL["timber"], 1.2)
+    b += line((7, 21), (25, 21), PAL["timber"], 1.4) + line((16, 15), (16, 28), PAL["timber"], 1.4)
+    b += poly([(18.5, 28), (18.5, 22), (23, 22), (23, 28)], PAL["wood_shade"], PAL["timber"], 0.8)
+    b += poly([(9, 19.5), (13.5, 19.5), (13.5, 16.5), (9, 16.5)], "#e2a54b", PAL["timber"], 0.8)
+    return svg(32, 32, b)
+
+
+def icon_scroll() -> str:
+    b = poly([(7, 6), (25, 6), (25, 26), (7, 26)], PAL["parch"], PAL["parch_dark"], 1)
+    b += ellipse(7, 6, 3, 3, PAL["parch_dark"]) + ellipse(25, 26, 3, 3, PAL["parch_dark"])
+    for y in (11, 15, 19):
+        b += line((10, y), (22, y), PAL["clay_dark"], 1.2, op=0.8)
+    b += ellipse(19, 22.5, 3, 3, PAL["oxblood"], PAL["oxblood_dark"], 0.8)
+    return svg(32, 32, b)
+
+
+def icon_crown() -> str:
+    b = poly([(5, 24), (4, 10), (10, 16), (16, 6), (22, 16), (28, 10), (27, 24)], PAL["gold"], PAL["gold_dark"], 1.2)
+    b += poly([(5, 24), (27, 24), (27, 28), (5, 28)], PAL["gold_dark"])
+    for x, col in ((10, PAL["oxblood"]), (16, "#3b5a7a"), (22, PAL["oxblood"])):
+        b += ellipse(x, 21, 1.8, 1.8, col)
+    return svg(32, 32, b)
+
+
 def bubble() -> str:
     """Escudo de hierro con borde dorado sobre el que se pinta el producto."""
     defs = lin_grad("b", PAL["iron_light"], PAL["iron"])
@@ -628,8 +1024,14 @@ def main() -> None:
         "wheat_3.svg": wheat(3),
         **{f"carrot_{i}.svg": carrot(i) for i in range(4)},
         **{f"cabbage_{i}.svg": cabbage(i) for i in range(4)},
-        "house.svg": house(),
-        "coop.svg": coop(),
+        **{f"house_{i}.svg": house_stage(i) for i in (1, 2, 3)},
+        **{f"granary_{i}.svg": granary(i) for i in (1, 2, 3)},
+        **{f"coop_{i}.svg": coop_stage(i) for i in (1, 2, 3)},
+        "pen_shed.svg": pen_shed(),
+        **{f"villager_{j}.svg": villager(j) for j in ("farmer", "herder", "carter")},
+        "wild.svg": wild(),
+        "boundary.svg": boundary_stone(),
+        "tenant.svg": tenant(),
         "market.svg": market(),
         "well.svg": well(),
         "rocks.svg": rocks(),
@@ -645,6 +1047,11 @@ def main() -> None:
         "icon_cabbage.svg": icon_cabbage(),
         "icon_worker.svg": icon_worker(),
         "icon_banner.svg": icon_banner(),
+        "icon_hammer.svg": icon_hammer(),
+        "icon_granary.svg": icon_granary(),
+        "icon_house.svg": icon_house(),
+        "icon_scroll.svg": icon_scroll(),
+        "icon_crown.svg": icon_crown(),
         "bubble.svg": bubble(),
     }
     for name, content in files.items():
