@@ -1,9 +1,12 @@
-// Interfaz HTML encima del lienzo: barra superior, controles de tiempo, mercado, menu y avisos.
+// Interfaz HTML encima del lienzo: barra superior, controles de tiempo, ventanas, tarjetas y avisos.
 import type { Game } from '../sim/game';
 import { createNewGame } from '../sim/state';
-import { PRODUCTS, PRODUCT_IDS } from '../sim/data';
+import { ANIMAL_IDS, CROPS, EVENTS, PRODUCTS, PRODUCT_IDS, PROGRESSION, type EventOptionDef } from '../sim/data';
 import { dateFromDay } from '../sim/calendar';
-import type { CommandResult, ProductId, Speed } from '../sim/types';
+import { hasFeature, levelProgress, nextLevelXp, rankOf, unlocksAt } from '../sim/progress';
+import { boostActive, priceOf, priceTrend } from '../sim/market';
+import { optionAvailable } from '../sim/events';
+import type { AnimalId, CommandResult, CropId, ProductId, Speed } from '../sim/types';
 import { getLang, onLangChange, setLang, t, type Lang } from '../i18n/i18n';
 import { autosave, forgetLinkedFile, hasLinkedFile, loadGameFromFile, readBackup, saveGame, supportsFilePicker } from '../save/storage';
 import { SaveError } from '../save/serialize';
@@ -17,11 +20,25 @@ export interface UI {
   getInsets: () => Insets;
 }
 
+/** Ventanas que puede haber abiertas. Las tarjetas (nivel y evento) se encolan. */
+type Modal =
+  | { kind: 'start' }
+  | { kind: 'menu' }
+  | { kind: 'market' }
+  | { kind: 'plant'; x: number; y: number; crops: CropId[] }
+  | { kind: 'land'; x: number; y: number; cost: number }
+  | { kind: 'levelup'; level: number }
+  | { kind: 'event'; id: string; result?: CommandResult };
+
+/** Estas ventanas detienen el tiempo mientras estan abiertas. */
+const PAUSES: Modal['kind'][] = ['start', 'menu', 'levelup', 'event'];
+
 export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI {
   let lastSpeed: Speed = 1;
-  let modal: 'start' | 'menu' | 'market' | null = 'start';
+  let modal: Modal | null = { kind: 'start' };
   let speedBeforeModal: Speed = 0;
   let confirmingNew = false;
+  const queue: Modal[] = [];
 
   // ---------------------------------------------------------------- barra superior
   const dateText = h('span', { class: 'date-text' });
@@ -29,13 +46,32 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   const dayBar = h('span', { class: 'day-bar-fill' });
   const dateBox = h('div', { class: 'date-box panel' }, h('div', { class: 'date-line' }, dateText, pausedPill), h('div', { class: 'day-bar' }, dayBar));
 
+  const levelNum = h('span', { class: 'level-num' });
+  const rankText = h('span', { class: 'rank-text' });
+  const xpFill = h('span', { class: 'xp-fill' });
+  const xpText = h('span', { class: 'xp-text' });
+  const levelBox = h(
+    'div',
+    { class: 'level-box' },
+    h('span', { class: 'level-shield' }, levelNum),
+    h('div', { class: 'level-info' }, rankText, h('span', { class: 'xp-bar' }, xpFill), xpText),
+  );
+
   const amounts = new Map<string, HTMLElement>();
   const chip = (id: string, iconName: string) => {
     const n = h('b', {}, '0');
     amounts.set(id, n);
     return h('div', { class: 'chip', 'data-res': id }, icon(iconName), n);
   };
-  const resources = h('div', { class: 'resources panel' }, chip('coins', 'icon_coin'), ...PRODUCT_IDS.map((p) => chip(p, PRODUCTS[p].icon)));
+  const workersChip = chip('workers', 'icon_worker');
+  const resources = h(
+    'div',
+    { class: 'resources panel' },
+    levelBox,
+    chip('coins', 'icon_coin'),
+    ...PRODUCT_IDS.map((p) => chip(p, PRODUCTS[p].icon)),
+    workersChip,
+  );
 
   const speedButtons = SPEEDS.map((sp) =>
     h('button', { class: 'speed-btn', 'data-speed': sp, onclick: () => setSpeed(sp) }, sp === 0 ? '❚❚' : '▶'.repeat(sp)),
@@ -45,8 +81,8 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   const topbar = h('header', { class: 'topbar' }, dateBox, resources, speedBox);
 
   // ---------------------------------------------------------------- barra inferior
-  const marketBtn = h('button', { class: 'big-btn', onclick: () => openModal('market') }, icon('icon_coin'), h('span', {}));
-  const menuBtn = h('button', { class: 'big-btn', onclick: () => openModal('menu') }, h('span', { class: 'burger' }, '☰'), h('span', {}));
+  const marketBtn = h('button', { class: 'big-btn', onclick: () => openModal({ kind: 'market' }) }, icon('icon_coin'), h('span', {}));
+  const menuBtn = h('button', { class: 'big-btn', onclick: () => openModal({ kind: 'menu' }) }, h('span', { class: 'burger' }, '☰'), h('span', {}));
   const bottombar = h('footer', { class: 'bottombar' }, marketBtn, menuBtn);
 
   const toasts = h('div', { class: 'toasts', 'aria-live': 'polite' });
@@ -62,7 +98,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
 
   document.addEventListener('keydown', (e) => {
     if (e.target instanceof HTMLInputElement) return;
-    if (e.key === 'Escape' && modal && modal !== 'start') {
+    if (e.key === 'Escape' && modal && ['menu', 'market', 'plant', 'land'].includes(modal.kind)) {
       closeModal();
       return;
     }
@@ -73,7 +109,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     } else if (e.key === '1' || e.key === '2' || e.key === '3') {
       setSpeed(Number(e.key) as Speed);
     } else if (e.key.toLowerCase() === 'm') {
-      openModal('market');
+      openModal({ kind: 'market' });
     }
   });
 
@@ -87,19 +123,45 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
 
   // ---------------------------------------------------------------- eventos de la simulacion
   sim.on((e) => {
-    if (e.type === 'change') renderHud();
-    if (e.type === 'day' && e.day % AUTOSAVE_EVERY_DAYS === 0) {
-      void autosave(sim.state).then((wrote) => wrote && toast(t('save.autosaved'), 'quiet'));
+    switch (e.type) {
+      case 'change':
+        renderHud();
+        if (modal?.kind === 'market') renderModal();
+        break;
+      case 'day':
+        if (e.day % AUTOSAVE_EVERY_DAYS === 0) void autosave(sim.state).then((wrote) => wrote && toast(t('save.autosaved'), 'quiet'));
+        break;
+      case 'openMarket':
+        openModal({ kind: 'market' });
+        break;
+      case 'choosePlant':
+        openModal({ kind: 'plant', x: e.x, y: e.y, crops: e.crops });
+        break;
+      case 'offerLand':
+        openModal({ kind: 'land', x: e.x, y: e.y, cost: e.cost });
+        break;
+      case 'levelUp':
+        showCard({ kind: 'levelup', level: e.level });
+        break;
+      case 'event':
+        showCard({ kind: 'event', id: e.id });
+        break;
+      case 'notice':
+        toast(t(e.notice.msg, e.notice.params), e.notice.ok ? 'good' : 'warn');
+        break;
+      case 'result':
+        if (modal?.kind !== 'event') onResult(e.result, e.x !== undefined);
+        break;
+      default:
+        break;
     }
-    if (e.type === 'openMarket') openModal('market');
-    if (e.type === 'result') onResult(e.result, e.x !== undefined);
   });
 
   function onResult(r: CommandResult, hasTile: boolean): void {
-    const shownOnMap = r.ok && hasTile && (r.params?.amount !== undefined || r.msg === 'msg.planted');
+    const shownOnMap = r.ok && hasTile && (r.params?.amount !== undefined || r.msg === 'msg.planted' || r.msg === 'msg.landBought');
     const text = t(r.msg, r.params);
     if (!shownOnMap && text) toast(text, r.ok ? 'good' : 'warn');
-    if (modal === 'market') renderModal();
+    if (modal?.kind === 'market') renderModal();
   }
 
   // ---------------------------------------------------------------- avisos
@@ -107,8 +169,8 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     const el = h('div', { class: `toast toast-${kind}` }, text);
     toasts.append(el);
     while (toasts.children.length > 3) toasts.firstElementChild?.remove();
-    setTimeout(() => el.classList.add('out'), 2200);
-    setTimeout(() => el.remove(), 2700);
+    setTimeout(() => el.classList.add('out'), 2600);
+    setTimeout(() => el.remove(), 3100);
   }
 
   // ---------------------------------------------------------------- pintar HUD
@@ -119,8 +181,27 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     dayBar.style.width = `${Math.round(s.dayProgress * 100)}%`;
     pausedPill.textContent = t('hud.paused');
     pausedPill.hidden = s.speed !== 0;
+
+    levelNum.textContent = String(s.level);
+    rankText.textContent = t(`rank.${rankOf(s.level)}`);
+    xpFill.style.width = `${Math.round(levelProgress(s) * 100)}%`;
+    levelBox.style.setProperty('--xp', `${Math.round(levelProgress(s) * 100)}%`);
+    const next = nextLevelXp(s.level);
+    const xp = Math.floor(s.xp);
+    xpText.textContent = next === null ? t('hud.xpMax', { xp }) : t('hud.xp', { xp, next });
+    levelBox.title = `${t('hud.level', { n: s.level })} · ${rankText.textContent} · ${xpText.textContent}`;
+
     amounts.get('coins')!.textContent = String(s.coins);
-    for (const p of PRODUCT_IDS) amounts.get(p)!.textContent = String(s.inventory[p]);
+    for (const p of PRODUCT_IDS) {
+      amounts.get(p)!.textContent = String(s.inventory[p]);
+      // Los productos que aun no se pueden conseguir no ocupan sitio en la barra.
+      const crop = Object.values(CROPS).find((c) => c.product === p);
+      resources.querySelector<HTMLElement>(`[data-res="${p}"]`)!.hidden = !!crop && s.level < crop.unlockLevel && s.inventory[p] === 0;
+    }
+    amounts.get('workers')!.textContent = String(s.workers);
+    workersChip.hidden = s.workers === 0;
+    workersChip.title = t('hud.workers');
+
     speedButtons.forEach((b, i) => {
       b.classList.toggle('active', SPEEDS[i] === s.speed);
       b.title = SPEEDS[i] === 0 ? t('hud.pause') : `x${SPEEDS[i]}`;
@@ -132,13 +213,21 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     menuBtn.lastElementChild!.textContent = t('hud.menu');
   }
 
-  // ---------------------------------------------------------------- ventanas
-  function openModal(which: 'start' | 'menu' | 'market'): void {
-    if (!modal) speedBeforeModal = sim.state.speed;
-    modal = which;
-    // El menu pausa el juego; el mercado no (como en CK3, el tiempo sigue mientras compras y vendes).
-    if (which !== 'market') sim.setSpeed(0);
+  // ---------------------------------------------------------------- ventanas y tarjetas
+  function openModal(next: Modal): void {
+    if (modal?.kind === 'start') return;
+    const pausing = PAUSES.includes(next.kind);
+    // Se recuerda la velocidad solo al pasar de "corriendo" a "en pausa".
+    if (pausing && !(modal && PAUSES.includes(modal.kind))) speedBeforeModal = sim.state.speed;
+    modal = next;
+    if (pausing) sim.setSpeed(0);
     renderModal();
+  }
+
+  /** Las tarjetas esperan su turno si hay otra ventana abierta. */
+  function showCard(card: Modal): void {
+    if (modal) queue.push(card);
+    else openModal(card);
   }
 
   function closeModal(): void {
@@ -147,18 +236,36 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     modal = null;
     overlay.hidden = true;
     overlay.replaceChildren();
-    if (was === 'menu' && speedBeforeModal !== 0) sim.setSpeed(speedBeforeModal);
+    const next = queue.shift();
+    if (next) {
+      // Si la ventana anterior ya pausaba, se conserva la velocidad que habia antes de la primera.
+      if (PAUSES.includes(next.kind) && !(was && PAUSES.includes(was.kind))) speedBeforeModal = sim.state.speed;
+      modal = next;
+      if (PAUSES.includes(next.kind)) sim.setSpeed(0);
+      renderModal();
+      return;
+    }
+    if (was && was.kind !== 'start' && PAUSES.includes(was.kind) && speedBeforeModal !== 0) sim.setSpeed(speedBeforeModal);
   }
 
   function renderModal(): void {
     if (!modal) return;
     overlay.hidden = false;
-    const body = modal === 'start' ? startView() : modal === 'menu' ? menuView() : marketView();
-    overlay.replaceChildren(body);
+    const views: Record<Modal['kind'], () => HTMLElement> = {
+      start: startView,
+      menu: menuView,
+      market: marketView,
+      plant: plantView,
+      land: landView,
+      levelup: levelUpView,
+      event: eventView,
+    };
+    overlay.replaceChildren(views[modal.kind]());
+    overlay.className = `overlay overlay-${modal.kind}`;
   }
 
   overlay.addEventListener('click', (e) => {
-    if (e.target === overlay && modal !== 'start') closeModal();
+    if (e.target === overlay && modal && ['menu', 'market', 'plant', 'land'].includes(modal.kind)) closeModal();
   });
 
   function langSwitch(): HTMLElement {
@@ -208,6 +315,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
           onclick: () => {
             confirmingNew = false;
             newGame();
+            queue.length = 0;
             closeModal();
             setSpeed(1);
           },
@@ -239,17 +347,53 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     );
   }
 
+  function trendMark(p: ProductId): HTMLElement | null {
+    const tr = priceTrend(sim.state, p);
+    if (tr === 0) return null;
+    return h('span', { class: `trend trend-${tr > 0 ? 'up' : 'down'}`, title: t(tr > 0 ? 'market.trendUp' : 'market.trendDown') }, tr > 0 ? '▲' : '▼');
+  }
+
   function marketView(): HTMLElement {
     const s = sim.state;
-    const rows = PRODUCT_IDS.map((p: ProductId) => {
+    const products = PRODUCT_IDS.filter((p) => s.inventory[p] > 0 || !Object.values(CROPS).some((c) => c.product === p && s.level < c.unlockLevel));
+    const rows = products.map((p: ProductId) => {
       const have = s.inventory[p];
+      const price = priceOf(s, p);
       return h(
         'div',
         { class: 'market-row' },
         icon(PRODUCTS[p].icon, 'icon big'),
-        h('div', { class: 'market-info' }, h('b', {}, t(`product.${p}`)), h('small', {}, `${t('market.stock', { n: have })} · ${t('market.price', { price: PRODUCTS[p].price })}`)),
+        h(
+          'div',
+          { class: 'market-info' },
+          h('b', {}, t(`product.${p}`)),
+          h('small', {}, h('span', { class: 'nowrap' }, t('market.stock', { n: have })), ' · ', h('span', { class: 'price nowrap' }, t('market.price', { price }), ' ', trendMark(p))),
+        ),
         h('button', { class: 'btn small', disabled: have <= 0, onclick: () => sim.sell(p, 1) }, t('market.sell1')),
         h('button', { class: 'btn small primary', disabled: have <= 0, onclick: () => sim.sell(p, 'all') }, t('market.sellAll')),
+      );
+    });
+    const livestock = ANIMAL_IDS.map((a: AnimalId) => {
+      const offer = PROGRESSION.animalsForSale[a];
+      const unlocked = hasFeature(s, offer.unlock);
+      const unlockLevel = PROGRESSION.levels.findIndex((l) => l.unlocks?.includes(offer.unlock)) + 1;
+      const count = s.herds[a].count;
+      return h(
+        'div',
+        { class: `market-row ${unlocked ? '' : 'locked'}` },
+        icon(a === 'chicken' ? 'icon_egg' : 'icon_milk', 'icon big'),
+        h(
+          'div',
+          { class: 'market-info' },
+          h('b', {}, t(`animal.${a}`)),
+          h('small', {}, unlocked ? t('market.have', { n: count, max: offer.max }) : t('market.lockedAt', { level: unlockLevel })),
+        ),
+        h('span', {}),
+        h(
+          'button',
+          { class: 'btn small', disabled: !unlocked || count >= offer.max || s.coins < offer.price, onclick: () => sim.buyAnimal(a) },
+          t('market.buy', { price: offer.price }),
+        ),
       );
     });
     return h(
@@ -257,17 +401,161 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       { class: 'sheet market' },
       h('h2', {}, t('market.title')),
       h('p', { class: 'tagline' }, t('market.subtitle')),
+      boostActive(s) && h('p', { class: 'fair-banner' }, t('market.fair', { mult: s.marketBoost!.mult, day: dateFromDay(s.marketBoost!.untilDay).dayOfSeason })),
       ...rows,
+      h('h3', { class: 'market-section' }, t('market.livestock')),
+      ...livestock,
       h('div', { class: 'market-foot' }, h('span', { class: 'chip' }, icon('icon_coin'), h('b', {}, String(s.coins))), h('button', { class: 'btn', onclick: () => closeModal() }, t('market.close'))),
+    );
+  }
+
+  function plantView(): HTMLElement {
+    const m = modal as Extract<Modal, { kind: 'plant' }>;
+    const s = sim.state;
+    return h(
+      'div',
+      { class: 'sheet compact' },
+      h('h2', {}, t('plant.title')),
+      h(
+        'div',
+        { class: 'choice-list' },
+        ...m.crops.map((c) => {
+          const def = CROPS[c];
+          return h(
+            'button',
+            {
+              class: 'choice',
+              disabled: s.coins < def.seedCost,
+              onclick: () => {
+                closeModal();
+                sim.plant(m.x, m.y, c);
+              },
+            },
+            icon(PRODUCTS[def.product].icon, 'icon big'),
+            h('span', { class: 'choice-text' }, h('b', {}, t(`product.${def.product}`)), h('small', {}, t('plant.detail', { days: def.growDays, yield: def.yield }))),
+            h('span', { class: 'choice-cost' }, icon('icon_coin'), String(def.seedCost)),
+          );
+        }),
+      ),
+      h('button', { class: 'btn', onclick: () => closeModal() }, t('plant.cancel')),
+    );
+  }
+
+  function landView(): HTMLElement {
+    const m = modal as Extract<Modal, { kind: 'land' }>;
+    return h(
+      'div',
+      { class: 'sheet compact' },
+      h('h2', {}, t('land.title')),
+      h('p', { class: 'howto plain' }, t('land.text', { cost: m.cost })),
+      h(
+        'div',
+        { class: 'stack' },
+        h('button', {
+          class: 'btn primary',
+          onclick: () => {
+            closeModal();
+            sim.buyLand(m.x, m.y);
+          },
+        }, t('land.buy', { cost: m.cost })),
+        h('button', { class: 'btn', onclick: () => closeModal() }, t('land.cancel')),
+      ),
+    );
+  }
+
+  function levelUpView(): HTMLElement {
+    const m = modal as Extract<Modal, { kind: 'levelup' }>;
+    const u = unlocksAt(m.level);
+    const items: string[] = [];
+    if (u.rank) items.push(t('levelup.rank', { rank: t(`rank.${u.rank}`) }));
+    for (const c of u.crops) items.push(t('levelup.unlock.crop', { crop: t(`product.${CROPS[c].product}`) }));
+    for (const f of u.features) items.push(t(`levelup.unlock.${f}`));
+    if (u.maxPlots) items.push(t('levelup.maxPlots', { max: u.maxPlots }));
+    return h(
+      'div',
+      { class: `sheet levelup ${u.rank ? 'rank-up' : ''}` },
+      h('div', { class: 'level-seal' }, String(m.level)),
+      h('h2', {}, t('levelup.title', { level: m.level })),
+      h('p', { class: 'tagline' }, t(`rank.${rankOf(m.level)}`)),
+      items.length > 0 && h('ul', { class: 'unlocks' }, ...items.map((i) => h('li', {}, i))),
+      h('button', { class: 'btn primary', onclick: () => closeModal() }, t('levelup.continue')),
+    );
+  }
+
+  function effectsLine(opt: EventOptionDef): string {
+    const parts: string[] = [];
+    for (const [k, v] of Object.entries(opt.cost ?? {})) parts.push(`−${v} ${k === 'coins' ? t('hud.coins').toLowerCase() : t(`product.${k}`).toLowerCase()}`);
+    const fx = opt.effects ?? {};
+    if (fx.xp) parts.push(t('fx.xp', { n: fx.xp }));
+    if (fx.coins && fx.coins < 0) parts.push(t('fx.coinsLose'));
+    if (fx.workers) parts.push(t('fx.workers'));
+    if (fx.marketBoost) parts.push(t('fx.boost', { mult: fx.marketBoost.mult, days: fx.marketBoost.days }));
+    if (fx.sellAll) parts.push(t('fx.sellAll', { mult: fx.sellAll.mult }));
+    if (fx.herds?.chicken && fx.herds.chicken > 0) parts.push(t('fx.hen'));
+    if (opt.risk) parts.push(t('fx.risk'));
+    return parts.join(' · ');
+  }
+
+  function eventView(): HTMLElement {
+    const m = modal as Extract<Modal, { kind: 'event' }>;
+    const ev = EVENTS[m.id];
+    const s = sim.state;
+    const head = [
+      h('div', { class: 'event-seal' }, icon(ev.icon, 'event-icon')),
+      h('h2', {}, t(`event.${m.id}.title`)),
+    ];
+    if (m.result) {
+      return h(
+        'div',
+        { class: 'sheet event' },
+        ...head,
+        h('p', { class: 'event-text' }, t(m.result.msg, m.result.params)),
+        h('button', { class: 'btn primary', onclick: () => closeModal() }, t('event.ok')),
+      );
+    }
+    return h(
+      'div',
+      { class: 'sheet event' },
+      ...head,
+      h('p', { class: 'event-text' }, t(`event.${m.id}.text`)),
+      h(
+        'div',
+        { class: 'stack' },
+        ...ev.options.map((opt) => {
+          const line = effectsLine(opt);
+          return h(
+            'button',
+            {
+              class: 'btn option',
+              disabled: !optionAvailable(s, opt),
+              onclick: () => {
+                let result: CommandResult | undefined;
+                const off = sim.on((e) => {
+                  if (e.type === 'result') result = e.result;
+                });
+                sim.chooseEventOption(opt.id);
+                off();
+                if (modal?.kind === 'event') {
+                  modal = { ...modal, result };
+                  renderModal();
+                }
+              },
+            },
+            t(`event.${m.id}.opt.${opt.id}`),
+            line && h('small', {}, line),
+          );
+        }),
+      ),
     );
   }
 
   // ---------------------------------------------------------------- acciones de partida
   function startWith(fn: () => void): void {
-    fn();
     modal = null;
     overlay.hidden = true;
     overlay.replaceChildren();
+    queue.length = 0;
+    fn();
     setSpeed(1); // el tiempo corre desde el primer momento; espacio o el boton ❚❚ lo pausan
     renderHud();
     onLayout();
@@ -282,7 +570,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     const outcome = await saveGame(sim.state, saveAs);
     const key = { saved: 'save.saved', downloaded: 'save.downloaded', cancelled: 'save.cancelled', error: 'save.error.write' }[outcome];
     toast(t(key), outcome === 'error' ? 'warn' : outcome === 'cancelled' ? 'quiet' : 'good');
-    if (modal === 'menu') renderModal();
+    if (modal?.kind === 'menu') renderModal();
   }
 
   async function loadFlow(fromStart: boolean): Promise<void> {
@@ -291,8 +579,9 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       if (!state) return;
       if (fromStart) startWith(() => sim.replaceState(state));
       else {
-        sim.replaceState(state);
+        queue.length = 0;
         closeModal();
+        sim.replaceState(state);
       }
       toast(t('save.loaded'));
     } catch (err) {

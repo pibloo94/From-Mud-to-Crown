@@ -704,3 +704,382 @@ button:focus-visible {
     animation: none;
   }
 }
+
+/* ============================================================ fase 1 */
+
+/* ------------------------------------------------------------ nivel y experiencia */
+
+.level-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 12px 2px 2px;
+  margin-right: 4px;
+  border-right: 1px solid rgba(201, 161, 74, 0.25);
+}
+
+/* Escudo de hierro con el numero de nivel grabado en oro */
+.level-shield {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 38px;
+  flex: none;
+  background: linear-gradient(180deg, var(--iron-2), var(--iron));
+  clip-path: polygon(0 0, 100% 0, 100% 58%, 50% 100%, 0 58%);
+  box-shadow: inset 0 0 0 2px var(--gold-2);
+  position: relative;
+}
+
+.level-shield::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(0 0, 100% 0, 100% 58%, 50% 100%, 0 58%);
+  border: 2px solid var(--gold-2);
+  pointer-events: none;
+}
+
+.level-num {
+  font: 900 16px var(--font-caps);
+  color: var(--gold-3);
+  margin-top: -6px;
+  text-shadow: 0 1px 0 #000;
+}
+
+.level-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 96px;
+}
+
+.rank-text {
+  font: 700 12px var(--font-caps);
+  letter-spacing: 0.06em;
+  color: var(--gold-3);
+  white-space: nowrap;
+  text-shadow: 0 1px 0 #000;
+}
+
+.xp-bar {
+  display: block;
+  height: 5px;
+  border-radius: 1px;
+  background: #0d0a07;
+  box-shadow: 0 0 0 1px var(--gold-2);
+  overflow: hidden;
+}
+
+.xp-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--blood), #b23a24);
+  transition: width 0.4s ease-out;
+}
+
+.xp-text {
+  font-size: 11px;
+  color: var(--bone-dim);
+  font-variant-numeric: lining-nums tabular-nums;
+  white-space: nowrap;
+}
+
+.chip[hidden] {
+  display: none;
+}
+
+/* ------------------------------------------------------------ mercado */
+
+.trend {
+  font-size: 13px;
+  vertical-align: 0;
+}
+
+.trend-up {
+  color: var(--good, #3f6b2a);
+}
+
+.trend-down {
+  color: var(--blood);
+}
+
+.price {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.fair-banner {
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  background: linear-gradient(180deg, var(--blood), var(--blood-2));
+  color: var(--gold-3);
+  font: 700 13px var(--font-caps);
+  letter-spacing: 0.05em;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px var(--gold-2);
+}
+
+.market-section {
+  font: 900 14px var(--font-caps);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--blood-2);
+  text-align: left;
+  margin: 16px 0 0;
+  padding-top: 12px;
+  border-top: 2px solid rgba(110, 80, 40, 0.45);
+}
+
+.market-row.locked {
+  opacity: 0.55;
+}
+
+.sheet.market {
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+}
+
+/* ------------------------------------------------------------ elegir cultivo y roturar */
+
+.sheet.compact {
+  width: min(100%, 380px);
+}
+
+.choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0 14px;
+}
+
+.choice {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 8px 14px 8px 10px;
+  text-align: left;
+  border-radius: 2px;
+  border: 1px solid var(--parch-3);
+  background: rgba(255, 245, 220, 0.35);
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+}
+
+.choice:hover:not(:disabled) {
+  background: rgba(255, 245, 220, 0.7);
+  border-color: var(--wood-3);
+}
+
+.choice:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.choice-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.choice-text b {
+  font: 700 16px var(--font-caps);
+  letter-spacing: 0.04em;
+}
+
+.choice-text small {
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.choice-cost {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: 700 17px var(--font-caps);
+}
+
+.howto.plain::first-letter {
+  font: inherit;
+  color: inherit;
+}
+
+/* ------------------------------------------------------------ subida de nivel */
+
+.level-seal {
+  width: 84px;
+  height: 96px;
+  margin: -4px auto 10px;
+  display: grid;
+  place-items: center;
+  font: 900 40px var(--font-caps);
+  color: var(--gold-3);
+  text-shadow: 0 2px 0 #000;
+  background: linear-gradient(180deg, var(--iron-2), var(--iron));
+  clip-path: polygon(0 0, 100% 0, 100% 60%, 50% 100%, 0 60%);
+  padding-bottom: 14px;
+}
+
+.rank-up .level-seal {
+  background: linear-gradient(180deg, #8f2519, var(--blood) 55%, var(--blood-2));
+}
+
+.unlocks {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.unlocks li {
+  position: relative;
+  padding: 8px 12px 8px 30px;
+  font-size: 16px;
+  line-height: 1.35;
+  background: rgba(255, 245, 220, 0.4);
+  border: 1px solid rgba(110, 80, 40, 0.3);
+  border-radius: 2px;
+}
+
+.unlocks li::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  background: var(--blood);
+  transform: rotate(45deg);
+}
+
+.sheet.levelup .btn,
+.sheet.event > .btn {
+  width: 100%;
+}
+
+/* ------------------------------------------------------------ tarjeta de evento */
+
+.event-seal {
+  width: 72px;
+  height: 72px;
+  margin: -4px auto 10px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 40% 35%, #3a342c, var(--iron));
+  box-shadow: 0 0 0 3px var(--gold-2), 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.event-icon {
+  width: 40px;
+  height: 40px;
+}
+
+.event-text {
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--ink);
+  margin: 8px auto 16px;
+  max-width: 40ch;
+  text-align: left;
+}
+
+.event-text::first-letter {
+  font-family: var(--font-title);
+  font-size: 2.2em;
+  float: left;
+  line-height: 0.85;
+  margin: 4px 6px 0 0;
+  color: var(--blood);
+}
+
+.btn.option {
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 16px;
+  min-height: 56px;
+}
+
+.btn.option small {
+  font-style: normal;
+  font-size: 13px;
+  color: var(--gold-3);
+  opacity: 0.85;
+}
+
+@media (max-width: 760px) {
+  .level-box {
+    border-right: 0;
+    margin-right: 0;
+    padding-right: 4px;
+  }
+  .level-info {
+    min-width: 0;
+  }
+  .xp-text,
+  .rank-text {
+    display: none;
+  }
+  .level-info .xp-bar {
+    width: 34px;
+  }
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.sheet.market {
+  width: min(100%, 540px);
+}
+
+.sheet.compact > .btn {
+  width: 100%;
+}
+
+/* La barra de recursos tiene que caber en un movil de 360 px con todos los productos. */
+@media (max-width: 760px) {
+  .resources {
+    gap: 0;
+    padding: 4px 6px;
+    justify-content: space-between;
+  }
+  .resources .chip {
+    gap: 3px;
+    padding: 2px 2px;
+    font-size: 15px;
+  }
+  .resources .icon {
+    width: 18px;
+    height: 18px;
+  }
+  .level-box {
+    gap: 0;
+    padding: 0;
+  }
+  .level-info {
+    display: none;
+  }
+  .level-shield {
+    width: 30px;
+    height: 34px;
+  }
+  /* Debajo del escudo, la barra de experiencia en miniatura */
+  .level-shield::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    bottom: 13px;
+    height: 3px;
+    background: linear-gradient(90deg, #b23a24 var(--xp, 0%), #0d0a07 var(--xp, 0%));
+  }
+}
