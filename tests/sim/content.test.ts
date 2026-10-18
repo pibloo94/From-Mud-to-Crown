@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import es from '../../src/i18n/es.json';
 import en from '../../src/i18n/en.json';
-import { CROPS, PRODUCTS, ANIMALS } from '../../src/sim/data';
+import { CROPS, PRODUCTS, ANIMALS, EVENTS, PROGRESSION } from '../../src/sim/data';
 import { toScreen, toTile } from '../../src/render/iso';
 
 describe('traducciones', () => {
@@ -14,6 +14,25 @@ describe('traducciones', () => {
       for (const p of Object.keys(PRODUCTS)) expect(dict[`product.${p}`]).toBeTruthy();
       for (const c of Object.keys(CROPS)) expect(dict[`crop.${c}`]).toBeTruthy();
       for (const s of ['spring', 'summer', 'autumn', 'winter']) expect(dict[`season.${s}`]).toBeTruthy();
+    }
+  });
+});
+
+describe('textos de eventos y progresion', () => {
+  it('cada evento tiene titulo, texto, opciones y resultados en los dos idiomas', () => {
+    for (const dict of [es, en] as Record<string, string>[]) {
+      for (const [id, ev] of Object.entries(EVENTS)) {
+        expect(dict[`event.${id}.title`]).toBeTruthy();
+        expect(dict[`event.${id}.text`]).toBeTruthy();
+        for (const opt of ev.options) {
+          expect(dict[`event.${id}.opt.${opt.id}`]).toBeTruthy();
+          expect(dict[`event.${id}.result.${opt.id}`]).toBeTruthy();
+          if (opt.risk) expect(dict[`event.${id}.result.${opt.id}.fail`]).toBeTruthy();
+        }
+      }
+      for (const r of PROGRESSION.ranks) expect(dict[`rank.${r.id}`]).toBeTruthy();
+      for (const l of PROGRESSION.levels) for (const f of l.unlocks ?? []) expect(dict[`levelup.unlock.${f}`]).toBeTruthy();
+      for (const a of Object.keys(ANIMALS)) expect(dict[`animal.${a}`]).toBeTruthy();
     }
   });
 });

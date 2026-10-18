@@ -1,7 +1,7 @@
 // Tipos del estado de la partida. La simulacion no sabe nada de Phaser ni del DOM.
 
-export type ProductId = 'wheat' | 'egg' | 'milk';
-export type CropId = 'wheat';
+export type ProductId = 'wheat' | 'carrot' | 'cabbage' | 'egg' | 'milk';
+export type CropId = 'wheat' | 'carrot' | 'cabbage';
 export type AnimalId = 'chicken' | 'cow';
 export type Speed = 0 | 1 | 2 | 3;
 
@@ -16,7 +16,7 @@ export interface Tile {
 /** Estado de una parcela cultivable (baldosa de tipo soil). */
 export interface Plot {
   crop: CropId | null;
-  /** Dias completos que lleva creciendo. */
+  /** Dias de crecimiento acumulados (puede tener decimales si hay jornaleros). */
   growth: number;
 }
 
@@ -27,6 +27,15 @@ export interface Herd {
   stored: number;
   /** Dias transcurridos desde la ultima produccion. */
   timer: number;
+}
+
+export interface EventsState {
+  /** Evento esperando decision del jugador. */
+  pending: { id: string } | null;
+  /** Ultimo dia en que aparecio un evento. */
+  lastDay: number;
+  /** Dia a partir del cual cada evento puede repetirse. */
+  cooldowns: Record<string, number>;
 }
 
 export interface GameState {
@@ -41,6 +50,20 @@ export interface GameState {
   /** Clave "x,y" de cada baldosa cultivable. */
   plots: Record<string, Plot>;
   herds: Record<AnimalId, Herd>;
+  /** Experiencia acumulada (puede tener decimales; se muestra redondeada hacia abajo). */
+  xp: number;
+  level: number;
+  /** Parcelas compradas, para calcular el precio de la siguiente. */
+  landBought: number;
+  /** Jornaleros contratados: aceleran el crecimiento y cobran cada dia. */
+  workers: number;
+  /** Multiplicador de precio de cada producto, recalculado cada semana. */
+  priceMult: Record<ProductId, number>;
+  /** Subida temporal de precios (p. ej. una feria). */
+  marketBoost: { mult: number; untilDay: number } | null;
+  events: EventsState;
+  /** Semilla del generador aleatorio: la partida es reproducible y se guarda con ella. */
+  rng: number;
   stats: { harvested: number; earned: number };
 }
 
@@ -50,3 +73,6 @@ export interface CommandResult {
   msg: string;
   params?: Record<string, string | number>;
 }
+
+/** Aviso que la simulacion genera por si sola al pasar los dias. */
+export type Notice = CommandResult;

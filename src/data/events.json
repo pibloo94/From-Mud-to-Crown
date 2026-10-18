@@ -1,0 +1,53 @@
+{
+  "levy": {
+    "weight": 2,
+    "cooldownDays": 24,
+    "icon": "icon_banner",
+    "options": [
+      { "id": "give", "cost": { "wheat": 6 }, "effects": { "xp": 30 } },
+      { "id": "pay", "cost": { "coins": 10 }, "effects": { "xp": 12 } },
+      { "id": "refuse", "effects": { "coins": -8 } }
+    ]
+  },
+  "farmhand": {
+    "weight": 2,
+    "minLevel": 2,
+    "cooldownDays": 20,
+    "icon": "icon_worker",
+    "requires": { "workersBelow": 2 },
+    "options": [
+      { "id": "hire", "cost": { "coins": 15 }, "effects": { "workers": 1, "xp": 10 } },
+      { "id": "decline" }
+    ]
+  },
+  "fair": {
+    "weight": 2,
+    "cooldownDays": 18,
+    "icon": "icon_coin",
+    "seasons": ["spring", "summer", "autumn"],
+    "options": [
+      { "id": "go", "effects": { "marketBoost": { "mult": 1.5, "days": 3 } } },
+      { "id": "stay" }
+    ]
+  },
+  "fox": {
+    "weight": 2,
+    "cooldownDays": 15,
+    "icon": "icon_egg",
+    "requires": { "chicken": 2 },
+    "options": [
+      { "id": "fence", "cost": { "coins": 8 }, "effects": { "xp": 5 } },
+      { "id": "risk", "risk": { "chance": 0.5, "effects": { "herds": { "chicken": -1 } } } }
+    ]
+  },
+  "peddler": {
+    "weight": 2,
+    "cooldownDays": 15,
+    "icon": "icon_coin",
+    "options": [
+      { "id": "sellEggs", "requires": { "egg": 3 }, "effects": { "sellAll": { "product": "egg", "mult": 2 } } },
+      { "id": "buyHen", "cost": { "coins": 10 }, "requires": { "chickenBelow": 10 }, "effects": { "herds": { "chicken": 1 } } },
+      { "id": "decline" }
+    ]
+  }
+}

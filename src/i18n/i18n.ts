@@ -45,7 +45,7 @@ export function t(key: string, params: Record<string, string | number> = {}): st
   const dict = LANGS[current] as Record<string, string>;
   let text = dict[key] ?? (LANGS.es as Record<string, string>)[key] ?? key;
   for (const [name, value] of Object.entries(params)) {
-    let v = String(value);
+    let v = typeof value === 'number' && !Number.isInteger(value) ? value.toLocaleString(current) : String(value);
     if (name === 'product') v = t(`product.${value}`).toLowerCase();
     if (name === 'crop') v = t(`crop.${value}`);
     text = text.replaceAll(`{${name}}`, v);

@@ -6,15 +6,19 @@ Se juega en el navegador, en ordenador y en móvil, en español e inglés.
 
 ## Estado
 
-**Fase 0 · Prototipo.** Mapa isométrico de 10×10, tiempo con pausa y tres velocidades, trigo que crece por fases, gallinas y vaca que producen, mercado con precios fijos y partida guardada en archivo.
+**Fase 1 · Progresión.** Sobre el prototipo de la fase 0 se añaden experiencia y niveles (1-10), el rango de Granjero libre, compra de tierra, zanahorias y coles, estaciones con invierno, precios que cambian, compra de ganado y eventos con decisiones.
 
 El roadmap completo está en el documento de diseño del proyecto.
 
 ## Cómo jugar
 
-- **Toca una parcela** de tierra arada para sembrar trigo (2 monedas). Cuando esté dorado, tócala otra vez para cosecharlo.
-- **Toca el gallinero** o **el corral** cuando aparezca el globo para recoger huevos o leche.
-- **Vende** en el mercado: botón *Mercado* o el puesto rojo y blanco del camino.
+- **Siembra** tocando una parcela de tierra arada. Si tienes varios cultivos disponibles, eliges cuál. Cuando esté maduro, tócala otra vez para cosechar.
+- **Recoge** huevos y leche tocando el gallinero o el corral cuando aparezca el escudo con un número.
+- **Vende** en el mercado (botón *Mercado* o el puesto del camino). Los precios cambian cada semana y con la estación: ▲ por encima de lo habitual, ▼ por debajo.
+- **Sube de nivel** cosechando, recogiendo y vendiendo. Cada nivel desbloquea algo: tierra nueva (nivel 2), zanahorias (3), gallinas (4), el rango de Granjero libre (5), coles (6) y vacas (7).
+- **Rotura tierra** desde el nivel 2: la hierba junto al campo aparece punteada; tócala para comprarla.
+- **Invierno:** el trigo y las zanahorias no crecen ni se siembran. La col sí.
+- **Eventos:** de vez en cuando el juego se pausa con una decisión (una leva del señor, un mozo que pide trabajo, una feria, un zorro, un buhonero).
 - **Tiempo:** ❚❚ pausa y ▶, ▶▶, ▶▶▶ son x1, x2 y x3. En teclado: `espacio` pausa, `1` `2` `3` cambian la velocidad y `M` abre el mercado.
 - **Cámara:** arrastra para moverte. Pellizca o usa la rueda del ratón para acercar.
 
@@ -43,7 +47,7 @@ Con `?debug` en la URL, la partida queda accesible desde la consola del navegado
 
 ```
 src/
-  data/      contenido del juego en JSON: cultivos, animales, productos, mapa inicial
+  data/      contenido del juego en JSON: cultivos, animales, productos, mapa, niveles y eventos
   sim/       simulación pura (sin Phaser ni DOM): estado, reglas, reloj, calendario
   render/    escena isométrica de Phaser: dibuja el estado y traduce toques en órdenes
   ui/        interfaz HTML encima del lienzo: barra superior, mercado, menús
@@ -58,6 +62,8 @@ tests/       tests de la simulación, el guardado y el contenido
 ### Añadir contenido
 
 - **Un cultivo nuevo:** entrada en `src/data/crops.json`, su producto en `products.json`, sus dibujos de crecimiento en `tools/gen_sprites.py` y su nombre en `es.json` y `en.json` (`crop.<id>`, `product.<id>`).
+- **Un evento nuevo:** entrada en `src/data/events.json` (peso, condiciones, opciones con coste y efectos) y sus textos `event.<id>.*` en los dos idiomas. Un test comprueba que no falte ninguno.
+- **Ajustar el ritmo:** experiencia por nivel, precio de la tierra, jornaleros y frecuencia de eventos están en `src/data/progression.json`.
 - **Un texto nuevo:** misma clave en `src/i18n/es.json` y `en.json`. Un test comprueba que no falte ninguna.
 - **Cambiar el arte:** `python3 tools/gen_sprites.py` regenera los SVG. Para usar otro arte (p. ej. Kenney), sustituye los archivos de `public/assets/sprites/` respetando nombres y anclajes.
 

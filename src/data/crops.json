@@ -4,6 +4,29 @@
     "growDays": 4,
     "product": "wheat",
     "yield": 3,
+    "xp": 4,
+    "unlockLevel": 1,
+    "seasons": ["spring", "summer", "autumn"],
     "stageSprites": ["wheat_0", "wheat_1", "wheat_2", "wheat_3"]
+  },
+  "carrot": {
+    "seedCost": 3,
+    "growDays": 3,
+    "product": "carrot",
+    "yield": 3,
+    "xp": 5,
+    "unlockLevel": 3,
+    "seasons": ["spring", "summer", "autumn"],
+    "stageSprites": ["carrot_0", "carrot_1", "carrot_2", "carrot_3"]
+  },
+  "cabbage": {
+    "seedCost": 6,
+    "growDays": 6,
+    "product": "cabbage",
+    "yield": 3,
+    "xp": 9,
+    "unlockLevel": 6,
+    "seasons": ["autumn", "winter", "spring"],
+    "stageSprites": ["cabbage_0", "cabbage_1", "cabbage_2", "cabbage_3"]
   }
 }

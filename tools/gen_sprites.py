@@ -43,6 +43,8 @@ PAL = {
     "clay": "#8f5534", "clay_dark": "#5c331d", "milk": "#e8e0cc",
     "iron": "#2b2a27", "iron_light": "#4a4843", "parch": "#d8c39a", "parch_dark": "#a88c5c",
     "shadow": "rgba(10,8,4,0.35)",
+    "carrot": "#c8692a", "carrot_dark": "#8a4318", "leafy": "#4f7a2e", "leafy_dark": "#33521d",
+    "cab": "#7d9a5c", "cab_light": "#a5b98a", "cab_dark": "#4d6a3a", "cab_vein": "#c9d4b0",
 }
 
 
@@ -190,6 +192,108 @@ def wheat(stage: int) -> str:
                 body += ellipse(top[0], top[1] - 3.4, 1.7, 4.2, PAL["wheat_gold"])
                 body += line((top[0], top[1] - 7), (top[0] + 1.5, top[1] - 11), PAL["wheat_gold"], 0.6, op=0.8)
     return svg(TW, 96, body)
+
+
+def crop_points(rnd, oy, n=4, jitter=0.08):
+    pts = []
+    for i in range(n):
+        for j in range(n):
+            u = (i + 0.5 + rnd.uniform(-jitter, jitter)) / n
+            v = (j + 0.5 + rnd.uniform(-jitter, jitter)) / n
+            pts.append(tile_point(u, v, oy))
+    pts.sort(key=lambda p: p[1])
+    return pts
+
+
+def seeds(rnd, oy):
+    body = ""
+    for (x, y) in crop_points(rnd, oy):
+        body += ellipse(x, y, 3.4, 1.7, PAL["soil_dark"])
+        body += ellipse(x - 0.8, y - 0.8, 1, 0.7, PAL["leafy"], op=0.8)
+    return body
+
+
+def carrot(stage: int) -> str:
+    """Zanahorias: hojas plumosas que crecen y, al final, asoma la raiz naranja."""
+    oy = 32
+    rnd = random.Random(60 + stage)
+    if stage == 0:
+        return svg(TW, 96, seeds(rnd, oy))
+    body = ""
+    h = {1: 6, 2: 13, 3: 16}[stage]
+    for (x, y) in crop_points(rnd, oy):
+        if stage == 3:
+            body += ellipse(x, y - 0.5, 3.2, 2.2, PAL["carrot_dark"])
+            body += ellipse(x - 0.3, y - 1.2, 2.6, 1.7, PAL["carrot"])
+        for k, dx in enumerate((-4, -2, 0, 2, 4)):
+            tip = (x + dx * (h / 10) + rnd.uniform(-1, 1), y - h + abs(dx) * 0.6)
+            col = PAL["leafy_dark"] if k % 2 else PAL["leafy"]
+            body += line((x, y - 1), tip, col, 1.1)
+            if stage >= 2:
+                for f in (0.45, 0.75):
+                    q = (x + (tip[0] - x) * f, y - 1 + (tip[1] - y + 1) * f)
+                    body += ellipse(q[0] + (1.4 if dx >= 0 else -1.4), q[1], 1.6, 0.8, col, op=0.9)
+    return svg(TW, 96, body)
+
+
+def cabbage(stage: int) -> str:
+    """Coles: rosetas de hoja ancha que se cierran en un cogollo azulado."""
+    oy = 32
+    rnd = random.Random(80 + stage)
+    if stage == 0:
+        return svg(TW, 96, seeds(rnd, oy))
+    body = ""
+    r = {1: 4.0, 2: 7.0, 3: 9.5}[stage]
+    for (x, y) in crop_points(rnd, oy, n=3, jitter=0.04):
+        # hojas exteriores
+        for ang in (200, 250, 290, 340, 20):
+            a = math.radians(ang)
+            lx, ly = x + math.cos(a) * r * 0.9, y - r * 0.6 + math.sin(a) * r * 0.45
+            body += ellipse(lx, ly, r * 0.75, r * 0.42, PAL["cab_dark"])
+        body += ellipse(x, y - r * 0.55, r, r * 0.68, PAL["cab"])
+        if stage >= 2:
+            body += ellipse(x - r * 0.15, y - r * 0.75, r * 0.62, r * 0.45, PAL["cab_light"])
+            body += line((x, y - r * 0.3), (x - r * 0.4, y - r * 1.05), PAL["cab_vein"], 0.6, op=0.8)
+            body += line((x, y - r * 0.3), (x + r * 0.45, y - r * 0.95), PAL["cab_vein"], 0.6, op=0.8)
+    return svg(TW, 96, body)
+
+
+def icon_carrot() -> str:
+    b = '<path d="M9 13 L24 9 C26 9 27 11 26 12.5 L12 27 C10 29 7 27 7.5 25 Z" fill="#c8692a" stroke="#5c2a0c" stroke-width="1"/>'
+    for (a, c) in (((12, 15), (16, 14)), ((10, 19), (14, 18)), ((10, 23), (13, 22.5))):
+        b += line(a, c, "#8a4318", 0.9)
+    for (x2, y2) in ((26, 2), (30, 5), (31, 10)):
+        b += line((25, 10), (x2, y2), PAL["leafy"], 2)
+    return svg(32, 32, b)
+
+
+def icon_cabbage() -> str:
+    b = ellipse(16, 18, 13, 11, PAL["cab_dark"], PAL["ink"], 0.8)
+    b += ellipse(16, 17, 10, 9, PAL["cab"])
+    b += ellipse(14.5, 14.5, 6, 5, PAL["cab_light"])
+    for (x2, y2) in ((8, 10), (24, 10), (9, 24), (23, 24)):
+        b += line((16, 17), (x2, y2), PAL["cab_vein"], 0.8, op=0.8)
+    return svg(32, 32, b)
+
+
+def icon_worker() -> str:
+    """Silueta de jornalero con capucha y azada."""
+    b = line((24, 4), (26, 29), PAL["wood_dark"], 2)
+    b += poly([(23, 4), (29, 3), (29, 6), (24, 7)], PAL["iron_light"], PAL["iron"], 0.8)
+    b += '<path d="M8 29 C8 20 10 16 15 16 C20 16 22 20 22 29 Z" fill="#6a5236" stroke="#2a1b11" stroke-width="1"/>'
+    b += '<path d="M10 14 C10 6 20 6 20 14 C20 17 17 18 15 18 C13 18 10 17 10 14 Z" fill="#5a4228" stroke="#2a1b11" stroke-width="1"/>'
+    b += ellipse(15, 13.5, 3.2, 3.4, "#d8b48a")
+    return svg(32, 32, b)
+
+
+def icon_banner() -> str:
+    """Estandarte heraldico del baron: rojo sangre con torre dorada."""
+    b = line((7, 2), (7, 30), PAL["wood_dark"], 2)
+    b += ellipse(7, 2.5, 1.8, 1.8, PAL["gold"])
+    b += '<path d="M8 5 H26 V22 L17 27 L8 22 Z" fill="#7a1d14" stroke="#c9a14a" stroke-width="1.2"/>'
+    b += poly([(13, 20), (13, 12), (14.5, 12), (14.5, 10), (16, 10), (16, 12), (18, 12), (18, 10), (19.5, 10), (19.5, 12), (21, 12), (21, 20)], PAL["gold"])
+    b += poly([(16, 20), (16, 16.5), (18, 16.5), (18, 20)], "#7a1d14")
+    return svg(32, 32, b)
 
 
 # ---------------------------------------------------------------- edificios
@@ -522,6 +626,8 @@ def main() -> None:
         "wheat_1.svg": wheat(1),
         "wheat_2.svg": wheat(2),
         "wheat_3.svg": wheat(3),
+        **{f"carrot_{i}.svg": carrot(i) for i in range(4)},
+        **{f"cabbage_{i}.svg": cabbage(i) for i in range(4)},
         "house.svg": house(),
         "coop.svg": coop(),
         "market.svg": market(),
@@ -535,6 +641,10 @@ def main() -> None:
         "icon_wheat.svg": icon_wheat(),
         "icon_egg.svg": icon_egg(),
         "icon_milk.svg": icon_milk(),
+        "icon_carrot.svg": icon_carrot(),
+        "icon_cabbage.svg": icon_cabbage(),
+        "icon_worker.svg": icon_worker(),
+        "icon_banner.svg": icon_banner(),
         "bubble.svg": bubble(),
     }
     for name, content in files.items():

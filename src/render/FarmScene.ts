@@ -3,7 +3,9 @@
 import Phaser from 'phaser';
 import type { Game, GameEvent } from '../sim/game';
 import { CROPS } from '../sim/data';
-import { cropStage } from '../sim/rules';
+import { canExpandAt, cropStage, plotCount } from '../sim/rules';
+import { hasFeature, levelDef } from '../sim/progress';
+import { dateFromDay, type Season } from '../sim/calendar';
 import { plotKey } from '../sim/state';
 import type { AnimalId, Tile } from '../sim/types';
 import { t } from '../i18n/i18n';
@@ -14,9 +16,22 @@ const RES = 2;
 const SPRITES = [
   'grass_a', 'grass_b', 'grass_c', 'soil', 'path',
   'wheat_0', 'wheat_1', 'wheat_2', 'wheat_3',
+  'carrot_0', 'carrot_1', 'carrot_2', 'carrot_3',
+  'cabbage_0', 'cabbage_1', 'cabbage_2', 'cabbage_3',
   'house', 'coop', 'market', 'well', 'rocks', 'tree_a', 'tree_b',
   'cow', 'chicken', 'bubble', 'icon_egg', 'icon_milk', 'icon_wheat', 'icon_coin',
 ];
+
+/**
+ * Color de cada estacion sobre hierba y arboles. MULTIPLY tine y oscurece; SCREEN aclara
+ * (la escarcha del invierno).
+ */
+const SEASON_TINT: Record<Season, { color: number; mode: 'multiply' | 'screen' } | null> = {
+  spring: null,
+  summer: { color: 0xfff0c4, mode: 'multiply' },
+  autumn: { color: 0xf2bf7a, mode: 'multiply' },
+  winter: { color: 0x7d8a96, mode: 'screen' },
+};
 const FONT = 'Cinzel, "Times New Roman", serif';
 const TAP_SLOP = 12;
 
@@ -39,7 +54,14 @@ export class FarmScene extends Phaser.Scene {
   private built: Phaser.GameObjects.GameObject[] = [];
   private crops = new Map<string, Phaser.GameObjects.Image>();
   private bubbles: Bubble[] = [];
+  /** Hierba y arboles: lo que cambia de color con la estacion. */
+  private seasonal: Phaser.GameObjects.Image[] = [];
+  private season: Season | null = null;
   private hover!: Phaser.GameObjects.Graphics;
+  /** Animaciones de respuesta al jugador: no se detienen con la pausa del juego. */
+  private feedbackTweens = new Set<Phaser.Tweens.Tween>();
+  /** Contornos punteados sobre la hierba que se puede roturar. */
+  private landHints!: Phaser.GameObjects.Graphics;
   private downAt: { x: number; y: number } | null = null;
   private unsubscribe: (() => void) | null = null;
 
@@ -56,6 +78,7 @@ export class FarmScene extends Phaser.Scene {
 
   create(): void {
     this.hover = this.add.graphics().setDepth(60);
+    this.landHints = this.add.graphics().setDepth(55);
     this.build();
     this.fit();
 
@@ -127,6 +150,9 @@ export class FarmScene extends Phaser.Scene {
     this.built = [];
     this.crops.clear();
     this.bubbles = [];
+    this.seasonal = [];
+    this.season = null;
+    this.hintsKey = '';
 
     const { tiles } = this.sim.state.map;
     for (const tile of tiles) this.addGround(tile);
@@ -146,7 +172,7 @@ export class FarmScene extends Phaser.Scene {
     const { sx, sy } = toScreen(tile.x, tile.y);
     const grass = ['grass_a', 'grass_b', 'grass_c'][(tile.x * 7 + tile.y * 13) % 3];
     const key = tile.kind === 'soil' ? 'soil' : tile.kind === 'path' || tile.kind === 'market' ? 'path' : grass;
-    this.img(key, sx, sy, 0.5, 0, 1);
+    this.seasonal.push(this.img(key, sx, sy, 0.5, 0, 1));
   }
 
   private addObject(tile: Tile): void {
@@ -170,7 +196,7 @@ export class FarmScene extends Phaser.Scene {
         this.img('rocks', sx, bottom - 6, 0.5, 1, depthOf(tile.x, tile.y, 4));
         break;
       case 'tree':
-        this.img((tile.x + tile.y) % 2 ? 'tree_a' : 'tree_b', sx, bottom + 6, 0.5, 1, depthOf(tile.x, tile.y, 5));
+        this.seasonal.push(this.img((tile.x + tile.y) % 2 ? 'tree_a' : 'tree_b', sx, bottom + 6, 0.5, 1, depthOf(tile.x, tile.y, 5)));
         break;
       case 'soil': {
         const crop = this.img('wheat_0', sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 1)).setVisible(false);
@@ -307,6 +333,9 @@ export class FarmScene extends Phaser.Scene {
         this.build();
         this.fit();
         break;
+      case 'mapChanged':
+        this.build();
+        break;
       case 'change':
         this.refresh();
         this.syncSpeed();
@@ -315,7 +344,7 @@ export class FarmScene extends Phaser.Scene {
         if (e.result.ok && e.x !== undefined && e.y !== undefined && e.result.params?.amount !== undefined) {
           const sign = e.result.msg === 'msg.planted' ? '' : '+';
           this.floatText(e.x, e.y, `${sign}${e.result.params.amount} ${t(`product.${e.result.params.product}`)}`);
-        } else if (e.result.ok && e.result.msg === 'msg.planted' && e.x !== undefined && e.y !== undefined) {
+        } else if (e.result.ok && (e.result.msg === 'msg.planted' || e.result.msg === 'msg.landBought') && e.x !== undefined && e.y !== undefined) {
           this.floatText(e.x, e.y, `−${e.result.params?.cost}`, '#d98b6a');
         }
         break;
@@ -324,7 +353,52 @@ export class FarmScene extends Phaser.Scene {
     }
   }
 
+  private applySeason(): void {
+    const season = dateFromDay(this.sim.state.day).season;
+    if (season === this.season) return;
+    this.season = season;
+    const tint = SEASON_TINT[season];
+    for (const im of this.seasonal) {
+      if (!tint) im.clearTint();
+      else im.setTint(tint.color).setTintMode(tint.mode === 'screen' ? Phaser.TintModes.SCREEN : Phaser.TintModes.MULTIPLY);
+    }
+  }
+
+  private hintsKey = '';
+
+  private drawLandHints(): void {
+    const s = this.sim.state;
+    // Se redibuja solo cuando cambia algo que afecta (la escena refresca en cada fotograma).
+    const key = `${s.level}|${plotCount(s)}`;
+    if (key === this.hintsKey) return;
+    this.hintsKey = key;
+    const g = this.landHints;
+    g.clear();
+    if (!hasFeature(s, 'buyLand') || plotCount(s) >= levelDef(s.level).maxPlots) return;
+    g.fillStyle(0xe8d08a, 0.75);
+    for (const tile of s.map.tiles) {
+      if (!canExpandAt(s, tile.x, tile.y)) continue;
+      const { sx, sy } = toScreen(tile.x, tile.y);
+      const corners = [
+        [sx, sy + 6],
+        [sx + TILE_W / 2 - 12, sy + TILE_H / 2],
+        [sx, sy + TILE_H - 6],
+        [sx - TILE_W / 2 + 12, sy + TILE_H / 2],
+      ];
+      for (let i = 0; i < 4; i++) {
+        const [ax, ay] = corners[i];
+        const [bx, by] = corners[(i + 1) % 4];
+        for (let k = 0; k < 6; k++) {
+          const f = k / 6;
+          g.fillCircle(ax + (bx - ax) * f, ay + (by - ay) * f, 2.2);
+        }
+      }
+    }
+  }
+
   private refresh(): void {
+    this.applySeason();
+    this.drawLandHints();
     const s = this.sim.state;
     for (const [key, sprite] of this.crops) {
       const plot = s.plots[key];
@@ -349,7 +423,7 @@ export class FarmScene extends Phaser.Scene {
     if (speed === this.lastSpeed) return;
     this.lastSpeed = speed;
     if (speed === 0) {
-      this.tweens.pauseAll();
+      for (const tw of this.tweens.getTweens()) if (!this.feedbackTweens.has(tw)) tw.pause();
       this.time.paused = true;
     } else {
       this.tweens.resumeAll();
@@ -379,9 +453,12 @@ export class FarmScene extends Phaser.Scene {
       alpha: 0,
       duration: 1100,
       ease: 'Cubic.easeOut',
-      onComplete: () => label.destroy(),
+      onComplete: () => {
+        this.feedbackTweens.delete(tw);
+        label.destroy();
+      },
     });
-    if (this.sim.state.speed === 0) tw.resume();
+    this.feedbackTweens.add(tw);
   }
 
   // ---------------------------------------------------------------- entrada
@@ -450,13 +527,14 @@ export class FarmScene extends Phaser.Scene {
     const { x, y } = toTile(w.x, w.y);
     const s = this.sim.state;
     const tile = x >= 0 && y >= 0 && x < s.map.width && y < s.map.height ? s.map.tiles[y * s.map.width + x] : undefined;
-    if (!tile || !['soil', 'coop', 'pen', 'market', 'house'].includes(tile.kind)) {
+    const expandable = tile?.kind === 'grass' && hasFeature(s, 'buyLand') && canExpandAt(s, x, y);
+    if (!tile || (!expandable && !['soil', 'coop', 'pen', 'market', 'house'].includes(tile.kind))) {
       this.input.setDefaultCursor('default');
       return;
     }
     this.input.setDefaultCursor('pointer');
     const { sx, sy } = toScreen(x, y);
-    this.hover.lineStyle(3, 0xd9b45a, 0.95);
+    this.hover.lineStyle(3, expandable ? 0xb8c48a : 0xd9b45a, 0.95);
     this.hover.beginPath();
     this.hover.moveTo(sx, sy);
     this.hover.lineTo(sx + TILE_W / 2, sy + TILE_H / 2);
