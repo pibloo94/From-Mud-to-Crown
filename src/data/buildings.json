@@ -1,0 +1,221 @@
+{
+  "house": {
+    "tile": "house",
+    "base": {
+      "beds": 0,
+      "foodSaving": 0
+    },
+    "visual": [
+      0,
+      2,
+      4
+    ],
+    "upgrades": [
+      {
+        "id": "pallet",
+        "cost": 15,
+        "level": 1,
+        "effects": {
+          "beds": 1
+        }
+      },
+      {
+        "id": "hearth",
+        "cost": 40,
+        "level": 2,
+        "effects": {
+          "beds": 1,
+          "foodSaving": 0.1
+        }
+      },
+      {
+        "id": "loft",
+        "cost": 90,
+        "level": 3,
+        "effects": {
+          "beds": 1
+        }
+      },
+      {
+        "id": "extension",
+        "cost": 160,
+        "level": 4,
+        "effects": {
+          "beds": 2
+        }
+      },
+      {
+        "id": "pantry",
+        "cost": 260,
+        "level": 6,
+        "effects": {
+          "foodSaving": 0.15
+        }
+      },
+      {
+        "id": "stoneHall",
+        "cost": 420,
+        "level": 8,
+        "effects": {
+          "beds": 2,
+          "foodSaving": 0.1
+        }
+      }
+    ]
+  },
+  "granary": {
+    "tile": "granary",
+    "base": {
+      "capacity": 30
+    },
+    "visual": [
+      0,
+      2,
+      4
+    ],
+    "upgrades": [
+      {
+        "id": "shelves",
+        "cost": 20,
+        "level": 1,
+        "effects": {
+          "capacity": 20
+        }
+      },
+      {
+        "id": "loft",
+        "cost": 60,
+        "level": 3,
+        "effects": {
+          "capacity": 30
+        }
+      },
+      {
+        "id": "cellar",
+        "cost": 140,
+        "level": 5,
+        "effects": {
+          "capacity": 40
+        }
+      },
+      {
+        "id": "secondBay",
+        "cost": 260,
+        "level": 7,
+        "effects": {
+          "capacity": 60
+        }
+      },
+      {
+        "id": "stoneBarn",
+        "cost": 450,
+        "level": 9,
+        "effects": {
+          "capacity": 100
+        }
+      }
+    ]
+  },
+  "coop": {
+    "tile": "coop",
+    "base": {
+      "maxAnimals": 6,
+      "animalBonus": 0
+    },
+    "visual": [
+      0,
+      2,
+      3
+    ],
+    "upgrades": [
+      {
+        "id": "perches",
+        "cost": 18,
+        "level": 2,
+        "effects": {
+          "maxAnimals": 2
+        }
+      },
+      {
+        "id": "nestBoxes",
+        "cost": 45,
+        "level": 4,
+        "effects": {
+          "maxAnimals": 2,
+          "animalBonus": 0.1
+        }
+      },
+      {
+        "id": "run",
+        "cost": 90,
+        "level": 5,
+        "effects": {
+          "maxAnimals": 3
+        }
+      },
+      {
+        "id": "stoneCoop",
+        "cost": 180,
+        "level": 7,
+        "effects": {
+          "maxAnimals": 3,
+          "animalBonus": 0.15
+        }
+      }
+    ]
+  },
+  "pen": {
+    "tile": "pen",
+    "base": {
+      "maxAnimals": 1,
+      "animalBonus": 0
+    },
+    "visual": [
+      0,
+      2,
+      4
+    ],
+    "upgrades": [
+      {
+        "id": "manger",
+        "cost": 40,
+        "level": 3,
+        "effects": {
+          "animalBonus": 0.15
+        }
+      },
+      {
+        "id": "shed",
+        "cost": 100,
+        "level": 5,
+        "effects": {
+          "maxAnimals": 1
+        }
+      },
+      {
+        "id": "plankFence",
+        "cost": 160,
+        "level": 6,
+        "effects": {
+          "animalBonus": 0.1
+        }
+      },
+      {
+        "id": "stoneWall",
+        "cost": 220,
+        "level": 7,
+        "effects": {
+          "maxAnimals": 1
+        }
+      },
+      {
+        "id": "dairy",
+        "cost": 350,
+        "level": 9,
+        "effects": {
+          "animalBonus": 0.25
+        }
+      }
+    ]
+  }
+}

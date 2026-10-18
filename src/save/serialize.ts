@@ -1,10 +1,12 @@
 // Formato del archivo de partida. Puro (sin DOM) para poder probarlo.
 import type { GameState } from '../sim/types';
-import { PRODUCT_IDS } from '../sim/data';
+import { BUILDING_IDS, PRODUCT_IDS, PROGRESSION, START } from '../sim/data';
 import { rollPrices } from '../sim/market';
+import { buildingStat, storageCapacity, storageUsed } from '../sim/buildings';
+import { addVillager, beds } from '../sim/villagers';
 
 export const SAVE_FORMAT = 'from-mud-to-crown-save';
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;
@@ -67,7 +69,53 @@ export function migrate(state: Record<string, unknown>, from: number): GameState
     s.rng = ((s.day ?? 0) * 2654435761 + 12345) >>> 0;
     rollPrices(s as GameState);
   }
+  if (from < 3) s = migrateV3(s);
   return s as GameState;
+}
+
+/** v2 -> v3 (fase 2): aldeanos, edificios con mejoras, granero, reputacion, impuestos y tierras del este. */
+function migrateV3(old: Record<string, any>): Record<string, any> {
+  const s: Record<string, any> = { ...old };
+  // El mapa crece hacia el este con las tierras cerradas del mapa inicial actual.
+  const rows = START.map.rows;
+  const oldW: number = s.map.width;
+  const width = Math.max(oldW, rows[0].length);
+  const tiles: GameState['map']['tiles'] = [];
+  for (let y = 0; y < s.map.height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (x < oldW) tiles.push({ ...s.map.tiles[y * oldW + x] });
+      else tiles.push({ x, y, kind: START.map.legend[rows[y]?.[x] ?? 'X'] ?? 'wild' });
+    }
+  }
+  const granary = tiles.find((t) => t.x === 3 && t.y === 2);
+  if (granary?.kind === 'grass') granary.kind = 'granary';
+  s.map = { width, height: s.map.height, tiles };
+
+  s.rank = s.level >= 5 ? 'freeFarmer' : 'peasant';
+  s.leases = 0;
+  s.buildings = {};
+  for (const b of BUILDING_IDS) s.buildings[b] = 0;
+  s.villagers = [];
+  s.nextVillagerId = 1;
+  s.foodDebt = 0;
+  s.rep = { baron: PROGRESSION.reputation.start, village: PROGRESSION.reputation.start };
+  s.modifiers = [];
+  s.flags = [];
+  s.seedVouchers = 0;
+  s.stats = { harvested: 0, earned: 0, ...s.stats, seasonEarned: 0, seasonFood: 0 };
+
+  const state = s as GameState;
+  // Los jornaleros de antes pasan a ser labradores, con las camas que necesitan ya construidas.
+  const workers: number = s.workers ?? 0;
+  delete s.workers;
+  while (beds(state) < workers && state.buildings.house < 4) state.buildings.house++;
+  for (let i = 0; i < workers; i++) addVillager(state, 'farmer');
+  // Si ya tenia mas cosecha guardada de la que cabe, se le regalan baldas en el granero.
+  while (storageUsed(state) > storageCapacity(state) && state.buildings.granary < 2) state.buildings.granary++;
+  // Los animales que ya tenia caben siempre.
+  while (state.herds.chicken.count > buildingStat(state, 'coop', 'maxAnimals') && state.buildings.coop < 4) state.buildings.coop++;
+  while (state.herds.cow.count > buildingStat(state, 'pen', 'maxAnimals') && state.buildings.pen < 5) state.buildings.pen++;
+  return s;
 }
 
 function isObject(v: unknown): v is Record<string, unknown> {
@@ -84,6 +132,9 @@ function looksLikeState(s: GameState): boolean {
     isObject(s.map) &&
     Array.isArray(s.map.tiles) &&
     typeof s.level === 'number' &&
-    isObject(s.events)
+    isObject(s.events) &&
+    isObject(s.buildings) &&
+    Array.isArray(s.villagers) &&
+    isObject(s.rep)
   );
 }

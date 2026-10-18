@@ -1,53 +1,788 @@
 {
-  "levy": {
+  "peddler": {
+    "category": "offer",
     "weight": 2,
-    "cooldownDays": 24,
+    "cooldownDays": 15,
+    "icon": "icon_coin",
+    "options": [
+      {
+        "id": "sellEggs",
+        "requires": {
+          "egg": 3
+        },
+        "effects": {
+          "sellAll": {
+            "product": "egg",
+            "mult": 2
+          }
+        }
+      },
+      {
+        "id": "buyHen",
+        "cost": {
+          "coins": 10
+        },
+        "requires": {
+          "chickenRoom": 1
+        },
+        "effects": {
+          "herds": {
+            "chicken": 1
+          }
+        }
+      },
+      {
+        "id": "decline"
+      }
+    ]
+  },
+  "fair": {
+    "category": "offer",
+    "weight": 2,
+    "cooldownDays": 18,
+    "icon": "icon_coin",
+    "seasons": [
+      "spring",
+      "summer",
+      "autumn"
+    ],
+    "options": [
+      {
+        "id": "go",
+        "effects": {
+          "marketBoost": {
+            "mult": 1.5,
+            "days": 3
+          }
+        }
+      },
+      {
+        "id": "decline"
+      }
+    ]
+  },
+  "smith": {
+    "category": "offer",
+    "weight": 2,
+    "cooldownDays": 25,
+    "minLevel": 2,
+    "icon": "icon_hammer",
+    "requires": {
+      "villagers": 1
+    },
+    "options": [
+      {
+        "id": "host",
+        "cost": {
+          "coins": 5
+        },
+        "effects": {
+          "modifier": {
+            "kind": "toolDiscount",
+            "value": 0.7,
+            "days": 10
+          }
+        }
+      },
+      {
+        "id": "decline"
+      }
+    ]
+  },
+  "feast": {
+    "category": "offer",
+    "weight": 1,
+    "cooldownDays": 30,
+    "minLevel": 3,
     "icon": "icon_banner",
     "options": [
-      { "id": "give", "cost": { "wheat": 6 }, "effects": { "xp": 30 } },
-      { "id": "pay", "cost": { "coins": 10 }, "effects": { "xp": 12 } },
-      { "id": "refuse", "effects": { "coins": -8 } }
+      {
+        "id": "sellMilk",
+        "requires": {
+          "milk": 2
+        },
+        "effects": {
+          "sellAll": {
+            "product": "milk",
+            "mult": 2
+          },
+          "rep": {
+            "baron": 3
+          }
+        }
+      },
+      {
+        "id": "decline"
+      }
+    ]
+  },
+  "pilgrims": {
+    "category": "offer",
+    "weight": 2,
+    "cooldownDays": 20,
+    "icon": "icon_wheat",
+    "options": [
+      {
+        "id": "sell",
+        "requires": {
+          "wheat": 3
+        },
+        "effects": {
+          "sellAll": {
+            "product": "wheat",
+            "mult": 1.6
+          }
+        }
+      },
+      {
+        "id": "give",
+        "cost": {
+          "wheat": 3
+        },
+        "effects": {
+          "rep": {
+            "village": 6
+          },
+          "xp": 8
+        }
+      },
+      {
+        "id": "decline"
+      }
+    ]
+  },
+  "monk": {
+    "category": "offer",
+    "weight": 2,
+    "cooldownDays": 30,
+    "icon": "icon_wheat",
+    "seasons": [
+      "spring",
+      "summer",
+      "autumn"
+    ],
+    "options": [
+      {
+        "id": "buy",
+        "cost": {
+          "coins": 8
+        },
+        "effects": {
+          "seedVouchers": 4
+        }
+      },
+      {
+        "id": "decline"
+      }
+    ]
+  },
+  "wedding": {
+    "category": "offer",
+    "weight": 1,
+    "cooldownDays": 60,
+    "minLevel": 3,
+    "icon": "icon_worker",
+    "requires": {
+      "villagers": 1,
+      "village": 55
+    },
+    "options": [
+      {
+        "id": "welcome",
+        "requires": {
+          "freeBed": 1
+        },
+        "effects": {
+          "villagers": 1,
+          "rep": {
+            "village": 4
+          }
+        }
+      },
+      {
+        "id": "gift",
+        "cost": {
+          "coins": 6
+        },
+        "effects": {
+          "rep": {
+            "village": 6
+          }
+        }
+      },
+      {
+        "id": "decline"
+      }
     ]
   },
   "farmhand": {
+    "category": "offer",
     "weight": 2,
     "minLevel": 2,
     "cooldownDays": 20,
     "icon": "icon_worker",
-    "requires": { "workersBelow": 2 },
     "options": [
-      { "id": "hire", "cost": { "coins": 15 }, "effects": { "workers": 1, "xp": 10 } },
-      { "id": "decline" }
+      {
+        "id": "hire",
+        "requires": {
+          "freeBed": 1
+        },
+        "effects": {
+          "villagers": 1,
+          "xp": 10
+        }
+      },
+      {
+        "id": "decline"
+      }
+    ],
+    "requires": {
+      "freeBed": 1
+    }
+  },
+  "levy": {
+    "category": "obligation",
+    "weight": 2,
+    "cooldownDays": 24,
+    "icon": "icon_banner",
+    "options": [
+      {
+        "id": "give",
+        "cost": {
+          "wheat": 6
+        },
+        "effects": {
+          "xp": 30,
+          "rep": {
+            "baron": 8
+          }
+        }
+      },
+      {
+        "id": "pay",
+        "cost": {
+          "coins": 10
+        },
+        "effects": {
+          "xp": 12,
+          "rep": {
+            "baron": 3
+          }
+        }
+      },
+      {
+        "id": "refuse",
+        "effects": {
+          "rep": {
+            "baron": -10
+          },
+          "modifier": {
+            "kind": "tribute",
+            "value": 1.5,
+            "seasons": 1
+          },
+          "flags": {
+            "set": [
+              "levyRefused"
+            ]
+          }
+        }
+      }
     ]
   },
-  "fair": {
+  "corvee": {
+    "category": "obligation",
     "weight": 2,
-    "cooldownDays": 18,
-    "icon": "icon_coin",
-    "seasons": ["spring", "summer", "autumn"],
+    "cooldownDays": 30,
+    "minLevel": 2,
+    "icon": "icon_banner",
+    "requires": {
+      "villagers": 1
+    },
     "options": [
-      { "id": "go", "effects": { "marketBoost": { "mult": 1.5, "days": 3 } } },
-      { "id": "stay" }
+      {
+        "id": "send",
+        "effects": {
+          "modifier": {
+            "kind": "idle",
+            "value": 1,
+            "days": 3
+          },
+          "rep": {
+            "baron": 6
+          },
+          "xp": 10
+        }
+      },
+      {
+        "id": "pay",
+        "cost": {
+          "coins": 12
+        },
+        "effects": {
+          "rep": {
+            "baron": 1
+          }
+        }
+      },
+      {
+        "id": "refuse",
+        "effects": {
+          "rep": {
+            "baron": -6
+          },
+          "modifier": {
+            "kind": "tribute",
+            "value": 1.25,
+            "seasons": 1
+          }
+        }
+      }
+    ]
+  },
+  "chapel": {
+    "category": "obligation",
+    "weight": 2,
+    "cooldownDays": 30,
+    "icon": "icon_banner",
+    "options": [
+      {
+        "id": "coins",
+        "cost": {
+          "coins": 15
+        },
+        "effects": {
+          "rep": {
+            "village": 8
+          },
+          "xp": 10
+        }
+      },
+      {
+        "id": "wheat",
+        "cost": {
+          "wheat": 5
+        },
+        "effects": {
+          "rep": {
+            "village": 5
+          },
+          "xp": 6
+        }
+      },
+      {
+        "id": "refuse",
+        "effects": {
+          "rep": {
+            "village": -6
+          }
+        }
+      }
+    ]
+  },
+  "road": {
+    "category": "obligation",
+    "weight": 2,
+    "cooldownDays": 35,
+    "minLevel": 2,
+    "icon": "icon_hammer",
+    "options": [
+      {
+        "id": "work",
+        "requires": {
+          "villagers": 1
+        },
+        "effects": {
+          "modifier": {
+            "kind": "idle",
+            "value": 1,
+            "days": 2
+          },
+          "rep": {
+            "village": 5
+          },
+          "flags": {
+            "set": [
+              "roadFixed"
+            ]
+          }
+        }
+      },
+      {
+        "id": "pay",
+        "cost": {
+          "coins": 8
+        },
+        "effects": {
+          "rep": {
+            "village": 4
+          },
+          "flags": {
+            "set": [
+              "roadFixed"
+            ]
+          }
+        }
+      },
+      {
+        "id": "refuse",
+        "effects": {
+          "rep": {
+            "village": -5
+          },
+          "modifier": {
+            "kind": "priceAll",
+            "value": 0.9,
+            "days": 14
+          }
+        }
+      }
+    ]
+  },
+  "hunt": {
+    "category": "obligation",
+    "weight": 1,
+    "cooldownDays": 40,
+    "minLevel": 4,
+    "icon": "icon_banner",
+    "options": [
+      {
+        "id": "provide",
+        "cost": {
+          "milk": 3,
+          "egg": 4
+        },
+        "effects": {
+          "rep": {
+            "baron": 8
+          },
+          "xp": 20
+        }
+      },
+      {
+        "id": "pay",
+        "cost": {
+          "coins": 18
+        },
+        "effects": {
+          "rep": {
+            "baron": 3
+          }
+        }
+      },
+      {
+        "id": "refuse",
+        "effects": {
+          "rep": {
+            "baron": -6
+          },
+          "modifier": {
+            "kind": "tribute",
+            "value": 1.2,
+            "seasons": 1
+          }
+        }
+      }
+    ]
+  },
+  "baronsMen": {
+    "category": "obligation",
+    "weight": 3,
+    "cooldownDays": 20,
+    "icon": "icon_banner",
+    "requires": {
+      "flag:levyRefused": 1
+    },
+    "options": [
+      {
+        "id": "pay",
+        "cost": {
+          "coins": 20
+        },
+        "effects": {
+          "rep": {
+            "baron": 6
+          },
+          "flags": {
+            "clear": [
+              "levyRefused"
+            ]
+          }
+        }
+      },
+      {
+        "id": "hide",
+        "risk": {
+          "chance": 0.5,
+          "effects": {
+            "loseFraction": {
+              "products": [
+                "wheat",
+                "carrot",
+                "cabbage"
+              ],
+              "fraction": 0.4
+            },
+            "rep": {
+              "baron": -4
+            }
+          }
+        }
+      }
     ]
   },
   "fox": {
+    "category": "mishap",
     "weight": 2,
     "cooldownDays": 15,
     "icon": "icon_egg",
-    "requires": { "chicken": 2 },
+    "requires": {
+      "chicken": 2,
+      "flag:foxGone": 0
+    },
     "options": [
-      { "id": "fence", "cost": { "coins": 8 }, "effects": { "xp": 5 } },
-      { "id": "risk", "risk": { "chance": 0.5, "effects": { "herds": { "chicken": -1 } } } }
+      {
+        "id": "fence",
+        "cost": {
+          "coins": 8
+        },
+        "effects": {
+          "xp": 5
+        }
+      },
+      {
+        "id": "risk",
+        "risk": {
+          "chance": 0.5,
+          "effects": {
+            "herds": {
+              "chicken": -1
+            },
+            "flags": {
+              "set": [
+                "foxFed"
+              ]
+            }
+          }
+        }
+      }
     ]
   },
-  "peddler": {
+  "foxDen": {
+    "category": "mishap",
+    "weight": 3,
+    "cooldownDays": 20,
+    "icon": "icon_egg",
+    "requires": {
+      "flag:foxFed": 1,
+      "flag:foxGone": 0
+    },
+    "options": [
+      {
+        "id": "trapper",
+        "cost": {
+          "coins": 10
+        },
+        "effects": {
+          "flags": {
+            "set": [
+              "foxGone"
+            ],
+            "clear": [
+              "foxFed"
+            ]
+          },
+          "rep": {
+            "village": 3
+          }
+        }
+      },
+      {
+        "id": "hunt",
+        "risk": {
+          "chance": 0.4,
+          "effects": {
+            "herds": {
+              "chicken": -1
+            }
+          }
+        },
+        "effects": {
+          "flags": {
+            "set": [
+              "foxGone"
+            ],
+            "clear": [
+              "foxFed"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "pests": {
+    "category": "mishap",
     "weight": 2,
-    "cooldownDays": 15,
+    "cooldownDays": 25,
+    "icon": "icon_wheat",
+    "seasons": [
+      "spring",
+      "summer",
+      "autumn"
+    ],
+    "options": [
+      {
+        "id": "smoke",
+        "cost": {
+          "coins": 10
+        }
+      },
+      {
+        "id": "risk",
+        "risk": {
+          "chance": 0.6,
+          "effects": {
+            "cropSetback": 2
+          }
+        }
+      }
+    ]
+  },
+  "storm": {
+    "category": "mishap",
+    "weight": 2,
+    "cooldownDays": 25,
+    "icon": "icon_hammer",
+    "options": [
+      {
+        "id": "shelter",
+        "requires": {
+          "villagers": 1
+        },
+        "effects": {
+          "modifier": {
+            "kind": "idle",
+            "value": 1,
+            "days": 1
+          }
+        }
+      },
+      {
+        "id": "patch",
+        "cost": {
+          "coins": 10
+        }
+      },
+      {
+        "id": "risk",
+        "risk": {
+          "chance": 0.5,
+          "effects": {
+            "loseFraction": {
+              "products": [
+                "wheat",
+                "carrot",
+                "cabbage"
+              ],
+              "fraction": 0.3
+            }
+          }
+        }
+      }
+    ]
+  },
+  "sickCow": {
+    "category": "mishap",
+    "weight": 2,
+    "cooldownDays": 30,
+    "icon": "icon_milk",
+    "requires": {
+      "cow": 1
+    },
+    "options": [
+      {
+        "id": "herbalist",
+        "cost": {
+          "coins": 12
+        }
+      },
+      {
+        "id": "risk",
+        "risk": {
+          "chance": 0.4,
+          "effects": {
+            "modifier": {
+              "kind": "animal",
+              "value": 0.5,
+              "days": 10
+            }
+          }
+        }
+      }
+    ]
+  },
+  "thieves": {
+    "category": "mishap",
+    "weight": 2,
+    "cooldownDays": 30,
+    "minLevel": 3,
     "icon": "icon_coin",
     "options": [
-      { "id": "sellEggs", "requires": { "egg": 3 }, "effects": { "sellAll": { "product": "egg", "mult": 2 } } },
-      { "id": "buyHen", "cost": { "coins": 10 }, "requires": { "chickenBelow": 10 }, "effects": { "herds": { "chicken": 1 } } },
-      { "id": "decline" }
+      {
+        "id": "watch",
+        "cost": {
+          "coins": 8
+        }
+      },
+      {
+        "id": "risk",
+        "risk": {
+          "chance": 0.4,
+          "effects": {
+            "loseFraction": {
+              "products": "all",
+              "fraction": 0.25
+            }
+          }
+        }
+      }
+    ]
+  },
+  "drought": {
+    "category": "mishap",
+    "weight": 2,
+    "cooldownDays": 40,
+    "icon": "icon_wheat",
+    "seasons": [
+      "summer"
+    ],
+    "options": [
+      {
+        "id": "carry",
+        "requires": {
+          "villagers": 1
+        },
+        "effects": {
+          "modifier": {
+            "kind": "idle",
+            "value": 1,
+            "days": 3
+          }
+        }
+      },
+      {
+        "id": "risk",
+        "risk": {
+          "chance": 0.7,
+          "effects": {
+            "modifier": {
+              "kind": "growth",
+              "value": 0.5,
+              "days": 7
+            }
+          }
+        }
+      }
     ]
   }
 }

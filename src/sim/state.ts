@@ -1,7 +1,8 @@
-import { ANIMAL_IDS, PRODUCT_IDS, START } from './data';
+import { ANIMAL_IDS, BUILDING_IDS, PRODUCT_IDS, PROGRESSION, START } from './data';
 import { rollPrices } from './market';
 import { newSeed } from './random';
-import type { AnimalId, GameState, Herd, Plot, ProductId, Tile } from './types';
+import { addVillager } from './villagers';
+import type { AnimalId, BuildingId, GameState, Herd, Plot, ProductId, Tile } from './types';
 
 export const plotKey = (x: number, y: number): string => `${x},${y}`;
 
@@ -27,6 +28,10 @@ export function createNewGame(seed: number = newSeed()): GameState {
     priceMult[p] = 1;
   }
 
+  const buildings = {} as Record<BuildingId, number>;
+  for (const b of BUILDING_IDS) buildings[b] = 0;
+  const rep = PROGRESSION.reputation.start;
+
   const state: GameState = {
     day: 0,
     dayProgress: 0,
@@ -38,14 +43,24 @@ export function createNewGame(seed: number = newSeed()): GameState {
     herds,
     xp: 0,
     level: 1,
+    rank: 'peasant',
     landBought: 0,
-    workers: 0,
+    leases: 0,
+    buildings,
+    villagers: [],
+    nextVillagerId: 1,
+    foodDebt: 0,
+    rep: { baron: rep, village: rep },
+    modifiers: [],
+    flags: [],
+    seedVouchers: 0,
     priceMult,
     marketBoost: null,
     events: { pending: null, lastDay: 0, cooldowns: {} },
     rng: seed >>> 0,
-    stats: { harvested: 0, earned: 0 },
+    stats: { harvested: 0, earned: 0, seasonEarned: 0, seasonFood: 0 },
   };
+  for (let i = 0; i < (START.villagers ?? 0); i++) addVillager(state);
   rollPrices(state);
   return state;
 }

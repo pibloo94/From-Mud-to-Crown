@@ -2,10 +2,14 @@
 import { ANIMALS, ANIMAL_IDS, CROPS, CROP_IDS, PRODUCTS, PROGRESSION } from './data';
 import { DAY_MS, dateFromDay } from './calendar';
 import { plotKey, tileAt } from './state';
-import { addXp, cropUnlocked, hasFeature, levelDef } from './progress';
+import { addXp, cropUnlocked, hasFeature, levelDef, rankDef, updateRank } from './progress';
 import { priceOf, rollPrices } from './market';
 import { maybeTriggerEvent } from './events';
-import type { AnimalId, CommandResult, CropId, GameState, Notice, Plot, ProductId, Speed } from './types';
+import { buildingStat, storageFree, store } from './buildings';
+import { expireModifiers, multiplier } from './modifiers';
+import { carterSells, feedVillagers, growthPerDay, hasHerder, herderBonus } from './villagers';
+import { settleSeason } from './taxes';
+import type { AnimalId, BuildingId, CommandResult, CropId, GameState, Notice, Plot, ProductId, Speed } from './types';
 
 /** Avance maximo por fotograma, para que una pausa del navegador no salte muchos dias de golpe. */
 const MAX_FRAME_MS = 250;
@@ -44,47 +48,64 @@ export function tick(state: GameState, realMs: number): TickResult {
 export function advanceDay(state: GameState): Notice[] {
   const notices: Notice[] = [];
   const season = dateFromDay(state.day).season;
-  const growth = 1 + state.workers * PROGRESSION.workers.growthBonus;
+
+  // Cultivos: crecen mas rapido con labradores; fuera de temporada esperan.
+  const growth = growthPerDay(state);
   for (const plot of Object.values(state.plots)) {
     if (!plot.crop) continue;
     const def = CROPS[plot.crop];
-    if (!def.seasons.includes(season)) continue; // helada: el cultivo espera
+    if (!def.seasons.includes(season)) continue;
     plot.growth = Math.min(plot.growth + growth, def.growDays);
   }
+
+  // Animales: el edificio, los pastores y los percances cambian lo que producen.
   for (const id of ANIMAL_IDS) {
     const herd = state.herds[id];
     const def = ANIMALS[id];
     herd.timer++;
     if (herd.timer >= def.everyDays) {
       herd.timer = 0;
-      const batch = herd.count * def.amountPerAnimal;
-      herd.stored = Math.min(herd.stored + batch, batch * def.maxBatches);
+      const base = herd.count * def.amountPerAnimal;
+      const bonus = 1 + buildingStat(state, buildingOf(id), 'animalBonus') + herderBonus(state);
+      herd.stored = Math.min(herd.stored + base * bonus * multiplier(state, 'animal'), base * def.maxBatches * bonus);
     }
   }
-  // Jornal: si no se puede pagar, el jornalero se marcha.
-  if (state.workers > 0) {
-    const wage = state.workers * PROGRESSION.workers.wage;
-    if (state.coins >= wage) state.coins -= wage;
-    else {
-      state.workers--;
-      notices.push({ ok: false, msg: 'msg.workerLeft' });
-    }
-  }
+  // El pastor recoge solo lo que quepa en el granero.
+  if (hasHerder(state)) for (const id of ANIMAL_IDS) collectInto(state, id);
+
+  notices.push(...feedVillagers(state));
+
   state.day++;
   const newSeason = dateFromDay(state.day).season;
   if (newSeason !== season) {
+    notices.push(settleSeason(state, season));
     rollPrices(state);
     notices.push({ ok: true, msg: `msg.season.${newSeason}` });
   } else if (state.day % PROGRESSION.priceDays === 0) {
     rollPrices(state);
   }
+  const sale = carterSells(state);
+  if (sale) notices.push(sale);
+  expireModifiers(state);
   if (state.marketBoost && state.day >= state.marketBoost.untilDay) state.marketBoost = null;
+  notices.push(...checkRank(state));
   maybeTriggerEvent(state);
   return notices;
 }
 
 export function setSpeed(state: GameState, speed: Speed): void {
   state.speed = speed;
+}
+
+/** Comprueba el ascenso de rango; al ser Terrateniente se abren las tierras del este. */
+export function checkRank(state: GameState): Notice[] {
+  const gained = updateRank(state);
+  if (!gained) return [];
+  if (gained === 'landowner') openEastLands(state);
+  // Los rangos que solo piden nivel ya se anuncian en la tarjeta de subida de nivel.
+  const def = rankDef(gained);
+  if (!def.days && !def.baron) return [];
+  return [{ ok: true, msg: 'report.rank', card: 'rank', params: { rank: gained } }];
 }
 
 // ------------------------------------------------------------------ cultivos
@@ -109,18 +130,23 @@ export function plantableCrops(state: GameState): CropId[] {
   return CROP_IDS.filter((c) => cropUnlocked(state, c) && CROPS[c].seasons.includes(season));
 }
 
+export function seedCost(state: GameState, crop: CropId): number {
+  return state.seedVouchers > 0 ? 0 : CROPS[crop].seedCost;
+}
+
 export function plant(state: GameState, x: number, y: number, crop: CropId = 'wheat'): Outcome {
   const plot = state.plots[plotKey(x, y)];
   if (!plot) return fail('msg.notFarmland');
   if (plot.crop) return fail('msg.alreadyPlanted');
   if (!cropUnlocked(state, crop)) return fail('msg.cropLocked', { crop, level: CROPS[crop].unlockLevel });
   if (!CROPS[crop].seasons.includes(dateFromDay(state.day).season)) return fail('msg.outOfSeason', { crop });
-  const cost = CROPS[crop].seedCost;
+  const cost = seedCost(state, crop);
   if (state.coins < cost) return fail('msg.notEnoughCoins', { cost });
+  if (cost === 0 && state.seedVouchers > 0) state.seedVouchers--;
   state.coins -= cost;
   plot.crop = crop;
   plot.growth = 0;
-  return done({ ok: true, msg: 'msg.planted', params: { crop, cost } });
+  return done({ ok: true, msg: cost === 0 ? 'msg.plantedFree' : 'msg.planted', params: { crop, cost } });
 }
 
 export function harvest(state: GameState, x: number, y: number): Outcome {
@@ -128,7 +154,9 @@ export function harvest(state: GameState, x: number, y: number): Outcome {
   if (!plot || !plot.crop) return fail('msg.nothingPlanted');
   if (!isRipe(plot)) return done(growingInfo(state, plot));
   const def = CROPS[plot.crop];
-  state.inventory[def.product] += def.yield;
+  // Si no cabe la cosecha entera, se queda en el campo esperando sitio en el granero.
+  if (storageFree(state) < def.yield) return fail('msg.granaryFull');
+  store(state, def.product, def.yield);
   state.stats.harvested += def.yield;
   plot.crop = null;
   plot.growth = 0;
@@ -140,8 +168,7 @@ function growingInfo(state: GameState, plot: Plot): CommandResult {
   const crop = plot.crop as CropId;
   const def = CROPS[crop];
   if (!def.seasons.includes(dateFromDay(state.day).season)) return { ok: false, msg: 'msg.dormant', params: { crop } };
-  const perDay = 1 + state.workers * PROGRESSION.workers.growthBonus;
-  return { ok: false, msg: 'msg.growing', params: { crop, days: Math.ceil((def.growDays - plot.growth) / perDay) } };
+  return { ok: false, msg: 'msg.growing', params: { crop, days: Math.ceil((def.growDays - plot.growth) / growthPerDay(state)) } };
 }
 
 // ------------------------------------------------------------------ tierra
@@ -155,10 +182,12 @@ export function plotCount(state: GameState): number {
   return Object.keys(state.plots).length;
 }
 
-/** Una baldosa de hierba junto al campo se puede roturar. */
+const isEast = (x: number) => x >= PROGRESSION.lands.eastFrom;
+
+/** Una baldosa de hierba junto al campo se puede roturar (las del este se arriendan). */
 export function canExpandAt(state: GameState, x: number, y: number): boolean {
   const tile = tileAt(state, x, y);
-  if (!tile || tile.kind !== 'grass') return false;
+  if (!tile || tile.kind !== 'grass' || isEast(x)) return false;
   return [
     [1, 0],
     [-1, 0],
@@ -189,23 +218,65 @@ export function buyLand(state: GameState, x: number, y: number): Outcome {
   return done({ ok: true, msg: 'msg.landBought', params: { cost } }, addXp(state, 5));
 }
 
+// ------------------------------------------------------------------ tierras del este y aparceros
+
+export function openEastLands(state: GameState): void {
+  for (const t of state.map.tiles) if (t.kind === 'wild') t.kind = 'grass';
+}
+
+export function leaseCost(state: GameState): number {
+  const { leaseBaseCost, leaseGrowth } = PROGRESSION.lands;
+  return Math.round(leaseBaseCost * leaseGrowth ** state.leases);
+}
+
+export function canLeaseAt(state: GameState, x: number, y: number): boolean {
+  return state.rank === 'landowner' && isEast(x) && tileAt(state, x, y)?.kind === 'grass';
+}
+
+export function lease(state: GameState, x: number, y: number): Outcome {
+  if (!canLeaseAt(state, x, y)) return fail('msg.nothing');
+  const cost = leaseCost(state);
+  if (state.coins < cost) return fail('msg.notEnoughCoins', { cost });
+  state.coins -= cost;
+  state.leases++;
+  tileAt(state, x, y)!.kind = 'tenant';
+  return done({ ok: true, msg: 'msg.leased', params: { cost, rent: PROGRESSION.lands.rentPerSeason } }, addXp(state, 15));
+}
+
 // ------------------------------------------------------------------ animales
+
+export function buildingOf(animal: AnimalId): BuildingId {
+  return animal === 'chicken' ? 'coop' : 'pen';
+}
+
+/** Pasa al granero lo producido que quepa. Devuelve cuanto se ha guardado. */
+function collectInto(state: GameState, animal: AnimalId): number {
+  const herd = state.herds[animal];
+  const product = ANIMALS[animal].product;
+  const added = store(state, product, Math.floor(herd.stored));
+  herd.stored -= added;
+  return added;
+}
 
 export function collect(state: GameState, animal: AnimalId): Outcome {
   const herd = state.herds[animal];
   const product = ANIMALS[animal].product;
-  if (!herd || herd.stored <= 0) return fail('msg.nothingToCollect', { product });
-  const amount = herd.stored;
-  state.inventory[product] += amount;
-  herd.stored = 0;
+  if (!herd || herd.stored < 1) return fail('msg.nothingToCollect', { product });
+  if (storageFree(state) <= 0) return fail('msg.granaryFull');
+  const amount = collectInto(state, animal);
   const levelUps = addXp(state, amount * PRODUCTS[product].xpCollect);
   return done({ ok: true, msg: 'msg.collected', params: { amount, product } }, levelUps);
+}
+
+export function animalCapacity(state: GameState, animal: AnimalId): number {
+  return buildingStat(state, buildingOf(animal), 'maxAnimals');
 }
 
 export function buyAnimal(state: GameState, animal: AnimalId): Outcome {
   const offer = PROGRESSION.animalsForSale[animal];
   if (!hasFeature(state, offer.unlock)) return fail('msg.animalLocked');
-  if (state.herds[animal].count >= offer.max) return fail('msg.animalLimit', { max: offer.max });
+  const max = animalCapacity(state, animal);
+  if (state.herds[animal].count >= max) return fail('msg.animalLimit', { max });
   if (state.coins < offer.price) return fail('msg.notEnoughCoins', { cost: offer.price });
   state.coins -= offer.price;
   state.herds[animal].count++;
@@ -222,6 +293,7 @@ export function sell(state: GameState, product: ProductId, qty: number | 'all'):
   state.inventory[product] -= amount;
   state.coins += coins;
   state.stats.earned += coins;
+  state.stats.seasonEarned += coins;
   const levelUps = addXp(state, coins * PROGRESSION.xpPerCoinSold);
   return done({ ok: true, msg: 'msg.sold', params: { amount, product, coins } }, levelUps);
 }
@@ -233,6 +305,8 @@ export type Interaction =
   | { kind: 'done'; outcome: Outcome }
   | { kind: 'choosePlant'; x: number; y: number; crops: CropId[] }
   | { kind: 'offerLand'; x: number; y: number; cost: number }
+  | { kind: 'offerLease'; x: number; y: number; cost: number }
+  | { kind: 'building'; building: BuildingId }
   | { kind: 'openMarket' };
 
 export function interact(state: GameState, x: number, y: number): Interaction {
@@ -248,18 +322,31 @@ export function interact(state: GameState, x: number, y: number): Interaction {
       return { kind: 'choosePlant', x, y, crops };
     }
     case 'grass': {
+      if (isEast(x)) {
+        if (canLeaseAt(state, x, y)) return { kind: 'offerLease', x, y, cost: leaseCost(state) };
+        return { kind: 'done', outcome: fail('msg.nothing') };
+      }
       const check = landCheck(state, x, y);
       if (check.ok) return { kind: 'offerLand', x, y, cost: landCost(state) };
       return { kind: 'done', outcome: done(check) };
     }
+    case 'wild':
+      return { kind: 'done', outcome: fail('msg.wildLocked') };
+    case 'tenant':
+      return { kind: 'done', outcome: done({ ok: true, msg: 'msg.tenant', params: { rent: PROGRESSION.lands.rentPerSeason } }) };
+    // Gallinero y corral: si hay algo que recoger se recoge; si no, se abre el edificio.
     case 'coop':
-      return { kind: 'done', outcome: collect(state, 'chicken') };
+      if (state.herds.chicken.stored >= 1) return { kind: 'done', outcome: collect(state, 'chicken') };
+      return { kind: 'building', building: 'coop' };
     case 'pen':
-      return { kind: 'done', outcome: collect(state, 'cow') };
+      if (state.herds.cow.stored >= 1) return { kind: 'done', outcome: collect(state, 'cow') };
+      return { kind: 'building', building: 'pen' };
+    case 'house':
+      return { kind: 'building', building: 'house' };
+    case 'granary':
+      return { kind: 'building', building: 'granary' };
     case 'market':
       return { kind: 'openMarket' };
-    case 'house':
-      return { kind: 'done', outcome: done({ ok: true, msg: 'msg.house' }) };
     default:
       return { kind: 'done', outcome: fail('msg.nothing') };
   }

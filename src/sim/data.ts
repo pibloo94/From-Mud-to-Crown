@@ -5,7 +5,9 @@ import animalsJson from '../data/animals.json';
 import startJson from '../data/start.json';
 import progressionJson from '../data/progression.json';
 import eventsJson from '../data/events.json';
-import type { AnimalId, CropId, ProductId, TileKind } from './types';
+import buildingsJson from '../data/buildings.json';
+import villagersJson from '../data/villagers.json';
+import type { AnimalId, BuildingId, CropId, JobId, ModifierKind, ProductId, RankId, TileKind } from './types';
 import type { Season } from './calendar';
 
 export interface ProductDef {
@@ -43,6 +45,7 @@ export interface StartDef {
   coins: number;
   inventory: Partial<Record<ProductId, number>>;
   herds: Partial<Record<AnimalId, number>>;
+  villagers: number;
   map: { legend: Record<string, TileKind>; rows: string[] };
 }
 
@@ -54,15 +57,73 @@ export interface LevelDef {
   unlocks?: Feature[];
 }
 
+export interface RankDef {
+  id: RankId;
+  level: number;
+  /** Dias de juego minimos (opcional). */
+  days?: number;
+  /** Reputacion minima ante el baron (opcional). */
+  baron?: number;
+}
+
 export interface ProgressionDef {
   levels: LevelDef[];
-  ranks: { id: string; level: number }[];
+  ranks: RankDef[];
   xpPerCoinSold: number;
   land: { baseCost: number; growth: number };
-  animalsForSale: Record<AnimalId, { price: number; max: number; unlock: Feature }>;
-  workers: { growthBonus: number; wage: number; max: number };
+  animalsForSale: Record<AnimalId, { price: number; unlock: Feature }>;
   events: { firstDay: number; minGap: number; dailyChance: number };
   priceDays: number;
+  taxes: {
+    titheRate: number;
+    tributeBase: number;
+    tributePerPlot: number;
+    /** Con la reputacion del baron por debajo de esto, el tributo sube. */
+    lowBaron: number;
+    lowBaronMult: number;
+    /** Reputacion que se pierde si no se puede pagar. */
+    unpaidBaron: number;
+  };
+  reputation: { start: number; highVillage: number };
+  lands: { eastFrom: number; leaseBaseCost: number; leaseGrowth: number; rentPerSeason: number };
+}
+
+/** Efectos que suma cada mejora de edificio. */
+export interface BuildingStats {
+  beds?: number;
+  foodSaving?: number;
+  capacity?: number;
+  maxAnimals?: number;
+  animalBonus?: number;
+}
+
+export interface UpgradeDef {
+  id: string;
+  cost: number;
+  level: number;
+  effects: BuildingStats;
+}
+
+export interface BuildingDef {
+  tile: TileKind;
+  base: BuildingStats;
+  /** Numero de mejoras a partir del cual cambia el dibujo (estado 1, 2, 3). */
+  visual: number[];
+  upgrades: UpgradeDef[];
+}
+
+export interface VillagersDef {
+  hireCost: number;
+  foodPerDay: number;
+  foodOrder: ProductId[];
+  hungerDays: number;
+  jobs: {
+    farmer: { growthBonus: number };
+    herder: { animalBonus: number };
+    carter: { sellEvery: number; priceRate: number; priceRatePerTier: number; reserveDays: number };
+  };
+  tools: { efficiency: number[]; tiers: { cost: number; level: number }[] };
+  names: string[];
 }
 
 /** Recursos que un evento puede pedir o dar. */
@@ -74,7 +135,17 @@ export interface EventEffects {
   coins?: number;
   items?: Partial<Record<ProductId, number>>;
   herds?: Partial<Record<AnimalId, number>>;
-  workers?: number;
+  /** Aldeanos que llegan (necesitan cama libre). */
+  villagers?: number;
+  rep?: { baron?: number; village?: number };
+  /** Efecto temporal: dura `days` dias o hasta las cuentas de `seasons` estaciones. */
+  modifier?: { kind: ModifierKind; value: number; days?: number; seasons?: number };
+  flags?: { set?: string[]; clear?: string[] };
+  /** Se pierde una parte de lo almacenado. */
+  loseFraction?: { products: ProductId[] | 'all'; fraction: number };
+  /** Los cultivos que crecen retroceden estos dias. */
+  cropSetback?: number;
+  seedVouchers?: number;
   marketBoost?: { mult: number; days: number };
   sellAll?: { product: ProductId; mult: number };
 }
@@ -89,7 +160,11 @@ export interface EventOptionDef {
   risk?: { chance: number; effects: EventEffects };
 }
 
+/** Oferta: rechazar no tiene castigo. Obligacion: incumplir penaliza. Percance: se juega el riesgo. */
+export type EventCategory = 'offer' | 'obligation' | 'mishap';
+
 export interface EventDef {
+  category: EventCategory;
   weight: number;
   cooldownDays: number;
   icon: string;
@@ -103,11 +178,15 @@ export const PRODUCTS = productsJson as Record<ProductId, ProductDef>;
 export const CROPS = cropsJson as Record<CropId, CropDef>;
 export const ANIMALS = animalsJson as Record<AnimalId, AnimalDef>;
 export const START = startJson as StartDef;
-export const PROGRESSION = progressionJson as ProgressionDef;
-export const EVENTS = eventsJson as Record<string, EventDef>;
+export const PROGRESSION = progressionJson as unknown as ProgressionDef;
+export const EVENTS = eventsJson as unknown as Record<string, EventDef>;
+export const BUILDINGS = buildingsJson as Record<BuildingId, BuildingDef>;
+export const VILLAGERS = villagersJson as VillagersDef;
 
 export const PRODUCT_IDS = Object.keys(PRODUCTS) as ProductId[];
 export const CROP_IDS = Object.keys(CROPS) as CropId[];
 export const ANIMAL_IDS = Object.keys(ANIMALS) as AnimalId[];
 export const EVENT_IDS = Object.keys(EVENTS);
+export const BUILDING_IDS = Object.keys(BUILDINGS) as BuildingId[];
+export const JOB_IDS = Object.keys(VILLAGERS.jobs) as JobId[];
 export const MAX_LEVEL = PROGRESSION.levels.length;
