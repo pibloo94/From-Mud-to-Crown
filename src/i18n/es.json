@@ -157,5 +157,7 @@
   "event.peddler.opt.decline": "Despedirlo",
   "event.peddler.result.sellEggs": "El buhonero se lleva {amount} huevos y te deja {coins} monedas.",
   "event.peddler.result.buyHen": "Una gallina rubia se une a las tuyas.",
-  "event.peddler.result.decline": "El buhonero sigue su camino silbando."
+  "event.peddler.result.decline": "El buhonero sigue su camino silbando.",
+  "menu.musicOn": "Música: sí",
+  "menu.musicOff": "Música: no"
 }

@@ -3,6 +3,7 @@ import './style.css';
 import { Game } from './sim/game';
 import { FarmScene } from './render/FarmScene';
 import { createUI } from './ui/ui';
+import { music } from './audio/music';
 
 const parent = document.getElementById('game')!;
 const uiRoot = document.getElementById('ui')!;
@@ -30,7 +31,7 @@ const game = new Phaser.Game({
 
 // Modo depuracion: con ?debug en la URL, la partida queda accesible desde la consola como `fmtc`.
 if (new URLSearchParams(location.search).has('debug')) {
-  (window as unknown as Record<string, unknown>).fmtc = { sim, game };
+  (window as unknown as Record<string, unknown>).fmtc = { sim, game, music };
 }
 
 window.addEventListener('resize', () => {

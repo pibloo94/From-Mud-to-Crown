@@ -264,7 +264,7 @@ export class FarmScene extends Phaser.Scene {
     const box = this.add.container(x, y, [bg, ic, label]).setDepth(10_000).setVisible(false);
     this.built.push(box);
     this.bubbles.push({ animal, tile, box, label });
-    this.tweens.add({ targets: box, y: y - 6, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.respectPause(this.tweens.add({ targets: box, y: y - 6, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' }));
   }
 
   // ---------------------------------------------------------------- animales (decorativos)
@@ -422,15 +422,24 @@ export class FarmScene extends Phaser.Scene {
     const speed = this.sim.state.speed;
     if (speed === this.lastSpeed) return;
     this.lastSpeed = speed;
-    if (speed === 0) {
-      for (const tw of this.tweens.getTweens()) if (!this.feedbackTweens.has(tw)) tw.pause();
-      this.time.paused = true;
-    } else {
-      this.tweens.resumeAll();
+    // Se pausan y reanudan las animaciones una a una: las de respuesta al jugador (textos flotantes)
+    // siguen siempre. Reanudar solo el gestor no basta, porque no despausa cada animacion.
+    for (const tw of this.tweens.getTweens()) {
+      if (this.feedbackTweens.has(tw)) continue;
+      if (speed === 0) tw.pause();
+      else if (tw.paused) tw.resume();
+    }
+    this.time.paused = speed === 0;
+    if (speed > 0) {
       this.tweens.timeScale = speed;
-      this.time.paused = false;
       this.time.timeScale = speed;
     }
+  }
+
+  /** Las animaciones nuevas nacen en el estado de pausa actual. */
+  private respectPause(tw: Phaser.Tweens.Tween): Phaser.Tweens.Tween {
+    if (this.sim.state.speed === 0) tw.pause();
+    return tw;
   }
 
   private floatText(x: number, y: number, text: string, color = '#ecd08a'): void {
