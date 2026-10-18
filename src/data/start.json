@@ -1,0 +1,38 @@
+{
+  "coins": 20,
+  "inventory": {
+    "wheat": 0,
+    "egg": 0,
+    "milk": 0
+  },
+  "herds": {
+    "chicken": 4,
+    "cow": 1
+  },
+  "map": {
+    "legend": {
+      "G": "grass",
+      "S": "soil",
+      "R": "path",
+      "H": "house",
+      "C": "coop",
+      "P": "pen",
+      "M": "market",
+      "T": "tree",
+      "W": "well",
+      "K": "rocks"
+    },
+    "rows": [
+      "TTGGGGGGTT",
+      "TGGGRGGGKT",
+      "GGHGRGGGGG",
+      "GWGGRGSSGG",
+      "GRRRRRSSGG",
+      "GGGGRGGGGG",
+      "GCGGRGPPGG",
+      "GGGGRGPPGG",
+      "TKGGRGGGGT",
+      "TTGGMGGGTT"
+    ]
+  }
+}

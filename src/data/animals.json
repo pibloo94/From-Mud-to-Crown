@@ -1,0 +1,14 @@
+{
+  "chicken": {
+    "product": "egg",
+    "everyDays": 1,
+    "amountPerAnimal": 1,
+    "maxBatches": 5
+  },
+  "cow": {
+    "product": "milk",
+    "everyDays": 2,
+    "amountPerAnimal": 1,
+    "maxBatches": 3
+  }
+}

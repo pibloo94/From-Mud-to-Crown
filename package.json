@@ -1,0 +1,22 @@
+{
+  "name": "from-mud-to-crown",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Gestor de recursos medieval: de campesino a noble.",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "phaser": "^4.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.2",
+    "vite": "^7.1.0",
+    "vitest": "^4.1.0"
+  }
+}
