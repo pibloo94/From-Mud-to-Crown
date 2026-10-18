@@ -157,5 +157,7 @@
   "event.peddler.opt.decline": "Send him away",
   "event.peddler.result.sellEggs": "The peddler takes {amount} eggs and leaves you {coins} coins.",
   "event.peddler.result.buyHen": "A golden hen joins yours.",
-  "event.peddler.result.decline": "The peddler goes on his way, whistling."
+  "event.peddler.result.decline": "The peddler goes on his way, whistling.",
+  "menu.musicOn": "Music: on",
+  "menu.musicOff": "Music: off"
 }

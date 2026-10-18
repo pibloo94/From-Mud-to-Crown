@@ -12,6 +12,7 @@ import { autosave, forgetLinkedFile, hasLinkedFile, loadGameFromFile, readBackup
 import { SaveError } from '../save/serialize';
 import type { Insets } from '../render/FarmScene';
 import { h, icon } from './dom';
+import { music } from '../audio/music';
 
 const AUTOSAVE_EVERY_DAYS = 3;
 const SPEEDS: Speed[] = [0, 1, 2, 3];
@@ -30,8 +31,8 @@ type Modal =
   | { kind: 'levelup'; level: number }
   | { kind: 'event'; id: string; result?: CommandResult };
 
-/** Estas ventanas detienen el tiempo mientras estan abiertas. */
-const PAUSES: Modal['kind'][] = ['start', 'menu', 'levelup', 'event'];
+/** Todas las ventanas detienen el tiempo mientras estan abiertas; al cerrarlas vuelve la velocidad anterior. */
+const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'levelup', 'event'];
 
 export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI {
   let lastSpeed: Speed = 1;
@@ -117,6 +118,9 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     if (document.hidden) {
       if (sim.state.speed !== 0 && !modal) setSpeed(0);
       void autosave(sim.state);
+      music.suspend();
+    } else {
+      music.resume();
     }
   });
   window.addEventListener('pagehide', () => void autosave(sim.state));
@@ -126,7 +130,6 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     switch (e.type) {
       case 'change':
         renderHud();
-        if (modal?.kind === 'market') renderModal();
         break;
       case 'day':
         if (e.day % AUTOSAVE_EVERY_DAYS === 0) void autosave(sim.state).then((wrote) => wrote && toast(t('save.autosaved'), 'quiet'));
@@ -339,6 +342,18 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
         supportsFilePicker() && hasLinkedFile() && h('button', { class: 'btn', onclick: () => void saveFlow(true) }, t('menu.saveAs')),
         h('button', { class: 'btn', onclick: () => void loadFlow(false) }, t('menu.load')),
         h('button', { class: 'btn danger', onclick: () => ((confirmingNew = true), renderModal()) }, t('menu.newGame')),
+        h(
+          'button',
+          {
+            class: 'btn',
+            'aria-pressed': String(music.isEnabled()),
+            onclick: () => {
+              music.setEnabled(!music.isEnabled());
+              renderModal();
+            },
+          },
+          t(music.isEnabled() ? 'menu.musicOn' : 'menu.musicOff'),
+        ),
       ),
       h('p', { class: 'hint' }, t(supportsFilePicker() ? 'menu.saveHintFile' : 'menu.saveHintDownload')),
       h('p', { class: 'howto' }, t('menu.howTo')),
@@ -556,6 +571,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     overlay.replaceChildren();
     queue.length = 0;
     fn();
+    music.start(); // este clic es el gesto que los navegadores exigen para reproducir sonido
     setSpeed(1); // el tiempo corre desde el primer momento; espacio o el boton ❚❚ lo pausan
     renderHud();
     onLayout();
