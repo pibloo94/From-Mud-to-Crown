@@ -28,7 +28,7 @@ La partida se guarda en **un archivo `.json` de tu dispositivo** (*Menú → Gua
 
 ## Desarrollo
 
-Requisitos: Node.js 20 o superior.
+Requisitos: Node.js 22.12 o superior.
 
 ```bash
 npm install
