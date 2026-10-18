@@ -93,7 +93,13 @@
     "tributePerPlot": 2,
     "lowBaron": 30,
     "lowBaronMult": 1.25,
-    "unpaidBaron": -10
+    "unpaidBaron": -10,
+    "graceSeasons": 1,
+    "rankTribute": {
+      "peasant": 1,
+      "freeFarmer": 1.5,
+      "landowner": 2.5
+    }
   },
   "reputation": {
     "start": 50,

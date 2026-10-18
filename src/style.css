@@ -1083,3 +1083,739 @@ button:focus-visible {
     background: linear-gradient(90deg, #b23a24 var(--xp, 0%), #0d0a07 var(--xp, 0%));
   }
 }
+
+/* ============================================================ fase 2 */
+
+/* El escudo de nivel abre el progreso */
+button.level-box {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-right: 1px solid rgba(201, 161, 74, 0.25);
+  cursor: pointer;
+  min-height: 44px;
+  text-align: left;
+}
+
+button.level-box:hover .rank-text {
+  color: #fff1c9;
+}
+
+.icon.tiny {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  vertical-align: -3px;
+  margin-right: 2px;
+}
+
+/* ------------------------------------------------------------ fila de estado */
+
+.status-row {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.mods {
+  display: contents;
+}
+
+/* Boton de 44 px de alto con una pastilla visual mas pequena dentro */
+.status-pill {
+  pointer-events: auto;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: flex-start;
+}
+
+.status-pill[hidden] {
+  display: none;
+}
+
+.status-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 3px 10px;
+  font: 700 14px var(--font-caps);
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--bone);
+  text-shadow: 0 1px 0 #000;
+  background: var(--plank);
+  border: 1px solid #000;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px var(--gold-2), 0 3px 8px rgba(0, 0, 0, 0.5);
+}
+
+.status-pill:hover .status-inner {
+  color: var(--gold-3);
+}
+
+.status-inner .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.mini-bar {
+  display: block;
+  width: 34px;
+  height: 5px;
+  background: #0d0a07;
+  box-shadow: 0 0 0 1px var(--gold-2);
+}
+
+.mini-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold-2), var(--gold-3));
+}
+
+.status-pill.full .mini-fill,
+.status-pill.warn .status-inner {
+  background: linear-gradient(180deg, var(--blood), var(--blood-2));
+}
+
+.status-pill.full .status-inner {
+  box-shadow: inset 0 0 0 1px var(--blood), 0 3px 8px rgba(0, 0, 0, 0.5);
+}
+
+.status-pill.mod .status-inner {
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  background: linear-gradient(180deg, #3a1a12, #24100b);
+}
+
+.status-pill.mod-toolDiscount .status-inner {
+  background: linear-gradient(180deg, #2f3a22, #1e2616);
+}
+
+/* ------------------------------------------------------------ pestanas */
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin: 6px 0 12px;
+  padding: 3px;
+  background: rgba(60, 40, 20, 0.15);
+  box-shadow: inset 0 0 0 1px var(--parch-3);
+  border-radius: 2px;
+}
+
+.tab {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 6px;
+  font: 700 12px var(--font-caps);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.tab .icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+
+.tab span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab.active {
+  background: linear-gradient(180deg, var(--iron-2), var(--iron));
+  color: var(--gold-3);
+}
+
+/* ------------------------------------------------------------ edificios */
+
+.sheet.building,
+.sheet.progress {
+  width: min(100%, 520px);
+}
+
+.sheet.building > .btn,
+.sheet.progress > .btn,
+.sheet.season-card > .btn,
+.villager-list > .btn {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.panel-stats {
+  margin: -6px 0 10px;
+  font: 700 14px var(--font-caps);
+  letter-spacing: 0.03em;
+  color: var(--ink);
+}
+
+.panel-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.panel-actions .btn {
+  flex-direction: row;
+  gap: 6px;
+}
+
+.upgrade-list {
+  text-align: left;
+}
+
+.upgrade-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 4px;
+  border-top: 1px solid rgba(110, 80, 40, 0.3);
+  text-align: left;
+}
+
+.up-info {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.up-info b {
+  font: 700 15px var(--font-caps);
+  letter-spacing: 0.03em;
+  color: var(--ink);
+}
+
+.up-info small {
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.up-check {
+  font: 900 20px var(--font-caps);
+  color: #3f6b2a;
+  width: 44px;
+  text-align: center;
+}
+
+.up-req {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font: 700 13px var(--font-caps);
+  color: var(--ink-soft);
+}
+
+.req-missing {
+  color: var(--blood);
+}
+
+.state-done .up-info b {
+  color: var(--ink-soft);
+}
+
+.state-later,
+.state-locked {
+  opacity: 0.75;
+}
+
+.state-next {
+  background: rgba(255, 245, 220, 0.45);
+}
+
+/* ------------------------------------------------------------ aldeanos */
+
+.villager-list {
+  text-align: left;
+}
+
+.villager-list .panel-stats {
+  text-align: center;
+}
+
+.villager {
+  padding: 10px;
+  margin-bottom: 8px;
+  background: rgba(255, 245, 220, 0.4);
+  border: 1px solid rgba(110, 80, 40, 0.35);
+  border-radius: 2px;
+}
+
+.villager.hungry {
+  border-color: var(--blood);
+}
+
+.villager-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.villager-portrait {
+  width: 30px;
+  height: 48px;
+  flex: none;
+}
+
+.villager-portrait.small {
+  width: 22px;
+  height: 36px;
+}
+
+.villager-name {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.villager-name b {
+  font: 700 16px var(--font-caps);
+  color: var(--ink);
+}
+
+.villager-name small {
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.icon-btn {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--parch-3);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--ink-soft);
+  font: 700 16px var(--font-caps);
+  cursor: pointer;
+}
+
+.icon-btn.confirm {
+  background: linear-gradient(180deg, var(--blood), var(--blood-2));
+  color: var(--gold-3);
+  font-size: 12px;
+  padding: 0 8px;
+}
+
+.job-buttons {
+  display: flex;
+  gap: 4px;
+  margin: 8px 0 4px;
+}
+
+.job-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 2px 4px;
+  font: 700 12px var(--font-caps);
+  letter-spacing: 0.02em;
+  border: 1px solid var(--parch-3);
+  border-radius: 2px;
+  background: rgba(255, 245, 220, 0.3);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.job-btn img {
+  width: 18px;
+  height: 30px;
+}
+
+.job-btn.active {
+  background: linear-gradient(180deg, var(--iron-2), var(--iron));
+  color: var(--gold-3);
+  border-color: #000;
+}
+
+.job-desc {
+  display: block;
+  color: var(--ink-soft);
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.tool-row .btn {
+  width: 100%;
+  flex-direction: row;
+  gap: 6px;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+.tool-max {
+  display: block;
+  text-align: center;
+  font: 700 13px var(--font-caps);
+  color: #3f6b2a;
+}
+
+.pill {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  font: 700 11px var(--font-caps);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gold-3);
+  background: linear-gradient(180deg, var(--iron-2), var(--iron));
+  border-radius: 2px;
+  vertical-align: 2px;
+}
+
+.pill.warn {
+  background: linear-gradient(180deg, var(--blood), var(--blood-2));
+}
+
+.warn-text {
+  color: var(--blood) !important;
+}
+
+/* ------------------------------------------------------------ arbol de progreso */
+
+.sheet.progress {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 40px);
+}
+
+.progress-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0 -8px;
+  padding: 0 8px;
+  text-align: left;
+  overscroll-behavior: contain;
+}
+
+.tree {
+  position: relative;
+  padding: 4px 0;
+}
+
+/* Hilo vertical que une los niveles */
+.tree::before {
+  content: '';
+  position: absolute;
+  left: 21px;
+  top: 20px;
+  bottom: 20px;
+  width: 3px;
+  background: linear-gradient(180deg, var(--blood), var(--parch-3));
+}
+
+.tree-level {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding: 6px 0 10px;
+}
+
+.tree-seal {
+  flex: none;
+  width: 45px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  font: 900 19px var(--font-caps);
+  color: var(--bone-dim);
+  background: linear-gradient(180deg, var(--iron-2), var(--iron));
+  clip-path: polygon(0 0, 100% 0, 100% 60%, 50% 100%, 0 60%);
+  z-index: 1;
+}
+
+.tree-seal span {
+  margin-top: -8px;
+}
+
+.tree-done .tree-seal {
+  color: var(--gold-3);
+}
+
+.tree-current .tree-seal {
+  background: linear-gradient(180deg, #8f2519, var(--blood) 55%, var(--blood-2));
+  color: var(--gold-3);
+}
+
+.tree-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tree-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 2px 0 6px;
+}
+
+.tree-head b {
+  font: 900 15px var(--font-caps);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--blood-2);
+}
+
+.tree-head small {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.tree-future .tree-items {
+  opacity: 0.8;
+}
+
+.tree-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tree-items li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: 15px;
+  line-height: 1.3;
+  background: rgba(255, 245, 220, 0.4);
+  border: 1px solid rgba(110, 80, 40, 0.25);
+  border-radius: 2px;
+}
+
+.tree-items li .icon {
+  flex: none;
+}
+
+.tree-items li span {
+  display: flex;
+  flex-direction: column;
+}
+
+.tree-items li small {
+  font-style: italic;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.tree-current .tree-items li {
+  border-color: var(--blood);
+}
+
+.tree-building {
+  margin-bottom: 14px;
+  padding: 4px 8px 6px;
+  background: rgba(255, 245, 220, 0.25);
+  border: 1px solid rgba(110, 80, 40, 0.3);
+  border-radius: 2px;
+}
+
+.tree-building.locked {
+  opacity: 0.7;
+}
+
+.tree-building-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.tree-building-head .market-info {
+  flex: 1 1 auto;
+}
+
+.tree-rank {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 8px;
+  border-top: 1px solid rgba(110, 80, 40, 0.3);
+}
+
+.tree-rank:not(.got) > .icon {
+  filter: grayscale(1) opacity(0.5);
+}
+
+.tree-rank.current {
+  background: rgba(255, 245, 220, 0.45);
+}
+
+.reqs {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  font-size: 14px;
+}
+
+.reqs li::before {
+  content: '✗ ';
+  color: var(--blood);
+}
+
+.reqs li.ok::before {
+  content: '✓ ';
+  color: #3f6b2a;
+}
+
+.rep {
+  margin: 8px 0 12px;
+}
+
+.rep-head {
+  display: flex;
+  justify-content: space-between;
+  font: 700 14px var(--font-caps);
+}
+
+.rep-bar {
+  display: block;
+  height: 8px;
+  margin: 4px 0;
+  background: #0d0a07;
+  box-shadow: 0 0 0 1px var(--gold-2);
+}
+
+.rep-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--blood), var(--gold-2));
+}
+
+.rep small {
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.mod-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mod-list .pill {
+  margin: 0;
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.hint.left {
+  text-align: left;
+  max-width: none;
+}
+
+/* ------------------------------------------------------------ cuentas de la estacion */
+
+.accounts {
+  margin: 6px 0 14px;
+  text-align: left;
+}
+
+.acct-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 4px;
+  border-top: 1px solid rgba(110, 80, 40, 0.3);
+  font-size: 16px;
+}
+
+.acct-row b {
+  font: 700 16px var(--font-caps);
+  font-variant-numeric: lining-nums tabular-nums;
+  white-space: nowrap;
+}
+
+.acct-row.muted {
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.acct-row.total {
+  border-top: 2px solid rgba(110, 80, 40, 0.6);
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------ categoria de evento */
+
+.event-cat {
+  display: inline-block;
+  margin-bottom: 6px;
+  padding: 2px 10px;
+  font: 700 11px var(--font-caps);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-radius: 2px;
+  color: var(--gold-3);
+  background: linear-gradient(180deg, var(--iron-2), var(--iron));
+}
+
+.event-cat.cat-obligation {
+  background: linear-gradient(180deg, var(--blood), var(--blood-2));
+}
+
+.event-cat.cat-offer {
+  background: linear-gradient(180deg, #3d4a2a, #263018);
+}
+
+@media (max-width: 760px) {
+  button.level-box {
+    border-right: 0;
+  }
+  .status-row {
+    order: 4;
+    gap: 4px;
+  }
+  /* El menu se queda en icono para que quepan los tres botones */
+  .bottombar .big-btn:last-child {
+    flex: none;
+    padding: 0 16px;
+  }
+  .bottombar .big-btn:last-child span:last-child {
+    display: none;
+  }
+  .big-btn {
+    padding: 0 12px;
+    font-size: 14px;
+    letter-spacing: 0.05em;
+  }
+  .status-inner {
+    font-size: 13px;
+    padding: 2px 8px;
+    min-height: 30px;
+  }
+  .tab span {
+    font-size: 11px;
+  }
+  .tab .icon {
+    display: none;
+  }
+}

@@ -96,7 +96,7 @@
   "land.cancel": "Cancel",
   "levelup.title": "Level {level}",
   "levelup.rank": "You are now a {rank}",
-  "levelup.unlock.crop": "New crop: {crop}",
+  "levelup.unlock.crop": "New crop: {name}",
   "levelup.unlock.buyLand": "You can clear the grass next to the field",
   "levelup.unlock.buyChicken": "You can buy hens at the market",
   "levelup.unlock.buyCow": "You can buy cows at the market",
@@ -356,7 +356,7 @@
   "villagers.empty": "You have no villagers yet. They need a bed and eat from your harvest every day, but they work for you.",
   "villagers.hungry": "Hungry",
   "villagers.toolNone": "No tool",
-  "villagers.upgradeTool": "{tool} · {cost}",
+  "villagers.upgradeTool": "Buy {tool} · {cost}",
   "villagers.toolLocked": "{tool} · level {level}",
   "villagers.toolMax": "Best tool",
   "villagers.dismiss": "Dismiss {name}",
@@ -450,5 +450,11 @@
   "fx.seasons": "one season",
   "fx.loseHen": "may cost a hen",
   "fx.loseStock": "you may lose some stores",
-  "fx.setback": "crops may be set back"
+  "fx.setback": "crops may be set back",
+  "villagers.dismissConfirm": "Sure?",
+  "progress.req.daysShort": "{n} days",
+  "progress.req.baronShort": "baron {n}",
+  "fx.riskChance": "Risky ({pct}%)",
+  "seasonCard.grace": "The baron takes no taxes in your first season. From now on, you pay every season.",
+  "progress.taxesRank": "At your rank, tribute is {pct}%."
 }

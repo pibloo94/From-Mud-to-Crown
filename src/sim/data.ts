@@ -83,6 +83,10 @@ export interface ProgressionDef {
     lowBaronMult: number;
     /** Reputacion que se pierde si no se puede pagar. */
     unpaidBaron: number;
+    /** Estaciones del principio sin impuestos, para que el campesino arranque. */
+    graceSeasons: number;
+    /** El tributo crece con el rango: a mas tierra y nombre, mas pide el baron. */
+    rankTribute: Record<RankId, number>;
   };
   reputation: { start: number; highVillage: number };
   lands: { eastFrom: number; leaseBaseCost: number; leaseGrowth: number; rentPerSeason: number };

@@ -1,6 +1,7 @@
 // Cuentas de cada estacion: diezmo a la iglesia, tributo al baron y renta de los aparceros.
 import { PROGRESSION } from './data';
 import { multiplier } from './modifiers';
+import { DAYS_PER_SEASON } from './calendar';
 import { clampRep } from './villagers';
 import type { GameState, Notice } from './types';
 
@@ -12,20 +13,30 @@ export interface SeasonBill {
   tributeMult: number;
   rent: number;
   food: number;
+  /** Estacion de gracia: no se cobra nada. */
+  grace: boolean;
 }
 
 export function plotsForTribute(state: GameState): number {
   return Object.keys(state.plots).length + state.leases;
 }
 
+/** Las primeras estaciones no pagan impuestos (el dia de las cuentas es el primero de la siguiente). */
+export function inGrace(state: GameState): boolean {
+  return state.day <= PROGRESSION.taxes.graceSeasons * DAYS_PER_SEASON;
+}
+
 export function seasonBill(state: GameState): SeasonBill {
   const t = PROGRESSION.taxes;
   let tributeMult = multiplier(state, 'tribute');
   if (state.rep.baron < t.lowBaron) tributeMult *= t.lowBaronMult;
+  const grace = inGrace(state);
+  const base = (t.tributeBase + t.tributePerPlot * plotsForTribute(state)) * (t.rankTribute[state.rank] ?? 1);
   return {
+    grace,
     earned: state.stats.seasonEarned,
-    tithe: Math.round(state.stats.seasonEarned * t.titheRate),
-    tribute: Math.round((t.tributeBase + t.tributePerPlot * plotsForTribute(state)) * tributeMult),
+    tithe: grace ? 0 : Math.round(state.stats.seasonEarned * t.titheRate),
+    tribute: grace ? 0 : Math.round(base * tributeMult),
     tributeMult,
     rent: state.leases * PROGRESSION.lands.rentPerSeason,
     food: state.stats.seasonFood,
@@ -56,6 +67,7 @@ export function settleSeason(state: GameState, endedSeason: string): Notice {
       rent: bill.rent,
       food: bill.food,
       unpaid,
+      grace: bill.grace ? 1 : 0,
     },
   };
 }

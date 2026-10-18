@@ -230,8 +230,20 @@ describe('aldeanos', () => {
 });
 
 describe('impuestos', () => {
+  it('la primera estacion no paga impuestos', () => {
+    const s = newGame();
+    s.inventory.milk = 10;
+    sell(s, 'milk', 'all');
+    s.day = DAYS_PER_SEASON - 1;
+    const coins = s.coins;
+    const report = advanceDay(s).find((n) => n.card === 'season')!;
+    expect(report.params).toMatchObject({ tithe: 0, tribute: 0, grace: 1 });
+    expect(s.coins).toBe(coins);
+  });
+
   it('diezmo sobre lo ganado y tributo por parcela al cambiar de estacion', () => {
     const s = newGame();
+    s.day = DAYS_PER_SEASON + 5; // pasada la estacion de gracia
     s.inventory.milk = 10;
     sell(s, 'milk', 'all');
     const earned = s.stats.seasonEarned;
@@ -239,17 +251,18 @@ describe('impuestos', () => {
     const bill = seasonBill(s);
     expect(bill.tithe).toBe(Math.round(earned * 0.1));
     expect(bill.tribute).toBe(5 + 2 * plots);
-    s.day = DAYS_PER_SEASON - 1;
+    s.day = 2 * DAYS_PER_SEASON - 1;
     const coins = s.coins;
     const notices = advanceDay(s);
     const report = notices.find((n) => n.card === 'season')!;
-    expect(report.params).toMatchObject({ season: 'spring', tithe: bill.tithe, tribute: bill.tribute, unpaid: 0 });
+    expect(report.params).toMatchObject({ season: 'summer', tithe: bill.tithe, tribute: bill.tribute, unpaid: 0 });
     expect(s.coins).toBe(coins - bill.tithe - bill.tribute);
     expect(s.stats.seasonEarned).toBe(0);
   });
 
   it('lo que no se puede pagar enfada al baron', () => {
     const s = newGame();
+    s.day = 2 * DAYS_PER_SEASON;
     s.coins = 3;
     const n = settleSeason(s, 'spring');
     expect(s.coins).toBe(0);
@@ -259,9 +272,18 @@ describe('impuestos', () => {
 
   it('con el baron enfadado el tributo es mas alto', () => {
     const s = newGame();
+    s.day = 2 * DAYS_PER_SEASON;
     const normal = seasonBill(s).tribute;
     s.rep.baron = 20;
     expect(seasonBill(s).tribute).toBe(Math.round(normal * 1.25));
+  });
+
+  it('el tributo crece con el rango', () => {
+    const s = newGame();
+    s.day = 2 * DAYS_PER_SEASON;
+    const peasant = seasonBill(s).tribute;
+    s.rank = 'landowner';
+    expect(seasonBill(s).tribute).toBe(Math.round(peasant * 2.5));
   });
 
   it('los caminos sin arreglar abaratan todo una temporada', () => {

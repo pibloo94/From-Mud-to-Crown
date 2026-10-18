@@ -159,7 +159,7 @@ describe('eventos', () => {
 
   it('negarse a la leva enfada al baron y sube el tributo una estacion', () => {
     const s = createNewGame(5);
-    s.day = 10;
+    s.day = DAYS_PER_SEASON + 10;
     const bill = seasonBill(s).tribute;
     startEvent(s, 'levy');
     resolveEvent(s, 'refuse');
@@ -167,9 +167,9 @@ describe('eventos', () => {
     expect(s.flags).toContain('levyRefused');
     expect(seasonBill(s).tribute).toBe(Math.round(bill * 1.5));
     // sigue activo el dia de las cuentas y desaparece despues
-    s.day = DAYS_PER_SEASON;
+    s.day = 2 * DAYS_PER_SEASON;
     expect(multiplier(s, 'tribute')).toBe(1.5);
-    s.day = DAYS_PER_SEASON + 1;
+    s.day = 2 * DAYS_PER_SEASON + 1;
     expect(multiplier(s, 'tribute')).toBe(1);
   });
 

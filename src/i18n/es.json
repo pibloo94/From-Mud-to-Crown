@@ -96,7 +96,7 @@
   "land.cancel": "Cancelar",
   "levelup.title": "Nivel {level}",
   "levelup.rank": "Ahora eres {rank}",
-  "levelup.unlock.crop": "Nuevo cultivo: {crop}",
+  "levelup.unlock.crop": "Nuevo cultivo: {name}",
   "levelup.unlock.buyLand": "Puedes roturar la hierba junto al campo",
   "levelup.unlock.buyChicken": "Puedes comprar gallinas en el mercado",
   "levelup.unlock.buyCow": "Puedes comprar vacas en el mercado",
@@ -356,7 +356,7 @@
   "villagers.empty": "Todavía no tienes aldeanos. Necesitan una cama y comen de tu cosecha cada día, pero trabajan para ti.",
   "villagers.hungry": "Con hambre",
   "villagers.toolNone": "Sin herramienta",
-  "villagers.upgradeTool": "{tool} · {cost}",
+  "villagers.upgradeTool": "Comprar {tool} · {cost}",
   "villagers.toolLocked": "{tool} · nivel {level}",
   "villagers.toolMax": "Mejor herramienta",
   "villagers.dismiss": "Despedir a {name}",
@@ -450,5 +450,11 @@
   "fx.seasons": "una estación",
   "fx.loseHen": "puede costar una gallina",
   "fx.loseStock": "puedes perder parte de lo guardado",
-  "fx.setback": "los cultivos pueden retrasarse"
+  "fx.setback": "los cultivos pueden retrasarse",
+  "villagers.dismissConfirm": "¿Seguro?",
+  "progress.req.daysShort": "{n} días",
+  "progress.req.baronShort": "barón {n}",
+  "fx.riskChance": "Arriesgado ({pct} %)",
+  "seasonCard.grace": "El barón no cobra impuestos en tu primera estación. A partir de ahora, cada estación toca pagar.",
+  "progress.taxesRank": "Con tu rango, el tributo es del {pct} %."
 }
