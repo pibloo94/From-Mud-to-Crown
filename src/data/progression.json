@@ -1,0 +1,91 @@
+{
+  "levels": [
+    {
+      "xp": 0,
+      "maxPlots": 4
+    },
+    {
+      "xp": 60,
+      "maxPlots": 6,
+      "unlocks": [
+        "buyLand"
+      ]
+    },
+    {
+      "xp": 180,
+      "maxPlots": 8
+    },
+    {
+      "xp": 400,
+      "maxPlots": 9,
+      "unlocks": [
+        "buyChicken"
+      ]
+    },
+    {
+      "xp": 750,
+      "maxPlots": 11
+    },
+    {
+      "xp": 1250,
+      "maxPlots": 12
+    },
+    {
+      "xp": 2000,
+      "maxPlots": 14,
+      "unlocks": [
+        "buyCow"
+      ]
+    },
+    {
+      "xp": 3000,
+      "maxPlots": 15
+    },
+    {
+      "xp": 4400,
+      "maxPlots": 16
+    },
+    {
+      "xp": 6200,
+      "maxPlots": 18
+    }
+  ],
+  "ranks": [
+    {
+      "id": "peasant",
+      "level": 1
+    },
+    {
+      "id": "freeFarmer",
+      "level": 5
+    }
+  ],
+  "xpPerCoinSold": 0.15,
+  "land": {
+    "baseCost": 12,
+    "growth": 1.35
+  },
+  "animalsForSale": {
+    "chicken": {
+      "price": 12,
+      "max": 10,
+      "unlock": "buyChicken"
+    },
+    "cow": {
+      "price": 45,
+      "max": 2,
+      "unlock": "buyCow"
+    }
+  },
+  "workers": {
+    "growthBonus": 0.25,
+    "wage": 1,
+    "max": 2
+  },
+  "events": {
+    "firstDay": 4,
+    "minGap": 4,
+    "dailyChance": 0.3
+  },
+  "priceDays": 7
+}
