@@ -1,0 +1,9 @@
+{
+  "wheat": {
+    "seedCost": 2,
+    "growDays": 4,
+    "product": "wheat",
+    "yield": 3,
+    "stageSprites": ["wheat_0", "wheat_1", "wheat_2", "wheat_3"]
+  }
+}
