@@ -1,8 +1,9 @@
 // Reglas del juego: funciones que modifican el estado. Sin dependencias de Phaser ni del DOM.
-import { ANIMALS, ANIMAL_IDS, CROPS, CROP_IDS, PRODUCTS, PROGRESSION } from './data';
+import { ANIMALS, ANIMAL_IDS, CROPS, CROP_IDS, NOBILITY, PRODUCTS, PROGRESSION } from './data';
 import { DAY_MS, dateFromDay } from './calendar';
 import { plotKey, tileAt } from './state';
-import { addXp, cropUnlocked, hasFeature, levelDef, rankDef, updateRank } from './progress';
+import { addXp, cropUnlocked, hasFeature, hasRank, levelDef, levelOnlyRank, rankDef, updateRank } from './progress';
+import { charterReady, expandFief, hamletAt, isFiefRow } from './noble';
 import { priceOf, rollPrices } from './market';
 import { maybeTriggerEvent } from './events';
 import { buildingStat, storageFree, store } from './buildings';
@@ -143,11 +144,18 @@ export function setSpeed(state: GameState, speed: Speed): void {
 /** Comprueba el ascenso de rango; al ser Terrateniente se abren las tierras del este. */
 export function checkRank(state: GameState): Notice[] {
   const notices: Notice[] = [];
+  // El rey avisa (una vez) de que esta dispuesto a vender la carta de nobleza.
+  if (charterReady(state) && !state.flags.includes('charterOffered')) {
+    state.flags.push('charterOffered');
+    notices.push({ ok: true, msg: 'msg.charterReady' });
+  }
   for (const gained of updateRank(state)) {
     if (gained === 'landowner') openEastLands(state);
     // Los rangos que solo piden nivel ya se anuncian en la tarjeta de subida de nivel.
-    const def = rankDef(gained);
-    if (!def.days && !def.baron && !def.workshops && !def.trades && !def.stall) continue;
+    if (gained === 'lord') expandFief(state);
+    // Un nuevo senor feudal no conoce al jugador: su favor empieza de nuevo.
+    if (NOBILITY.lieges[gained]) state.rep.baron = NOBILITY.newLiegeRep;
+    if (levelOnlyRank(rankDef(gained))) continue;
     notices.push({ ok: true, msg: 'report.rank', card: 'rank', params: { rank: gained } });
   }
   return notices;
@@ -232,7 +240,7 @@ const isEast = (x: number) => x >= PROGRESSION.lands.eastFrom;
 /** Una baldosa de hierba junto al campo se puede roturar (las del este se arriendan). */
 export function canExpandAt(state: GameState, x: number, y: number): boolean {
   const tile = tileAt(state, x, y);
-  if (!tile || tile.kind !== 'grass' || isEast(x)) return false;
+  if (!tile || tile.kind !== 'grass' || isEast(x) || isFiefRow(y)) return false;
   return [
     [1, 0],
     [-1, 0],
@@ -275,7 +283,7 @@ export function leaseCost(state: GameState): number {
 }
 
 export function canLeaseAt(state: GameState, x: number, y: number): boolean {
-  return state.rank === 'landowner' && isEast(x) && tileAt(state, x, y)?.kind === 'grass';
+  return hasRank(state, 'landowner') && isEast(x) && !isFiefRow(y) && tileAt(state, x, y)?.kind === 'grass';
 }
 
 export function lease(state: GameState, x: number, y: number): Outcome {
@@ -354,6 +362,8 @@ export type Interaction =
   | { kind: 'building'; building: BuildingId }
   | { kind: 'site'; x: number; y: number; options: WorkshopId[] }
   | { kind: 'workshop'; workshop: WorkshopId }
+  /** Casa solariega: `hamlet` si se ha tocado una aldea. */
+  | { kind: 'manor'; hamlet: string | null }
   | { kind: 'openMarket' };
 
 export function interact(state: GameState, x: number, y: number): Interaction {
@@ -385,6 +395,10 @@ export function interact(state: GameState, x: number, y: number): Interaction {
       const id = workshopAt(state, x, y);
       return id ? { kind: 'workshop', workshop: id } : { kind: 'done', outcome: fail('msg.nothing') };
     }
+    case 'manor':
+      return { kind: 'manor', hamlet: null };
+    case 'hamlet':
+      return { kind: 'manor', hamlet: hamletAt(x, y) };
     case 'tenant':
       return { kind: 'done', outcome: done({ ok: true, msg: 'msg.tenant', params: { rent: PROGRESSION.lands.rentPerSeason } }) };
     // Gallinero y corral: si hay algo que recoger se recoge; si no, se abre el edificio.

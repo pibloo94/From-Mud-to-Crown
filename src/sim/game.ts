@@ -10,6 +10,7 @@ import type { AnimalId, BuildingId, CommandResult, CropId, GameState, JobId, Mat
 import { BUILDINGS, WORKSHOPS } from './data';
 import * as workshops from './workshops';
 import * as trade from './trade';
+import * as noble from './noble';
 
 export type GameEvent =
   | { type: 'change' }
@@ -22,6 +23,8 @@ export type GameEvent =
   | { type: 'building'; building: BuildingId }
   | { type: 'site'; x: number; y: number; options: WorkshopId[] }
   | { type: 'workshop'; workshop: WorkshopId }
+  /** Ventana de la casa solariega; `hamlet` si se ha tocado una aldea. */
+  | { type: 'manor'; hamlet: string | null }
   | { type: 'levelUp'; level: number }
   | { type: 'event'; id: string }
   | { type: 'mapChanged' }
@@ -104,6 +107,9 @@ export class Game {
         break;
       case 'workshop':
         this.emit({ type: 'workshop', workshop: r.workshop });
+        break;
+      case 'manor':
+        this.emit({ type: 'manor', hamlet: r.hamlet });
         break;
       default:
         this.report(r.outcome, x, y);
@@ -228,6 +234,48 @@ export class Game {
     const result = trade.sendCaravan(this.state, town, cargo, buy, escort);
     if (result.ok) this.emit({ type: 'mapChanged' });
     this.report({ result, levelUps: [] });
+  }
+
+  // ---------------------------------------------------------------- nobleza
+
+  /** Compra la carta de nobleza: el ascenso a Senor y el feudo llegan en el acto. */
+  buyCharter(): void {
+    this.nobleCommand(noble.buyCharter(this.state), true);
+  }
+
+  openManor(hamlet: string | null = null): void {
+    this.emit({ type: 'manor', hamlet });
+  }
+
+  upgradeManor(): void {
+    this.nobleCommand(noble.upgradeManor(this.state), true);
+  }
+
+  upgradeHamlet(id: string): void {
+    this.nobleCommand(noble.upgradeHamlet(this.state, id), true);
+  }
+
+  hireSoldier(): void {
+    this.nobleCommand(noble.hireSoldier(this.state), true);
+  }
+
+  dismissSoldier(): void {
+    this.nobleCommand(noble.dismissSoldier(this.state), true);
+  }
+
+  doPatronage(id: string): void {
+    this.nobleCommand(noble.doPatronage(this.state, id), false);
+  }
+
+  /**
+   * Las obras de la nobleza pueden cumplir lo que pide el siguiente rango: se asciende antes de
+   * avisar, para que la ventana abierta ya se pinte con el rango nuevo (y el feudo, si se abre).
+   */
+  private nobleCommand(result: CommandResult, visible: boolean): void {
+    const notices = result.ok ? rules.checkRank(this.state) : [];
+    if (result.ok && (visible || notices.length)) this.emit({ type: 'mapChanged' });
+    this.report({ result, levelUps: [] });
+    for (const notice of notices) this.emit({ type: 'notice', notice });
   }
 
   dismissVillager(id: number): void {

@@ -7,6 +7,7 @@ import { random } from './random';
 import { hasMaterials, materialsList, missingMaterials, payMaterials } from './materials';
 import { clampRep } from './villagers';
 import type { CommandResult, GameState, MaterialId, Notice, ProductId } from './types';
+import { freeEscort } from './noble';
 
 type Cargo = Partial<Record<ProductId, number>>;
 
@@ -95,7 +96,8 @@ export function quoteCaravan(state: GameState, town: string, cargo: Cargo, buy: 
   const units = PRODUCT_IDS.reduce((sum, p) => sum + Math.max(0, Math.floor(cargo[p] ?? 0)), 0);
   const value = PRODUCT_IDS.reduce((sum, p) => sum + Math.max(0, Math.floor(cargo[p] ?? 0)) * townPrice(state, town, p), 0);
   const toll = townToll(state, town);
-  const escortCost = escort ? def.escort : 0;
+  // Con mesnada, la escolta la ponen tus soldados.
+  const escortCost = escort && !freeEscort(state) ? def.escort : 0;
   const buyCost = MATERIAL_IDS.reduce((sum, m) => sum + (buy[m] ?? 0) * (buyPrice(town, m) ?? 0), 0);
   const upfront = toll + escortCost + buyCost;
   let problem: string | null = null;

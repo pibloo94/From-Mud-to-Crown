@@ -17,8 +17,9 @@ import { priceOf } from './market';
 import { addModifier } from './modifiers';
 import { buildingStat, store } from './buildings';
 import { addVillager, clampRep, freeBeds } from './villagers';
-import type { AnimalId, CommandResult, GameState, MaterialId, ProductId, WorkshopId } from './types';
+import type { AnimalId, CommandResult, GameState, MaterialId, ProductId, RankId, WorkshopId } from './types';
 import { delayCaravans } from './trade';
+import { hasRank, mainRanks } from './progress';
 
 /**
  * Condiciones de eventos y opciones. Claves admitidas:
@@ -31,6 +32,8 @@ import { delayCaravans } from './trade';
  * - "workshop:<taller>": que el taller este construido (1) o no (0)
  * - "caravans": caravanas en camino (minimo)
  * - "level": nivel minimo
+ * - "soldiers", "hamlets", "prestige": soldados, aldeas vasallas y prestigio minimos
+ * - "rank:<rango>": tener ese rango (1) o no tenerlo (0)
  */
 export function meetsRequirements(state: GameState, req: Record<string, number> = {}): boolean {
   for (const [key, value] of Object.entries(req)) {
@@ -56,6 +59,10 @@ function meets(state: GameState, key: string, value: number): boolean {
   if (key === 'level') return state.level >= value;
   if (key.startsWith('flag:')) return state.flags.includes(key.slice(5)) === value > 0;
   if (key === 'caravans') return state.caravans.length >= value;
+  if (key === 'soldiers') return state.noble.soldiers >= value;
+  if (key === 'hamlets') return Object.values(state.noble.hamlets).filter((l) => l > 0).length >= value;
+  if (key === 'prestige') return state.noble.prestige >= value;
+  if (key.startsWith('rank:')) return hasRank(state, key.slice(5) as RankId) === value > 0;
   if (key.startsWith('workshop:')) return !!state.workshops[key.slice(9) as WorkshopId] === value > 0;
   throw new Error(`Requisito de evento desconocido: ${key}`);
 }
@@ -73,12 +80,19 @@ export function eligibleEvents(state: GameState): string[] {
   return EVENT_IDS.filter((id) => {
     const ev = EVENTS[id];
     if (ev.minLevel && state.level < ev.minLevel) return false;
+    if (ev.maxRank && aboveRank(state, ev.maxRank)) return false;
     if (ev.seasons && !ev.seasons.includes(season)) return false;
     if ((state.events.cooldowns[id] ?? 0) > state.day) return false;
     if (!meetsRequirements(state, ev.requires)) return false;
     // Siempre debe quedar al menos una opcion elegible.
     return ev.options.some((o) => optionAvailable(state, o));
   });
+}
+
+/** Si el jugador ya esta por encima de ese rango principal. */
+function aboveRank(state: GameState, rank: RankId): boolean {
+  const main = mainRanks();
+  return main.findIndex((r) => r.id === state.rank) > main.findIndex((r) => r.id === rank);
 }
 
 /** Tirada diaria: puede dejar un evento pendiente. Devuelve su id si aparece. */
@@ -166,6 +180,11 @@ function applyEffects(state: GameState, source: string, fx: EventEffects = {}, p
   if (fx.seedVouchers) state.seedVouchers += fx.seedVouchers;
   for (const [m, n] of Object.entries(fx.materials ?? {})) state.materials[m as MaterialId] = Math.max(0, state.materials[m as MaterialId] + (n ?? 0));
   if (fx.caravanDelay) delayCaravans(state, fx.caravanDelay);
+  if (fx.prestige) {
+    state.noble.prestige = Math.max(0, state.noble.prestige + fx.prestige);
+    params.prestige = Math.abs(fx.prestige);
+  }
+  if (fx.soldiers) state.noble.soldiers = Math.max(0, state.noble.soldiers + fx.soldiers);
   if (fx.marketBoost) state.marketBoost = { mult: fx.marketBoost.mult, untilDay: state.day + fx.marketBoost.days };
   const levelUps: number[] = [];
   if (fx.sellAll) {

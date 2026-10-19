@@ -55,19 +55,29 @@ const TRANSLATED: Record<string, (v: string, all: Record<string, string | number
   town: (v) => t(`town.${v}`),
   wsUpgrade: (v) => t(`wsUpgrade.${v}`),
   choice: (v) => t(`farmerCrop.${v}`),
-  // "wood:4,stone:2" -> "4 madera, 2 piedra"
+  liege: (v) => t(`liege.${v}`),
+  liegeTitle: (v) => t(`liege.title.${v}`),
+  manorUp: (v) => t(`manorUp.${v}`),
+  hamlet: (v) => t(`hamlet.${v}`),
+  // "wood:4,stone:2" -> "4 madera, 2 piedra" (tambien productos y monedas)
   list: (v) =>
     v
       .split(',')
       .filter(Boolean)
       .map((part) => {
         const [id, n] = part.split(':');
-        return `${n} ${t(`material.${id}`).toLowerCase()}`;
+        const key = id === 'coins' ? 'hud.coins' : hasKey(`material.${id}`) ? `material.${id}` : `product.${id}`;
+        return `${n} ${t(key).toLowerCase()}`;
       })
       .join(', '),
 };
 
 /** Traduce una clave; los parametros {nombre} se sustituyen. Los identificadores conocidos (producto, edificio...) se traducen. */
+/** Si hay texto para esa clave (en espanol, que tiene todas). */
+export function hasKey(key: string): boolean {
+  return key in (LANGS.es as Record<string, string>);
+}
+
 export function t(key: string, params: Record<string, string | number> = {}): string {
   const dict = LANGS[current] as Record<string, string>;
   let text = dict[key] ?? (LANGS.es as Record<string, string>)[key] ?? key;
