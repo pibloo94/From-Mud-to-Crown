@@ -1,4 +1,4 @@
-import { ANIMAL_IDS, BUILDING_IDS, MATERIAL_IDS, PRODUCT_IDS, PROGRESSION, START } from './data';
+import { ANIMAL_IDS, BUILDING_IDS, MATERIAL_IDS, PRODUCT_IDS, PROGRESSION, START, TUTORIAL } from './data';
 import { defaultPantry } from './pantry';
 import { rollPrices } from './market';
 import { newSeed } from './random';
@@ -55,6 +55,8 @@ export function createNewGame(seed: number = newSeed()): GameState {
     nextCaravanId: 1,
     stall: false,
     noble: defaultNoble(),
+    // Partida nueva: empieza el tutorial guiado (se puede saltar).
+    tutorial: { step: TUTORIAL.steps[0].id, seen: [], tips: true },
     landBought: 0,
     leases: 0,
     buildings,

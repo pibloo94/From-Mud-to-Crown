@@ -120,6 +120,16 @@ export interface NobleState {
   patronage: Record<string, number>;
 }
 
+/** Tutorial guiado y consejos: en que paso va y que consejos ya se vieron. */
+export interface TutorialState {
+  /** Paso guiado actual, o null si se termino o se salto. */
+  step: string | null;
+  /** Consejos ya vistos y acciones ya hechas durante el tutorial ("did:collected"). */
+  seen: string[];
+  /** Mostrar consejos al desbloquear cosas. */
+  tips: boolean;
+}
+
 export interface Pantry {
   eat: Record<ProductId, boolean>;
   reserveDays: number;
@@ -174,6 +184,7 @@ export interface GameState {
   /** Puesto propio en el mercado de la villa. */
   stall: boolean;
   noble: NobleState;
+  tutorial: TutorialState;
   /** Parcelas compradas, para calcular el precio de la siguiente. */
   landBought: number;
   /** Parcelas arrendadas en las tierras del este. */

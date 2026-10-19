@@ -11,6 +11,7 @@ import { BUILDINGS, WORKSHOPS } from './data';
 import * as workshops from './workshops';
 import * as trade from './trade';
 import * as noble from './noble';
+import * as tutorial from './tutorial';
 
 export type GameEvent =
   | { type: 'change' }
@@ -64,7 +65,8 @@ export class Game {
       else this.emit({ type: 'notice', notice });
     }
     if (notices.some((n) => n.card === 'rank' || n.card === 'caravan' || n.msg === 'msg.villagerLeftHunger')) this.emit({ type: 'mapChanged' });
-    if (days > 0 || before !== this.state.dayProgress) this.emit({ type: 'change' });
+    const tutorialMoved = tutorial.advanceTutorial(this.state);
+    if (days > 0 || tutorialMoved || before !== this.state.dayProgress) this.emit({ type: 'change' });
     this.announcePendingEvent();
   }
 
@@ -317,7 +319,44 @@ export class Game {
     this.emit({ type: 'change' });
   }
 
+  // ---------------------------------------------------------------- tutorial y consejos
+
+  /** Boton del paso guiado (bienvenida y final). */
+  tutorialAck(): void {
+    if (tutorial.ackStep(this.state)) this.emit({ type: 'change' });
+  }
+
+  /** Accion de la interfaz que cuenta para el tutorial (p. ej. abrir Progreso). */
+  noteTutorial(action: tutorial.TutorialAction): void {
+    if (tutorial.noteAction(this.state, action)) this.emit({ type: 'change' });
+  }
+
+  skipTutorial(): void {
+    tutorial.skipTutorial(this.state);
+    this.emit({ type: 'change' });
+  }
+
+  restartTutorial(): void {
+    tutorial.restartTutorial(this.state);
+    tutorial.advanceTutorial(this.state);
+    this.emit({ type: 'change' });
+  }
+
+  dismissTip(id: string): void {
+    tutorial.dismissTip(this.state, id);
+    this.emit({ type: 'change' });
+  }
+
+  setTips(on: boolean): void {
+    tutorial.setTips(this.state, on);
+    this.emit({ type: 'change' });
+  }
+
   private report(out: rules.Outcome, x?: number, y?: number): void {
+    if (out.result.ok) {
+      if (out.result.msg === 'msg.collected') tutorial.noteAction(this.state, 'collected');
+      tutorial.advanceTutorial(this.state);
+    }
     this.emit({ type: 'result', result: out.result, x, y });
     for (const level of out.levelUps) this.emit({ type: 'levelUp', level });
     if (out.result.ok) this.emit({ type: 'change' });

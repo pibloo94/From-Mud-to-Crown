@@ -6,9 +6,10 @@ import { rollPrices } from '../sim/market';
 import { buildingStat, storageCapacity, storageUsed } from '../sim/buildings';
 import { addVillager, beds } from '../sim/villagers';
 import { defaultNoble } from '../sim/noble';
+import { finishedTutorial } from '../sim/tutorial';
 
 export const SAVE_FORMAT = 'from-mud-to-crown-save';
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;
@@ -87,6 +88,8 @@ export function migrate(state: Record<string, unknown>, from: number): GameState
   }
   // v6 -> v7 (fase 3c): carta de nobleza, casa solariega, aldeas, mesnada, prestigio y mecenazgo.
   if (from < 7) s = { ...s, noble: defaultNoble() };
+  // v7 -> v8 (fase 3d): tutorial y consejos. Una partida empezada no repite el tutorial.
+  if (from < 8) s = { ...s, tutorial: finishedTutorial(s as GameState) };
   return s as GameState;
 }
 

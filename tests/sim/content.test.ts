@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import es from '../../src/i18n/es.json';
 import en from '../../src/i18n/en.json';
-import { CROPS, CROP_IDS, PRODUCTS, ANIMALS, EVENTS, PROGRESSION, BUILDINGS, VILLAGERS, JOB_IDS, MATERIAL_IDS, WORKSHOPS, TOWN_IDS, NOBILITY, HAMLET_IDS, PATRONAGE_IDS, START } from '../../src/sim/data';
+import { CROPS, CROP_IDS, PRODUCTS, ANIMALS, EVENTS, PROGRESSION, BUILDINGS, VILLAGERS, JOB_IDS, MATERIAL_IDS, WORKSHOPS, TOWN_IDS, NOBILITY, HAMLET_IDS, PATRONAGE_IDS, START, TUTORIAL } from '../../src/sim/data';
 import { toScreen, toTile } from '../../src/render/iso';
 
 describe('traducciones', () => {
@@ -141,6 +141,22 @@ describe('textos de la nobleza', () => {
     for (const id of HAMLET_IDS) {
       const { x, y } = NOBILITY.hamlets[id];
       expect(legend[NOBILITY.fief.rows[y - START.map.rows.length][x]]).toBe('hamlet');
+    }
+  });
+});
+
+describe('textos del tutorial', () => {
+  it('cada paso y cada consejo tiene titulo y texto en los dos idiomas', () => {
+    for (const dict of [es, en] as Record<string, string>[]) {
+      for (const step of TUTORIAL.steps) {
+        expect(dict[`tutorial.${step.id}.title`], step.id).toBeTruthy();
+        expect(dict[`tutorial.${step.id}.text`], step.id).toBeTruthy();
+        if (step.done === 'ack') expect(dict[`tutorial.${step.id}.ok`], step.id).toBeTruthy();
+      }
+      for (const tip of TUTORIAL.tips) {
+        expect(dict[`tip.${tip.id}.title`], tip.id).toBeTruthy();
+        expect(dict[`tip.${tip.id}.text`], tip.id).toBeTruthy();
+      }
     }
   });
 });
