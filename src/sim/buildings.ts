@@ -1,6 +1,7 @@
 // Edificios con mejoras (se compran en orden) y el granero, que limita lo que se puede almacenar.
 import { BUILDINGS, PRODUCT_IDS, type BuildingStats, type UpgradeDef } from './data';
 import { addXp } from './progress';
+import { hasMaterials, materialsList, missingMaterials, payMaterials } from './materials';
 import type { BuildingId, CommandResult, GameState, ProductId } from './types';
 
 export interface BuildOutcome {
@@ -32,7 +33,9 @@ export function upgradeBuilding(state: GameState, b: BuildingId): BuildOutcome {
   if (!up) return fail('msg.buildingMaxed');
   if (state.level < up.level) return fail('msg.upgradeLocked', { level: up.level });
   if (state.coins < up.cost) return fail('msg.notEnoughCoins', { cost: up.cost });
+  if (!hasMaterials(state, up.materials)) return fail('msg.missingMaterials', { list: materialsList(missingMaterials(state, up.materials)) });
   state.coins -= up.cost;
+  payMaterials(state, up.materials);
   state.buildings[b]++;
   const levelUps = addXp(state, 10);
   return { result: { ok: true, msg: 'msg.upgraded', params: { building: b, upgrade: up.id, cost: up.cost } }, levelUps };

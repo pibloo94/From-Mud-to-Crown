@@ -4,7 +4,11 @@ import { buildingStat, storageFree } from './buildings';
 import { isIdle, multiplier } from './modifiers';
 import { random } from './random';
 import { priceOf } from './market';
-import type { CommandResult, GameState, JobId, Notice, ProductId, Villager } from './types';
+import { dailyFood, eatingOrder, surplus } from './pantry';
+import { hasMaterials, materialsList, missingMaterials, payMaterials } from './materials';
+import type { CommandResult, CropId, GameState, JobId, Notice, ProductId, Villager } from './types';
+
+export { dailyFood, foodDays } from './pantry';
 
 const ok = (msg: string, params?: CommandResult['params']): CommandResult => ({ ok: true, msg, params });
 const no = (msg: string, params?: CommandResult['params']): CommandResult => ({ ok: false, msg, params });
@@ -22,27 +26,13 @@ export function hireCost(state: GameState): number {
   return state.rep.village >= PROGRESSION.reputation.highVillage ? Math.ceil(base / 2) : base;
 }
 
-/** Racion diaria total de todos los aldeanos, con el ahorro de la casa. */
-export function dailyFood(state: GameState): number {
-  const saving = Math.min(0.8, buildingStat(state, 'house', 'foodSaving'));
-  return state.villagers.length * VILLAGERS.foodPerDay * (1 - saving);
-}
-
-/** Dias de comida que quedan en el granero al ritmo actual. */
-export function foodDays(state: GameState): number {
-  const perDay = dailyFood(state);
-  if (perDay <= 0) return Infinity;
-  const stock = VILLAGERS.foodOrder.reduce((s, p) => s + state.inventory[p], 0);
-  return Math.floor(stock / perDay);
-}
-
 export function addVillager(state: GameState, job: JobId = 'farmer'): Villager | null {
   if (freeBeds(state) <= 0) return null;
   const used = new Set(state.villagers.map((v) => v.name));
   const free = VILLAGERS.names.filter((n) => !used.has(n));
   const pool = free.length ? free : VILLAGERS.names;
   const name = pool[Math.floor(random(state) * pool.length)];
-  const v: Villager = { id: state.nextVillagerId++, name, job, tool: 0, hungry: 0 };
+  const v: Villager = { id: state.nextVillagerId++, name, job, tool: 0, hungry: 0, crop: 'auto' };
   state.villagers.push(v);
   return v;
 }
@@ -63,6 +53,36 @@ export function setJob(state: GameState, id: number, job: JobId): CommandResult 
   return ok('msg.jobChanged', { name: v.name, job });
 }
 
+/** Cultivo que siembra un labrador en sus parcelas ('auto': el mejor de la temporada; null: no siembra). */
+export function setFarmerCrop(state: GameState, id: number, crop: CropId | 'auto' | null): CommandResult {
+  const v = state.villagers.find((x) => x.id === id);
+  if (!v) return no('msg.nothing');
+  v.crop = crop;
+  return ok('msg.farmerCrop', { name: v.name, choice: crop ?? 'none' });
+}
+
+/** Parcelas que trabaja cada labrador: se reparten por orden, de arriba abajo. */
+export function farmerPlots(state: GameState): Map<number, string[]> {
+  const cfg = VILLAGERS.jobs.farmer;
+  const keys = Object.keys(state.plots).sort((a, b) => {
+    const [ax, ay] = a.split(',').map(Number);
+    const [bx, by] = b.split(',').map(Number);
+    return ay - by || ax - bx;
+  });
+  const out = new Map<number, string[]>();
+  let next = 0;
+  for (const v of state.villagers.filter((x) => x.job === 'farmer')) {
+    const n = cfg.plots + cfg.plotsPerTool * v.tool;
+    out.set(v.id, keys.slice(next, next + n));
+    next += n;
+  }
+  return out;
+}
+
+export function toolMaterials(tier: number) {
+  return VILLAGERS.tools.tiers[tier - 1]?.materials ?? {};
+}
+
 export function toolCost(state: GameState, tier: number): number {
   const t = VILLAGERS.tools.tiers[tier - 1];
   return Math.round(t.cost * multiplier(state, 'toolDiscount'));
@@ -77,7 +97,9 @@ export function upgradeTool(state: GameState, id: number): CommandResult {
   if (state.level < tier.level) return no('msg.upgradeLocked', { level: tier.level });
   const cost = toolCost(state, next);
   if (state.coins < cost) return no('msg.notEnoughCoins', { cost });
+  if (!hasMaterials(state, tier.materials)) return no('msg.missingMaterials', { list: materialsList(missingMaterials(state, tier.materials)) });
   state.coins -= cost;
+  payMaterials(state, tier.materials);
   v.tool = next;
   return ok('msg.toolUpgraded', { name: v.name, tool: `${v.job}.${next}`, cost });
 }
@@ -122,7 +144,7 @@ export function feedVillagers(state: GameState): Notice[] {
   state.foodDebt += dailyFood(state);
   let eaten = 0;
   while (state.foodDebt >= 1) {
-    const p = VILLAGERS.foodOrder.find((f) => state.inventory[f] > 0);
+    const p = eatingOrder(state).find((f) => state.inventory[f] > 0);
     if (!p) break;
     state.inventory[p]--;
     state.foodDebt -= 1;
@@ -153,16 +175,12 @@ export function carterSells(state: GameState): Notice | null {
   if (state.day % cfg.sellEvery !== 0) return null;
   const bestTier = Math.max(...carters.map((c) => c.tool));
   const rate = cfg.priceRate + cfg.priceRatePerTier * bestTier;
-  let reserve = Math.ceil(dailyFood(state) * cfg.reserveDays);
   let coins = 0;
   let units = 0;
+  // Se calcula antes de vender: la reserva de la despensa no se toca.
+  const sellable = Object.fromEntries(PRODUCT_IDS.map((p) => [p, surplus(state, p)])) as Record<ProductId, number>;
   for (const p of PRODUCT_IDS) {
-    let keep = 0;
-    if (VILLAGERS.foodOrder.includes(p) && reserve > 0) {
-      keep = Math.min(state.inventory[p], reserve);
-      reserve -= keep;
-    }
-    const n = state.inventory[p] - keep;
+    const n = sellable[p];
     if (n <= 0) continue;
     coins += Math.round(n * priceOf(state, p as ProductId) * rate);
     units += n;

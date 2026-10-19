@@ -50,6 +50,18 @@ const TRANSLATED: Record<string, (v: string, all: Record<string, string | number
   upgrade: (v, all) => t(`upgrade.${all.building}.${v}`),
   job: (v) => t(`job.${v}`),
   tool: (v) => t(`tool.${v}`),
+  material: (v) => t(`material.${v}`).toLowerCase(),
+  choice: (v) => t(`farmerCrop.${v}`),
+  // "wood:4,stone:2" -> "4 madera, 2 piedra"
+  list: (v) =>
+    v
+      .split(',')
+      .filter(Boolean)
+      .map((part) => {
+        const [id, n] = part.split(':');
+        return `${n} ${t(`material.${id}`).toLowerCase()}`;
+      })
+      .join(', '),
 };
 
 /** Traduce una clave; los parametros {nombre} se sustituyen. Los identificadores conocidos (producto, edificio...) se traducen. */

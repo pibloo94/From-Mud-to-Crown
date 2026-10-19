@@ -7,7 +7,8 @@ import { priceOf, rollPrices } from './market';
 import { maybeTriggerEvent } from './events';
 import { buildingStat, storageFree, store } from './buildings';
 import { expireModifiers, multiplier } from './modifiers';
-import { carterSells, feedVillagers, growthPerDay, hasHerder, herderBonus } from './villagers';
+import { carterSells, farmerPlots, feedVillagers, growthPerDay, hasHerder, herderBonus } from './villagers';
+import { isIdle } from './modifiers';
 import { settleSeason } from './taxes';
 import type { AnimalId, BuildingId, CommandResult, CropId, GameState, Notice, Plot, ProductId, Speed } from './types';
 
@@ -73,6 +74,9 @@ export function advanceDay(state: GameState): Notice[] {
   // El pastor recoge solo lo que quepa en el granero.
   if (hasHerder(state)) for (const id of ANIMAL_IDS) collectInto(state, id);
 
+  // Los labradores cosechan y siembran sus parcelas antes de comer.
+  notices.push(...farmersWork(state));
+
   notices.push(...feedVillagers(state));
 
   state.day++;
@@ -90,6 +94,41 @@ export function advanceDay(state: GameState): Notice[] {
   if (state.marketBoost && state.day >= state.marketBoost.untilDay) state.marketBoost = null;
   notices.push(...checkRank(state));
   maybeTriggerEvent(state);
+  return notices;
+}
+
+/** Cultivo que conviene sembrar ahora: el que mas deja por dia de los que se pueden sembrar. */
+export function bestCrop(state: GameState): CropId | null {
+  const value = (c: CropId) => (CROPS[c].yield * priceOf(state, CROPS[c].product) - CROPS[c].seedCost) / CROPS[c].growDays;
+  return plantableCrops(state).sort((a, b) => value(b) - value(a))[0] ?? null;
+}
+
+/**
+ * Trabajo diario de los labradores en sus parcelas: cosechan lo maduro (si cabe en el granero)
+ * y siembran el cultivo que tienen asignado, pagando la semilla. Si no hay dinero o no es
+ * temporada, la parcela espera.
+ */
+export function farmersWork(state: GameState): Notice[] {
+  const notices: Notice[] = [];
+  if (isIdle(state)) return notices;
+  const assigned = farmerPlots(state);
+  for (const v of state.villagers) {
+    if (v.job !== 'farmer') continue;
+    for (const key of assigned.get(v.id) ?? []) {
+      const [x, y] = key.split(',').map(Number);
+      const plot = state.plots[key];
+      if (plot.crop && isRipe(plot)) {
+        const out = harvest(state, x, y);
+        if (!out.result.ok) continue;
+        notices.push({ ...out.result, tile: { x, y } });
+        for (const level of out.levelUps) notices.push({ ok: true, msg: 'levelup', card: 'levelup', params: { level } });
+      }
+      if (!plot.crop && v.crop) {
+        const crop = v.crop === 'auto' ? bestCrop(state) : v.crop;
+        if (crop && plantableCrops(state).includes(crop)) plant(state, x, y, crop);
+      }
+    }
+  }
   return notices;
 }
 

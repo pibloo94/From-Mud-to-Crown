@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import es from '../../src/i18n/es.json';
 import en from '../../src/i18n/en.json';
-import { CROPS, PRODUCTS, ANIMALS, EVENTS, PROGRESSION, BUILDINGS, VILLAGERS, JOB_IDS } from '../../src/sim/data';
+import { CROPS, CROP_IDS, PRODUCTS, ANIMALS, EVENTS, PROGRESSION, BUILDINGS, VILLAGERS, JOB_IDS, MATERIAL_IDS } from '../../src/sim/data';
 import { toScreen, toTile } from '../../src/render/iso';
 
 describe('traducciones', () => {
@@ -53,11 +53,21 @@ describe('textos de la aldea', () => {
       for (const k of ['tribute', 'growth', 'animal', 'toolDiscount', 'idle', 'priceAll']) expect(dict[`modifier.${k}`]).toBeTruthy();
       for (const c of ['offer', 'obligation', 'mishap']) expect(dict[`event.cat.${c}`]).toBeTruthy();
       for (const r of PROGRESSION.ranks) expect(dict[`rank.${r.id}.desc`]).toBeTruthy();
+      for (const m of MATERIAL_IDS) expect(dict[`material.${m}`]).toBeTruthy();
+      for (const c of [...CROP_IDS, 'auto', 'none']) expect(dict[`farmerCrop.${c}`]).toBeTruthy();
     }
   });
 });
 
 describe('datos', () => {
+  it('los materiales de obras y herramientas existen y las obras de piedra piden piedra', () => {
+    for (const def of Object.values(BUILDINGS))
+      for (const up of def.upgrades) for (const m of Object.keys(up.materials ?? {})) expect(MATERIAL_IDS).toContain(m);
+    for (const tier of VILLAGERS.tools.tiers) for (const m of Object.keys(tier.materials ?? {})) expect(MATERIAL_IDS).toContain(m);
+    for (const def of Object.values(BUILDINGS))
+      for (const up of def.upgrades) if (up.id.startsWith('stone')) expect(up.materials?.stone ?? 0).toBeGreaterThan(0);
+  });
+
   it('las mejoras de cada edificio piden cada vez mas nivel y dinero', () => {
     for (const def of Object.values(BUILDINGS)) {
       for (let i = 1; i < def.upgrades.length; i++) {

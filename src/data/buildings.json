@@ -14,6 +14,9 @@
       {
         "id": "pallet",
         "cost": 15,
+        "materials": {
+          "wood": 2
+        },
         "level": 1,
         "effects": {
           "beds": 1
@@ -22,6 +25,9 @@
       {
         "id": "hearth",
         "cost": 40,
+        "materials": {
+          "stone": 4
+        },
         "level": 2,
         "effects": {
           "beds": 1,
@@ -31,6 +37,9 @@
       {
         "id": "loft",
         "cost": 90,
+        "materials": {
+          "wood": 8
+        },
         "level": 3,
         "effects": {
           "beds": 1
@@ -39,6 +48,10 @@
       {
         "id": "extension",
         "cost": 160,
+        "materials": {
+          "wood": 12,
+          "stone": 4
+        },
         "level": 4,
         "effects": {
           "beds": 2
@@ -47,6 +60,10 @@
       {
         "id": "pantry",
         "cost": 260,
+        "materials": {
+          "wood": 8,
+          "stone": 6
+        },
         "level": 6,
         "effects": {
           "foodSaving": 0.15
@@ -55,6 +72,11 @@
       {
         "id": "stoneHall",
         "cost": 420,
+        "materials": {
+          "stone": 30,
+          "wood": 10,
+          "iron": 4
+        },
         "level": 8,
         "effects": {
           "beds": 2,
@@ -77,6 +99,9 @@
       {
         "id": "shelves",
         "cost": 20,
+        "materials": {
+          "wood": 3
+        },
         "level": 1,
         "effects": {
           "capacity": 20
@@ -85,6 +110,9 @@
       {
         "id": "loft",
         "cost": 60,
+        "materials": {
+          "wood": 8
+        },
         "level": 3,
         "effects": {
           "capacity": 30
@@ -93,6 +121,9 @@
       {
         "id": "cellar",
         "cost": 140,
+        "materials": {
+          "stone": 10
+        },
         "level": 5,
         "effects": {
           "capacity": 40
@@ -101,6 +132,10 @@
       {
         "id": "secondBay",
         "cost": 260,
+        "materials": {
+          "wood": 16,
+          "stone": 6
+        },
         "level": 7,
         "effects": {
           "capacity": 60
@@ -109,6 +144,10 @@
       {
         "id": "stoneBarn",
         "cost": 450,
+        "materials": {
+          "stone": 30,
+          "iron": 4
+        },
         "level": 9,
         "effects": {
           "capacity": 100
@@ -131,6 +170,9 @@
       {
         "id": "perches",
         "cost": 18,
+        "materials": {
+          "wood": 2
+        },
         "level": 2,
         "effects": {
           "maxAnimals": 2
@@ -139,6 +181,9 @@
       {
         "id": "nestBoxes",
         "cost": 45,
+        "materials": {
+          "wood": 5
+        },
         "level": 4,
         "effects": {
           "maxAnimals": 2,
@@ -148,6 +193,9 @@
       {
         "id": "run",
         "cost": 90,
+        "materials": {
+          "wood": 8
+        },
         "level": 5,
         "effects": {
           "maxAnimals": 3
@@ -156,6 +204,10 @@
       {
         "id": "stoneCoop",
         "cost": 180,
+        "materials": {
+          "stone": 12,
+          "wood": 4
+        },
         "level": 7,
         "effects": {
           "maxAnimals": 3,
@@ -179,6 +231,9 @@
       {
         "id": "manger",
         "cost": 40,
+        "materials": {
+          "wood": 3
+        },
         "level": 3,
         "effects": {
           "animalBonus": 0.15
@@ -187,6 +242,9 @@
       {
         "id": "shed",
         "cost": 100,
+        "materials": {
+          "wood": 10
+        },
         "level": 5,
         "effects": {
           "maxAnimals": 1
@@ -195,6 +253,9 @@
       {
         "id": "plankFence",
         "cost": 160,
+        "materials": {
+          "wood": 14
+        },
         "level": 6,
         "effects": {
           "animalBonus": 0.1
@@ -203,6 +264,9 @@
       {
         "id": "stoneWall",
         "cost": 220,
+        "materials": {
+          "stone": 20
+        },
         "level": 7,
         "effects": {
           "maxAnimals": 1
@@ -211,6 +275,11 @@
       {
         "id": "dairy",
         "cost": 350,
+        "materials": {
+          "stone": 10,
+          "wood": 10,
+          "iron": 3
+        },
         "level": 9,
         "effects": {
           "animalBonus": 0.25

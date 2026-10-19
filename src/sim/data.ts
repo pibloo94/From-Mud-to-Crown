@@ -7,7 +7,8 @@ import progressionJson from '../data/progression.json';
 import eventsJson from '../data/events.json';
 import buildingsJson from '../data/buildings.json';
 import villagersJson from '../data/villagers.json';
-import type { AnimalId, BuildingId, CropId, JobId, ModifierKind, ProductId, RankId, TileKind } from './types';
+import materialsJson from '../data/materials.json';
+import type { AnimalId, BuildingId, CropId, JobId, MaterialId, ModifierKind, ProductId, RankId, TileKind } from './types';
 import type { Season } from './calendar';
 
 export interface ProductDef {
@@ -101,9 +102,20 @@ export interface BuildingStats {
   animalBonus?: number;
 }
 
+export type MaterialAmounts = Partial<Record<MaterialId, number>>;
+
+export interface MaterialDef {
+  price: number;
+  icon: string;
+  /** Nivel desde el que se vende en el mercado (por defecto, siempre). */
+  unlockLevel?: number;
+}
+
 export interface UpgradeDef {
   id: string;
   cost: number;
+  /** Materiales que gasta la obra, ademas de las monedas. */
+  materials?: MaterialAmounts;
   level: number;
   effects: BuildingStats;
 }
@@ -119,14 +131,15 @@ export interface BuildingDef {
 export interface VillagersDef {
   hireCost: number;
   foodPerDay: number;
-  foodOrder: ProductId[];
+  pantry: { eat: ProductId[]; reserveDays: number; reserveOptions: number[] };
   hungerDays: number;
   jobs: {
-    farmer: { growthBonus: number };
+    /** Parcelas que siembra y cosecha solo: `plots` + `plotsPerTool` por grado de herramienta. */
+    farmer: { growthBonus: number; plots: number; plotsPerTool: number };
     herder: { animalBonus: number };
-    carter: { sellEvery: number; priceRate: number; priceRatePerTier: number; reserveDays: number };
+    carter: { sellEvery: number; priceRate: number; priceRatePerTier: number };
   };
-  tools: { efficiency: number[]; tiers: { cost: number; level: number }[] };
+  tools: { efficiency: number[]; tiers: { cost: number; level: number; materials?: MaterialAmounts }[] };
   names: string[];
 }
 
@@ -186,11 +199,13 @@ export const PROGRESSION = progressionJson as unknown as ProgressionDef;
 export const EVENTS = eventsJson as unknown as Record<string, EventDef>;
 export const BUILDINGS = buildingsJson as Record<BuildingId, BuildingDef>;
 export const VILLAGERS = villagersJson as VillagersDef;
+export const MATERIALS = materialsJson as Record<MaterialId, MaterialDef>;
 
 export const PRODUCT_IDS = Object.keys(PRODUCTS) as ProductId[];
 export const CROP_IDS = Object.keys(CROPS) as CropId[];
 export const ANIMAL_IDS = Object.keys(ANIMALS) as AnimalId[];
 export const EVENT_IDS = Object.keys(EVENTS);
+export const MATERIAL_IDS = Object.keys(MATERIALS) as MaterialId[];
 export const BUILDING_IDS = Object.keys(BUILDINGS) as BuildingId[];
 export const JOB_IDS = Object.keys(VILLAGERS.jobs) as JobId[];
 export const MAX_LEVEL = PROGRESSION.levels.length;

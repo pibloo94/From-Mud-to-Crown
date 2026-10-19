@@ -1,0 +1,15 @@
+{
+  "wood": {
+    "price": 4,
+    "icon": "icon_wood"
+  },
+  "stone": {
+    "price": 8,
+    "icon": "icon_stone"
+  },
+  "iron": {
+    "price": 20,
+    "icon": "icon_iron",
+    "unlockLevel": 4
+  }
+}

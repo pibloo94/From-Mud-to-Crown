@@ -1,17 +1,12 @@
 {
   "hireCost": 10,
   "foodPerDay": 1,
-  "foodOrder": [
-    "carrot",
-    "cabbage",
-    "wheat",
-    "egg",
-    "milk"
-  ],
   "hungerDays": 2,
   "jobs": {
     "farmer": {
-      "growthBonus": 0.15
+      "growthBonus": 0.15,
+      "plots": 2,
+      "plotsPerTool": 1
     },
     "herder": {
       "animalBonus": 0.08
@@ -19,8 +14,7 @@
     "carter": {
       "sellEvery": 7,
       "priceRate": 0.75,
-      "priceRatePerTier": 0.08,
-      "reserveDays": 7
+      "priceRatePerTier": 0.08
     }
   },
   "tools": {
@@ -33,15 +27,24 @@
     "tiers": [
       {
         "cost": 20,
-        "level": 2
+        "level": 2,
+        "materials": {
+          "wood": 2
+        }
       },
       {
         "cost": 70,
-        "level": 5
+        "level": 5,
+        "materials": {
+          "iron": 2
+        }
       },
       {
         "cost": 180,
-        "level": 8
+        "level": 8,
+        "materials": {
+          "iron": 4
+        }
       }
     ]
   },
@@ -66,5 +69,21 @@
     "Sol",
     "Ordoño",
     "Elo"
-  ]
+  ],
+  "pantry": {
+    "eat": [
+      "wheat",
+      "carrot",
+      "cabbage",
+      "egg"
+    ],
+    "reserveDays": 7,
+    "reserveOptions": [
+      0,
+      3,
+      7,
+      14,
+      30
+    ]
+  }
 }
