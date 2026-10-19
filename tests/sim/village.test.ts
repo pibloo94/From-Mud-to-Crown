@@ -16,13 +16,15 @@ import {
 } from '../../src/sim/villagers';
 import { addModifier, multiplier } from '../../src/sim/modifiers';
 import { seasonBill, settleSeason } from '../../src/sim/taxes';
-import { BUILDINGS, PROGRESSION, VILLAGERS } from '../../src/sim/data';
+import { BUILDINGS, PRODUCT_IDS, PROGRESSION, VILLAGERS } from '../../src/sim/data';
 import { DAYS_PER_SEASON } from '../../src/sim/calendar';
 import type { GameState } from '../../src/sim/types';
 
 const newGame = () => {
   const s = createNewGame(7);
   s.events.lastDay = 1e9; // sin eventos aleatorios
+  // Materiales de sobra: aqui se prueban las reglas de la aldea, no el almacen.
+  s.materials = { wood: 999, stone: 999, iron: 999 };
   return s;
 };
 
@@ -148,18 +150,20 @@ describe('aldeanos', () => {
     expect(upgradeTool(s, id).msg).toBe('msg.toolMaxed');
   });
 
-  it('comen de la cosecha cada dia, en el orden de la lista', () => {
+  it('comen de la cosecha cada dia, primero lo mas barato de la despensa', () => {
     const s = withBeds(2);
     hireVillager(s);
     hireVillager(s);
-    s.inventory.carrot = 1;
-    s.inventory.wheat = 5;
+    for (const p of PRODUCT_IDS) s.priceMult[p] = 1;
+    s.herds.chicken.count = 0;
+    s.inventory.carrot = 5; // 4 monedas
+    s.inventory.wheat = 1; // 3 monedas: se come antes
     // dos aldeanos con el hogar (ahorra un 10 %): 1,8 raciones al dia; las fracciones se acumulan
     days(s, 1);
-    expect(s.inventory.carrot).toBe(0);
-    expect(s.inventory.wheat).toBe(5);
+    expect(s.inventory.wheat).toBe(0);
+    expect(s.inventory.carrot).toBe(5);
     days(s, 1);
-    expect(s.inventory.wheat).toBe(3);
+    expect(s.inventory.carrot).toBe(3);
     expect(foodDays(s)).toBe(1);
   });
 
@@ -188,7 +192,8 @@ describe('aldeanos', () => {
     const s = withBeds(1);
     hireVillager(s);
     setJob(s, s.villagers[0].id, 'herder');
-    s.inventory.wheat = 50; // que coman trigo y no huevos
+    s.inventory.wheat = 50;
+    s.pantry.eat.egg = false; // que coman trigo y no huevos
     s.buildings.granary = 3;
     days(s, 1);
     expect(s.inventory.egg).toBe(4);

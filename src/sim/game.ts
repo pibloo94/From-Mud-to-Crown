@@ -4,7 +4,10 @@ import * as rules from './rules';
 import { resolveEvent } from './events';
 import { upgradeBuilding } from './buildings';
 import * as villagers from './villagers';
-import type { AnimalId, BuildingId, CommandResult, CropId, GameState, JobId, Notice, ProductId, Speed } from './types';
+import * as pantry from './pantry';
+import * as materials from './materials';
+import type { AnimalId, BuildingId, CommandResult, CropId, GameState, JobId, MaterialId, Notice, ProductId, Speed } from './types';
+import { BUILDINGS } from './data';
 
 export type GameEvent =
   | { type: 'change' }
@@ -47,7 +50,12 @@ export class Game {
     const before = this.state.dayProgress;
     const { days, notices } = rules.tick(this.state, realMs);
     for (let i = 0; i < days; i++) this.emit({ type: 'day', day: this.state.day });
-    for (const notice of notices) this.emit({ type: 'notice', notice });
+    for (const notice of notices) {
+      // Subidas de nivel y cosechas de los labradores se muestran como si las hiciera el jugador.
+      if (notice.card === 'levelup') this.emit({ type: 'levelUp', level: Number(notice.params?.level) });
+      else if (notice.tile) this.emit({ type: 'result', result: notice, x: notice.tile.x, y: notice.tile.y });
+      else this.emit({ type: 'notice', notice });
+    }
     if (notices.some((n) => n.card === 'rank' || n.msg === 'msg.villagerLeftHunger')) this.emit({ type: 'mapChanged' });
     if (days > 0 || before !== this.state.dayProgress) this.emit({ type: 'change' });
     this.announcePendingEvent();
@@ -129,6 +137,36 @@ export class Game {
 
   upgradeTool(id: number): void {
     this.villagerCommand(villagers.upgradeTool(this.state, id));
+  }
+
+  setFarmerCrop(id: number, crop: CropId | 'auto' | null): void {
+    this.villagerCommand(villagers.setFarmerCrop(this.state, id, crop));
+  }
+
+  setEdible(p: ProductId, eat: boolean): void {
+    this.report({ result: pantry.setEdible(this.state, p, eat), levelUps: [] });
+  }
+
+  setReserveDays(days: number): void {
+    this.report({ result: pantry.setReserveDays(this.state, days), levelUps: [] });
+  }
+
+  buyMaterial(m: MaterialId, qty: number): void {
+    this.report({ result: materials.buyMaterial(this.state, m, qty), levelUps: [] });
+  }
+
+  /** Compra los materiales que faltan para la siguiente mejora del edificio. */
+  buyMissingFor(building: BuildingId): void {
+    const up = BUILDINGS[building].upgrades[this.state.buildings[building]];
+    if (!up) return;
+    this.report({ result: materials.buyMissing(this.state, up.materials), levelUps: [] });
+  }
+
+  /** Compra los materiales que faltan para la siguiente herramienta de un aldeano. */
+  buyMissingForTool(id: number): void {
+    const v = this.state.villagers.find((x) => x.id === id);
+    if (!v) return;
+    this.report({ result: materials.buyMissing(this.state, villagers.toolMaterials(v.tool + 1)), levelUps: [] });
   }
 
   dismissVillager(id: number): void {

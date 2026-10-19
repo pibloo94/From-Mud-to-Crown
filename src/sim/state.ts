@@ -1,4 +1,5 @@
-import { ANIMAL_IDS, BUILDING_IDS, PRODUCT_IDS, PROGRESSION, START } from './data';
+import { ANIMAL_IDS, BUILDING_IDS, MATERIAL_IDS, PRODUCT_IDS, PROGRESSION, START } from './data';
+import { defaultPantry } from './pantry';
 import { rollPrices } from './market';
 import { newSeed } from './random';
 import { addVillager } from './villagers';
@@ -38,6 +39,8 @@ export function createNewGame(seed: number = newSeed()): GameState {
     speed: 0,
     coins: START.coins,
     inventory,
+    materials: Object.fromEntries(MATERIAL_IDS.map((m) => [m, 0])) as GameState['materials'],
+    pantry: defaultPantry(),
     map: { width: rows[0].length, height: rows.length, tiles },
     plots,
     herds,

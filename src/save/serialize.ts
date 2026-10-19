@@ -1,12 +1,13 @@
 // Formato del archivo de partida. Puro (sin DOM) para poder probarlo.
 import type { GameState } from '../sim/types';
-import { BUILDING_IDS, PRODUCT_IDS, PROGRESSION, START } from '../sim/data';
+import { BUILDING_IDS, MATERIAL_IDS, PRODUCT_IDS, PROGRESSION, START } from '../sim/data';
+import { defaultPantry } from '../sim/pantry';
 import { rollPrices } from '../sim/market';
 import { buildingStat, storageCapacity, storageUsed } from '../sim/buildings';
 import { addVillager, beds } from '../sim/villagers';
 
 export const SAVE_FORMAT = 'from-mud-to-crown-save';
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;
@@ -70,6 +71,13 @@ export function migrate(state: Record<string, unknown>, from: number): GameState
     rollPrices(s as GameState);
   }
   if (from < 3) s = migrateV3(s);
+  if (from < 4) {
+    // v3 -> v4: almacen de materiales, despensa configurable y cultivo de cada labrador.
+    s = { ...s };
+    s.materials = Object.fromEntries(MATERIAL_IDS.map((m) => [m, 0]));
+    s.pantry = defaultPantry();
+    s.villagers = (s.villagers as Record<string, unknown>[]).map((v) => ({ ...v, crop: 'auto' }));
+  }
   return s as GameState;
 }
 
@@ -135,6 +143,8 @@ function looksLikeState(s: GameState): boolean {
     isObject(s.events) &&
     isObject(s.buildings) &&
     Array.isArray(s.villagers) &&
-    isObject(s.rep)
+    isObject(s.rep) &&
+    isObject(s.materials) &&
+    isObject(s.pantry)
   );
 }

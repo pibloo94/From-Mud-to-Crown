@@ -2,6 +2,8 @@
 
 export type ProductId = 'wheat' | 'carrot' | 'cabbage' | 'egg' | 'milk';
 export type CropId = 'wheat' | 'carrot' | 'cabbage';
+/** Materiales de construccion: se compran en el mercado y se guardan aparte del granero. */
+export type MaterialId = 'wood' | 'stone' | 'iron';
 export type AnimalId = 'chicken' | 'cow';
 export type BuildingId = 'house' | 'granary' | 'coop' | 'pen';
 export type JobId = 'farmer' | 'herder' | 'carter';
@@ -55,6 +57,14 @@ export interface Villager {
   tool: number;
   /** Dias seguidos sin comer. */
   hungry: number;
+  /** Solo labradores: que siembran en sus parcelas. 'auto' elige lo mejor de la temporada; null no siembra. */
+  crop: CropId | 'auto' | null;
+}
+
+/** Despensa: que productos comen los aldeanos y cuantos dias de comida se guardan sin vender. */
+export interface Pantry {
+  eat: Record<ProductId, boolean>;
+  reserveDays: number;
 }
 
 export type ModifierKind = 'tribute' | 'growth' | 'animal' | 'toolDiscount' | 'idle' | 'priceAll';
@@ -85,6 +95,9 @@ export interface GameState {
   speed: Speed;
   coins: number;
   inventory: Record<ProductId, number>;
+  /** Almacen de materiales (no ocupa sitio en el granero). */
+  materials: Record<MaterialId, number>;
+  pantry: Pantry;
   map: { width: number; height: number; tiles: Tile[] };
   /** Clave "x,y" de cada baldosa cultivable. */
   plots: Record<string, Plot>;
@@ -129,5 +142,7 @@ export interface CommandResult {
 
 /** Aviso que la simulacion genera por si sola al pasar los dias. `card` pide mostrarlo como tarjeta. */
 export interface Notice extends CommandResult {
-  card?: 'season' | 'rank';
+  card?: 'season' | 'rank' | 'levelup';
+  /** Baldosa donde ocurrio (p. ej. una cosecha de los labradores), para mostrarlo sobre el mapa. */
+  tile?: { x: number; y: number };
 }
