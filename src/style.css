@@ -2482,3 +2482,127 @@ button.level-box:hover .rank-text {
     height: 132px;
   }
 }
+
+/* ============================================================ tutorial y consejos */
+
+.coach {
+  position: absolute;
+  left: 50%;
+  bottom: calc(80px + var(--safe-bottom));
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  width: min(calc(100vw - 20px), 460px);
+  padding: 10px 12px;
+  color: var(--ink);
+  background: linear-gradient(180deg, var(--parch), var(--parch-2));
+  border-radius: 3px;
+  box-shadow: var(--frame);
+  animation: toast-in 0.2s ease-out;
+}
+
+.coach[hidden] {
+  display: none;
+}
+
+/* Con el panel guia en pantalla, los avisos suben para no taparlo. */
+.coach:not([hidden]) ~ .toasts {
+  bottom: calc(300px + var(--safe-bottom));
+}
+
+.coach-seal {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, var(--blood), var(--blood-2));
+  box-shadow: inset 0 0 0 2px var(--gold-2);
+}
+
+.coach-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.coach-body b {
+  font: 700 16px var(--font-caps);
+  color: var(--blood-2);
+}
+
+.coach-body p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.coach-count {
+  font: 700 11px var(--font-caps);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.coach-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.btn.ghost {
+  background: transparent;
+  color: var(--ink-soft);
+  text-shadow: none;
+  box-shadow: inset 0 0 0 1px var(--parch-3);
+}
+
+/* Boton que senala el tutorial: latido dorado. */
+.tut-target {
+  animation: tut-pulse 1.3s ease-in-out infinite;
+}
+
+@keyframes tut-pulse {
+  0%,
+  100% {
+    box-shadow: var(--frame), 0 0 0 0 rgba(240, 210, 127, 0.9);
+  }
+  50% {
+    box-shadow: var(--frame), 0 0 0 7px rgba(240, 210, 127, 0);
+  }
+}
+
+.event-cat.cat-tip {
+  background: linear-gradient(180deg, #34465a, #1f2b38);
+}
+
+.volume-row {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0;
+  font: 700 14px var(--font-caps);
+  color: var(--ink);
+  text-align: left;
+}
+
+@media (min-width: 761px) {
+  /* En escritorio el panel guia va arriba, bajo la barra, para no chocar con el reloj ni los botones. */
+  .coach {
+    top: calc(84px + var(--safe-top, 0px));
+    bottom: auto;
+  }
+  .coach:not([hidden]) ~ .toasts {
+    bottom: calc(84px + var(--safe-bottom));
+  }
+}
+
+.btn.ghost:hover,
+.btn.ghost:focus-visible {
+  color: var(--ink);
+  background: rgba(60, 40, 20, 0.08);
+  box-shadow: inset 0 0 0 1px var(--parch-3);
+}

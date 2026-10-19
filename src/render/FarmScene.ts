@@ -9,6 +9,7 @@ import { workshopAt } from '../sim/workshops';
 import { idleCarts } from '../sim/trade';
 import { hasFeature, hasRank, levelDef } from '../sim/progress';
 import { hamletAt, hamletLevel, manorStage } from '../sim/noble';
+import { tutorialTiles } from '../sim/tutorial';
 import { dateFromDay, type Season } from '../sim/calendar';
 import { plotKey } from '../sim/state';
 import type { AnimalId, BuildingId, JobId, Tile } from '../sim/types';
@@ -80,6 +81,9 @@ export class FarmScene extends Phaser.Scene {
   private feedbackTweens = new Set<Phaser.Tweens.Tween>();
   /** Contornos punteados sobre la hierba que se puede roturar. */
   private landHints!: Phaser.GameObjects.Graphics;
+  /** Baldosas que senala el tutorial (latido dorado). */
+  private tutorialMarks!: Phaser.GameObjects.Graphics;
+  private tutorialKey = '';
   private downAt: { x: number; y: number } | null = null;
   private unsubscribe: (() => void) | null = null;
 
@@ -97,6 +101,10 @@ export class FarmScene extends Phaser.Scene {
   create(): void {
     this.hover = this.add.graphics().setDepth(60);
     this.landHints = this.add.graphics().setDepth(55);
+    // Por encima de edificios y cultivos (que si no lo tapan), por debajo de los escudos de los animales.
+    this.tutorialMarks = this.add.graphics().setDepth(9_000);
+    // El latido sigue aunque el juego este en pausa: es una indicacion, no parte del mundo.
+    this.tweens.add({ targets: this.tutorialMarks, alpha: 0.25, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     this.build();
     this.fit();
 
@@ -178,6 +186,7 @@ export class FarmScene extends Phaser.Scene {
     this.seasonal = [];
     this.season = null;
     this.hintsKey = '';
+    this.tutorialKey = '';
 
     const { tiles } = this.sim.state.map;
     for (const tile of tiles) this.addGround(tile);
@@ -535,9 +544,26 @@ export class FarmScene extends Phaser.Scene {
     }
   }
 
+  private drawTutorialMarks(): void {
+    const tiles = tutorialTiles(this.sim.state);
+    const key = tiles.map((tl) => `${tl.x},${tl.y}`).join('|');
+    if (key === this.tutorialKey) return;
+    this.tutorialKey = key;
+    const g = this.tutorialMarks;
+    g.clear();
+    for (const tile of tiles) {
+      const { sx, sy } = toScreen(tile.x, tile.y);
+      g.lineStyle(5, 0x24170e, 0.9);
+      g.strokePoints([new Phaser.Math.Vector2(sx, sy + 3), new Phaser.Math.Vector2(sx + TILE_W / 2 - 5, sy + TILE_H / 2), new Phaser.Math.Vector2(sx, sy + TILE_H - 3), new Phaser.Math.Vector2(sx - TILE_W / 2 + 5, sy + TILE_H / 2)], true);
+      g.lineStyle(3, 0xf0d27f, 1);
+      g.strokePoints([new Phaser.Math.Vector2(sx, sy + 3), new Phaser.Math.Vector2(sx + TILE_W / 2 - 5, sy + TILE_H / 2), new Phaser.Math.Vector2(sx, sy + TILE_H - 3), new Phaser.Math.Vector2(sx - TILE_W / 2 + 5, sy + TILE_H / 2)], true);
+    }
+  }
+
   private refresh(): void {
     this.applySeason();
     this.drawLandHints();
+    this.drawTutorialMarks();
     const s = this.sim.state;
     for (const [key, sprite] of this.crops) {
       const plot = s.plots[key];

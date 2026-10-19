@@ -3,6 +3,8 @@
 // Se repite en bucle con cuatro secciones para que no canse: A, B, A sin flauta, B una octava abajo.
 
 const PREF_KEY = 'fmtc-music';
+/** Volumen elegido en el menu (0 a 1); 0 apaga la musica. */
+const VOLUME_KEY = 'fmtc-music-vol';
 /** Duracion de una corchea en segundos (6/8 tranquilo). */
 const EIGHTH = 0.24;
 const LOOKAHEAD = 0.25;
@@ -64,33 +66,40 @@ class Music {
   private section = 0;
   private bar = 0;
   private plucks = new Map<number, AudioBuffer>();
-  private enabled = readPref();
+  private volume = readVolume();
 
   isEnabled(): boolean {
-    return this.enabled;
+    return this.volume > 0;
   }
 
-  setEnabled(on: boolean): void {
-    this.enabled = on;
+  getVolume(): number {
+    return this.volume;
+  }
+
+  /** Cambia el volumen (0 a 1). Con 0 se para; al subirlo de 0 vuelve a sonar. */
+  setVolume(v: number): void {
+    const was = this.volume;
+    this.volume = Math.max(0, Math.min(1, v));
     try {
-      localStorage.setItem(PREF_KEY, on ? 'on' : 'off');
+      localStorage.setItem(VOLUME_KEY, String(this.volume));
     } catch {
       /* preferencia no persistente */
     }
-    if (on) this.start();
-    else this.stop();
+    if (this.volume === 0) this.stop();
+    else if (was === 0 || this.timer === null) this.start();
+    else if (this.ctx && this.master) this.master.gain.setTargetAtTime(MASTER_VOLUME * this.volume, this.ctx.currentTime, 0.1);
   }
 
   /** Debe llamarse desde un gesto del jugador (clic o toque): los navegadores lo exigen para sonar. */
   start(): void {
-    if (!this.enabled) return;
+    if (this.volume === 0) return;
     try {
       if (!this.ctx) this.setup();
       void this.ctx!.resume();
       if (this.timer === null) {
         this.nextTime = this.ctx!.currentTime + 0.1;
         this.master!.gain.cancelScheduledValues(this.ctx!.currentTime);
-        this.master!.gain.setTargetAtTime(MASTER_VOLUME, this.ctx!.currentTime, 0.8);
+        this.master!.gain.setTargetAtTime(MASTER_VOLUME * this.volume, this.ctx!.currentTime, 0.8);
         this.timer = window.setInterval(() => this.schedule(), 60);
       }
     } catch {
@@ -120,7 +129,7 @@ class Music {
   }
 
   resume(): void {
-    if (this.ctx && this.enabled && this.timer !== null) void this.ctx.resume();
+    if (this.ctx && this.volume > 0 && this.timer !== null) void this.ctx.resume();
   }
 
   // ------------------------------------------------------------ montaje
@@ -299,11 +308,14 @@ class Music {
   }
 }
 
-function readPref(): boolean {
+/** Volumen guardado; las partidas de antes solo guardaban encendida o apagada. */
+function readVolume(): number {
   try {
-    return localStorage.getItem(PREF_KEY) !== 'off';
+    const v = localStorage.getItem(VOLUME_KEY);
+    if (v !== null && !Number.isNaN(Number(v))) return Math.max(0, Math.min(1, Number(v)));
+    return localStorage.getItem(PREF_KEY) === 'off' ? 0 : 1;
   } catch {
-    return true;
+    return 1;
   }
 }
 

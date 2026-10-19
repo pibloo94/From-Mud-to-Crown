@@ -31,6 +31,9 @@ import { h, icon } from './dom';
 import { marketView, resetMarketChoices, type MarketTab } from './market';
 import { siteView, workshopView } from './workshops';
 import { music } from '../audio/music';
+import { fanfare, type FanfareKind } from '../audio/fanfare';
+import { createCoach, tipView } from './coach';
+import { pendingTip } from '../sim/tutorial';
 import { manorView, type ManorTab } from './noble';
 import { isNoble, liegeOf } from '../sim/noble';
 
@@ -58,10 +61,11 @@ type Modal =
   | { kind: 'season'; params: Record<string, string | number> }
   | { kind: 'rank'; rank: RankId }
   | { kind: 'caravan'; params: Record<string, string | number> }
-  | { kind: 'event'; id: string; result?: CommandResult };
+  | { kind: 'event'; id: string; result?: CommandResult }
+  | { kind: 'tip'; id: string };
 
 /** Todas las ventanas detienen el tiempo mientras estan abiertas; al cerrarlas vuelve la velocidad anterior. */
-const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'levelup', 'season', 'rank', 'caravan', 'event'];
+const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'levelup', 'season', 'rank', 'caravan', 'event', 'tip'];
 /** Ventanas que se cierran con Escape o tocando fuera. */
 const DISMISSABLE: Modal['kind'][] = ['menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress'];
 /** Ventanas desde las que se puede ir a otra y volver con "Atras". */
@@ -155,7 +159,14 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   const toasts = h('div', { class: 'toasts', 'aria-live': 'polite' });
   const overlay = h('div', { class: 'overlay', hidden: true });
 
-  root.append(topbar, timeDock, bottombar, toasts, overlay);
+  // Tutorial guiado: panel con el paso actual y botones senalados.
+  const coach = createCoach(sim, { market: marketBtn, progress: progressBtn }, (stepId) => {
+    sim.tutorialAck();
+    // La bienvenida deja el tiempo en pausa mientras se lee; al empezar, corre.
+    if (stepId === 'welcome') setSpeed(lastSpeed || 1);
+  });
+
+  root.append(topbar, timeDock, bottombar, coach.el, toasts, overlay);
 
   const wide = window.matchMedia('(min-width: 761px)');
   function placeHud(): void {
@@ -284,8 +295,19 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   }
 
   // ---------------------------------------------------------------- pintar HUD
+  /** Consejo pendiente: se muestra como tarjeta cuando no hay otra cosa delante. */
+  let tipShown: string | null = null;
+  function maybeShowTip(): void {
+    const id = pendingTip(sim.state);
+    if (!id || modal || queue.length || id === tipShown) return;
+    tipShown = id;
+    showCard({ kind: 'tip', id });
+  }
+
   function renderHud(): void {
     const s = sim.state;
+    coach.render(modal !== null);
+    maybeShowTip();
     const d = dateFromDay(s.day);
     dateText.textContent = t('date.format', { season: d.season, day: d.dayOfSeason, year: d.year });
     dayBar.style.width = `${Math.round(s.dayProgress * 100)}%`;
@@ -382,7 +404,17 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     if (pausing && !(modal && PAUSES.includes(modal.kind))) speedBeforeModal = sim.state.speed;
     modal = next;
     if (pausing) sim.setSpeed(0);
+    if (next.kind === 'progress') sim.noteTutorial('progressOpened');
+    playFanfare(next);
     renderModal();
+    coach.render(true);
+  }
+
+  const FANFARES: Partial<Record<Modal['kind'], FanfareKind>> = { levelup: 'level', rank: 'rank', season: 'season', event: 'event' };
+  function playFanfare(m: Modal): void {
+    const kind = FANFARES[m.kind];
+    // El resultado de un evento reusa la misma ventana: solo suena al aparecer.
+    if (kind && !(m.kind === 'event' && m.result)) fanfare.play(kind);
   }
 
   /** Las tarjetas esperan su turno si hay otra ventana abierta. */
@@ -414,10 +446,13 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       if (PAUSES.includes(next.kind) && !(was && PAUSES.includes(was.kind))) speedBeforeModal = sim.state.speed;
       modal = next;
       if (PAUSES.includes(next.kind)) sim.setSpeed(0);
+      playFanfare(next);
       renderModal();
       return;
     }
     if (was && was.kind !== 'start' && PAUSES.includes(was.kind) && speedBeforeModal !== 0) sim.setSpeed(speedBeforeModal);
+    coach.render(false);
+    maybeShowTip();
   }
 
   function renderModal(): void {
@@ -449,6 +484,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       rank: () => rankView(panelCtx, (modal as Extract<Modal, { kind: 'rank' }>).rank),
       caravan: () => caravanView(panelCtx, (modal as Extract<Modal, { kind: 'caravan' }>).params),
       event: eventView,
+      tip: () => tipView(sim, (modal as Extract<Modal, { kind: 'tip' }>).id, () => closeModal()),
     };
     // Al repintar la misma ventana se conserva el desplazamiento (p. ej. al mejorar algo de la lista).
     const prevBody = overlay.querySelector<HTMLElement>('.progress-body');
@@ -569,20 +605,54 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
           'button',
           {
             class: 'btn',
-            'aria-pressed': String(music.isEnabled()),
             onclick: () => {
-              music.setEnabled(!music.isEnabled());
+              sim.restartTutorial();
+              closeModal();
+              tipShown = null;
+              // La bienvenida espera, en pausa, a que se pulse Empezar.
+              sim.setSpeed(0);
+            },
+          },
+          t('menu.tutorialAgain'),
+        ),
+        h(
+          'button',
+          {
+            class: 'btn',
+            'aria-pressed': String(sim.state.tutorial.tips),
+            onclick: () => {
+              sim.setTips(!sim.state.tutorial.tips);
               renderModal();
             },
           },
-          t(music.isEnabled() ? 'menu.musicOn' : 'menu.musicOff'),
+          t(sim.state.tutorial.tips ? 'menu.tipsOn' : 'menu.tipsOff'),
         ),
       ),
+      h('h3', { class: 'market-section' }, t('menu.sound')),
+      volumeRow(t('menu.music'), music.getVolume(), (v) => music.setVolume(v)),
+      volumeRow(t('menu.fanfares'), fanfare.getVolume(), (v) => fanfare.setVolume(v), () => fanfare.play('level')),
       h('p', { class: 'hint' }, t(supportsFilePicker() ? 'menu.saveHintFile' : 'menu.saveHintDownload')),
       h('p', { class: 'howto' }, t('menu.howTo')),
       h('p', { class: 'hint keys' }, t('menu.keys')),
       langSwitch(),
     );
+  }
+
+  /** Barra de volumen de un canal (0-100 %). `preview` suena al soltarla para oir el nivel. */
+  function volumeRow(label: string, value: number, set: (v: number) => void, preview?: () => void): HTMLElement {
+    const pctText = h('b', { class: 'qty-num' }, `${Math.round(value * 100)} %`);
+    const input = h('input', { type: 'range', min: 0, max: 100, step: 5, value: Math.round(value * 100), class: 'qty-range', 'aria-label': label }) as HTMLInputElement;
+    const paint = () => {
+      input.style.setProperty('--fill', `${input.value}%`);
+      pctText.textContent = `${input.value} %`;
+    };
+    input.addEventListener('input', () => {
+      paint();
+      set(Number(input.value) / 100);
+    });
+    if (preview) input.addEventListener('change', preview);
+    paint();
+    return h('label', { class: 'volume-row' }, h('span', {}, label), h('div', { class: 'qty-line' }, input, pctText));
   }
 
   function plantView(): HTMLElement {
@@ -787,7 +857,11 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     queue.length = 0;
     fn();
     music.start(); // este clic es el gesto que los navegadores exigen para reproducir sonido
+    fanfare.start();
     setSpeed(1); // el tiempo corre desde el primer momento; espacio o el boton ❚❚ lo pausan
+    // Salvo durante la bienvenida del tutorial, que espera a que el jugador pulse Empezar.
+    if (sim.state.tutorial.step === 'welcome') sim.setSpeed(0);
+    tipShown = null;
     renderHud();
     onLayout();
   }

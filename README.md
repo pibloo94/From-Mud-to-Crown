@@ -6,7 +6,7 @@ Se juega en el navegador, en ordenador y en móvil, en español e inglés.
 
 ## Estado
 
-**Fase 3c · Nobleza.** Sobre talleres y comercio: carta de nobleza, feudo al sur del mapa con casa solariega, aldeas vasallas, mesnada y mecenazgo, y la escalera noble Señor → Barón → Conde. Siguen el tutorial y el sonido.
+**Fase 3d · Tutorial y sonido.** Cierra la fase 3 (talleres, comercio y nobleza): tutorial guiado para empezar, consejos breves cuando se desbloquea algo y fanfarrias para nivel, rango, estación y eventos, con volumen por canal.
 
 **Fase 2 · La aldea.** Sobre la progresión de la fase 1 se añaden aldeanos con oficio y herramientas, mejoras de cada edificio (casa, granero, gallinero y corral) que se ven en el mapa, un granero con capacidad limitada, reputación con el barón y la aldea, impuestos cada estación, 21 eventos (ofertas, obligaciones y percances), el rango de Terrateniente con las tierras del este y la pantalla de *Progreso*.
 
@@ -14,6 +14,7 @@ El roadmap completo está en el documento de diseño del proyecto.
 
 ## Cómo jugar
 
+- **Tutorial:** una partida nueva empieza con unos pasos guiados (sembrar, recoger, cosechar, vender y mirar el progreso) que avanzan solos al hacerlos; se puede saltar. Después, cada vez que llega algo nuevo aparece un consejo breve. Desde el menú se repite el tutorial o se apagan los consejos.
 - **Siembra** tocando una parcela de tierra arada. Si tienes varios cultivos disponibles, eliges cuál. Cuando esté maduro, tócala otra vez para cosechar.
 - **Recoge** huevos y leche tocando el gallinero o el corral cuando aparezca el escudo con un número.
 - **Vende** en el mercado (botón *Mercado* o el puesto del camino): eliges la cantidad con la barra de cada producto. Los precios cambian cada semana y con la estación: ▲ por encima de lo habitual, ▼ por debajo.
@@ -39,6 +40,7 @@ El roadmap completo está en el documento de diseño del proyecto.
 - **Invierno:** el trigo y las zanahorias no crecen ni se siembran. La col sí.
 - **Eventos:** de vez en cuando el juego se pausa con una decisión. Las **ofertas** se pueden rechazar sin castigo; las **obligaciones** (leva, prestación, cacería...) castigan si no cumples, por ejemplo con más tributo durante una estación; los **percances** (zorro, tormenta, plaga...) te dejan pagar para evitarlos o arriesgarte. Algunos se encadenan.
 - **Tiempo:** ❚❚ pausa y ▶, ▶▶, ▶▶▶ son x1, x2 y x3. En teclado: `espacio` pausa, `1` `2` `3` cambian la velocidad, `M` abre el mercado y `P` el progreso.
+- **Sonido:** música medieval de fondo y fanfarrias al subir de nivel, ganar un rango, cerrar las cuentas de la estación o recibir un evento. En el menú hay una barra de volumen para cada una (a 0 se apaga).
 - **Cámara:** arrastra para moverte. Pellizca o usa la rueda del ratón para acercar.
 
 ### Partidas guardadas
@@ -84,6 +86,7 @@ tests/       tests de la simulación, el guardado y el contenido
 - **Un cultivo nuevo:** entrada en `src/data/crops.json`, su producto en `products.json`, sus dibujos de crecimiento en `tools/gen_sprites.py` y su nombre en `es.json` y `en.json` (`crop.<id>`, `product.<id>`).
 - **Un evento nuevo:** entrada en `src/data/events.json` (categoría `offer`, `obligation` o `mishap`, peso, condiciones, opciones con coste, efectos y riesgo) y sus textos `event.<id>.*` en los dos idiomas. Las ofertas deben tener una opción `decline` sin efectos. Para encadenar eventos, una opción marca un `flag` y el siguiente lo pide con `"flag:<nombre>": 1`. Los tests comprueban textos y reglas.
 - **Una mejora de edificio:** entrada en `src/data/buildings.json` (coste, nivel y lo que suma: camas, capacidad, animales...) y su nombre `upgrade.<edificio>.<id>`. Aparece sola en el panel del edificio y en la pantalla de *Progreso*.
+- **Un paso o un consejo del tutorial:** en `src/data/tutorial.json` (los consejos llevan su condición: nivel, días, rango, camas...) y sus textos `tutorial.<id>.*` o `tip.<id>.*` en los dos idiomas.
 - **Ajustar el ritmo:** experiencia por nivel, rangos, precio de la tierra, impuestos, reputación, arriendos y frecuencia de eventos están en `src/data/progression.json`; aldeanos, oficios y herramientas, en `src/data/villagers.json`; la carta, el feudo, la casa solariega, las aldeas, la mesnada y el mecenazgo, en `src/data/nobility.json`.
 - **Un texto nuevo:** misma clave en `src/i18n/es.json` y `en.json`. Un test comprueba que no falte ninguna.
 - **Cambiar el arte:** `python3 tools/gen_sprites.py` regenera los SVG. Para usar otro arte (p. ej. Kenney), sustituye los archivos de `public/assets/sprites/` respetando nombres y anclajes.
