@@ -27,7 +27,6 @@ import { autosave, forgetLinkedFile, hasLinkedFile, loadGameFromFile, readBackup
 import { SaveError } from '../save/serialize';
 import type { Insets } from '../render/FarmScene';
 import { h, icon } from './dom';
-import { marketView, type MarketTab } from './market';
 import { siteView, workshopView } from './workshops';
 import { marketView, resetMarketChoices, type MarketTab } from './market';
 import { music } from '../audio/music';
