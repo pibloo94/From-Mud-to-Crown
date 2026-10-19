@@ -1,13 +1,13 @@
 // Interfaz HTML encima del lienzo: barra superior, controles de tiempo, ventanas, tarjetas y avisos.
 import type { Game } from '../sim/game';
 import { createNewGame } from '../sim/state';
-import { ANIMAL_IDS, CROPS, EVENTS, PRODUCTS, PRODUCT_IDS, PROGRESSION, type EventOptionDef } from '../sim/data';
+import { CROPS, EVENTS, MATERIALS, MATERIAL_IDS, PRODUCTS, PRODUCT_IDS, PROGRESSION, type EventOptionDef } from '../sim/data';
 import { dateFromDay } from '../sim/calendar';
-import { hasFeature, levelProgress, nextLevelXp, unlocksAt } from '../sim/progress';
-import { animalCapacity } from '../sim/rules';
+import { levelProgress, nextLevelXp, unlocksAt } from '../sim/progress';
 import { storageCapacity, storageUsed } from '../sim/buildings';
 import { beds, foodDays } from '../sim/villagers';
 import { activeModifiers } from '../sim/modifiers';
+import { materialUnlocked } from '../sim/materials';
 import {
   buildingView,
   modifierText,
@@ -19,14 +19,14 @@ import {
   type PanelCtx,
   type ProgressTab,
 } from './panels';
-import { boostActive, priceOf, priceTrend } from '../sim/market';
 import { optionAvailable } from '../sim/events';
-import type { AnimalId, BuildingId, CommandResult, CropId, ProductId, RankId, Speed } from '../sim/types';
+import type { BuildingId, CommandResult, CropId, RankId, Speed } from '../sim/types';
 import { getLang, onLangChange, setLang, t, type Lang } from '../i18n/i18n';
 import { autosave, forgetLinkedFile, hasLinkedFile, loadGameFromFile, readBackup, saveGame, supportsFilePicker } from '../save/storage';
 import { SaveError } from '../save/serialize';
 import type { Insets } from '../render/FarmScene';
 import { h, icon } from './dom';
+import { marketView, type MarketTab } from './market';
 import { music } from '../audio/music';
 
 const AUTOSAVE_EVERY_DAYS = 3;
@@ -40,7 +40,7 @@ export interface UI {
 type Modal =
   | { kind: 'start' }
   | { kind: 'menu' }
-  | { kind: 'market' }
+  | { kind: 'market'; tab: MarketTab }
   | { kind: 'plant'; x: number; y: number; crops: CropId[] }
   | { kind: 'land'; x: number; y: number; cost: number }
   | { kind: 'lease'; x: number; y: number; cost: number }
@@ -67,7 +67,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   const dateText = h('span', { class: 'date-text' });
   const pausedPill = h('span', { class: 'paused-pill' });
   const dayBar = h('span', { class: 'day-bar-fill' });
-  const dateBox = h('div', { class: 'date-box panel' }, h('div', { class: 'date-line' }, dateText, pausedPill), h('div', { class: 'day-bar' }, dayBar));
+  const dateBox = h('div', { class: 'date-box' }, h('div', { class: 'date-line' }, dateText, pausedPill), h('div', { class: 'day-bar' }, dayBar));
 
   const levelNum = h('span', { class: 'level-num' });
   const rankText = h('span', { class: 'rank-text' });
@@ -108,18 +108,21 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     { class: 'status-pill', onclick: () => openModal({ kind: 'building', building: 'house', tab: 'villagers' }) },
     h('span', { class: 'status-inner' }, icon('icon_worker'), villagersText),
   );
+  const materialsInner = h('span', { class: 'status-inner' });
+  const materialsPill = h('button', { class: 'status-pill', onclick: () => openModal({ kind: 'market', tab: 'buy' }) }, materialsInner);
   const modsBox = h('div', { class: 'mods' });
-  const statusRow = h('div', { class: 'status-row' }, storagePill, villagersPill, modsBox);
+  const statusRow = h('div', { class: 'status-row' }, storagePill, villagersPill, materialsPill, modsBox);
 
   const speedButtons = SPEEDS.map((sp) =>
     h('button', { class: 'speed-btn', 'data-speed': sp, onclick: () => setSpeed(sp) }, sp === 0 ? '❚❚' : '▶'.repeat(sp)),
   );
-  const speedBox = h('div', { class: 'speed panel', role: 'group' }, ...speedButtons);
+  // El reloj y sus controles van juntos, a la izquierda.
+  const timeBox = h('div', { class: 'time-box panel' }, dateBox, h('div', { class: 'speed', role: 'group' }, ...speedButtons));
 
-  const topbar = h('header', { class: 'topbar' }, dateBox, resources, speedBox, statusRow);
+  const topbar = h('header', { class: 'topbar' }, timeBox, resources, statusRow);
 
   // ---------------------------------------------------------------- barra inferior
-  const marketBtn = h('button', { class: 'big-btn', onclick: () => openModal({ kind: 'market' }) }, icon('icon_coin'), h('span', {}));
+  const marketBtn = h('button', { class: 'big-btn', onclick: () => openModal({ kind: 'market', tab: 'sell' }) }, icon('icon_coin'), h('span', {}));
   const progressBtn = h('button', { class: 'big-btn', onclick: () => openModal({ kind: 'progress', tab: 'levels' }) }, icon('icon_scroll'), h('span', {}));
   const menuBtn = h('button', { class: 'big-btn', onclick: () => openModal({ kind: 'menu' }) }, h('span', { class: 'burger' }, '☰'), h('span', {}));
   const bottombar = h('footer', { class: 'bottombar' }, marketBtn, progressBtn, menuBtn);
@@ -148,7 +151,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     } else if (e.key === '1' || e.key === '2' || e.key === '3') {
       setSpeed(Number(e.key) as Speed);
     } else if (e.key.toLowerCase() === 'm') {
-      openModal({ kind: 'market' });
+      openModal({ kind: 'market', tab: 'sell' });
     } else if (e.key.toLowerCase() === 'p') {
       openModal({ kind: 'progress', tab: 'levels' });
     }
@@ -175,7 +178,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
         if (e.day % AUTOSAVE_EVERY_DAYS === 0) void autosave(sim.state).then((wrote) => wrote && toast(t('save.autosaved'), 'quiet'));
         break;
       case 'openMarket':
-        openModal({ kind: 'market' });
+        openModal({ kind: 'market', tab: 'sell' });
         break;
       case 'choosePlant':
         openModal({ kind: 'plant', x: e.x, y: e.y, crops: e.crops });
@@ -263,6 +266,11 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     villagersPill.title = `${t('hud.villagers', { n: s.villagers.length, beds: beds(s) })}${s.villagers.length ? ` · ${t('hud.foodDays', { days })}` : ''}`;
     villagersPill.setAttribute('aria-label', villagersPill.title);
     villagersPill.hidden = beds(s) === 0 && s.villagers.length === 0;
+    materialsInner.replaceChildren(
+      ...MATERIAL_IDS.filter((m) => materialUnlocked(s, m) || s.materials[m] > 0).flatMap((m) => [icon(MATERIALS[m].icon), h('b', {}, String(s.materials[m]))]),
+    );
+    materialsPill.title = t('hud.materials');
+    materialsPill.setAttribute('aria-label', `${t('hud.materials')}: ${MATERIAL_IDS.map((m) => `${s.materials[m]} ${t(`material.${m}`)}`).join(', ')}`);
     const mods = activeModifiers(s);
     const modsKey = mods.map((m) => `${m.kind}${m.value}${m.untilDay - s.day}`).join('|');
     if (modsBox.dataset.key !== modsKey) {
@@ -328,7 +336,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     const views: Record<Modal['kind'], () => HTMLElement> = {
       start: startView,
       menu: menuView,
-      market: marketView,
+      market: () => marketView(panelCtx, (modal as Extract<Modal, { kind: 'market' }>).tab, (tab) => openModal({ kind: 'market', tab })),
       plant: plantView,
       land: landView,
       lease: leaseView,
@@ -360,6 +368,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   function viewKey(m: Modal): string {
     if (m.kind === 'building') return `building:${m.building}:${m.tab}`;
     if (m.kind === 'progress') return `progress:${m.tab}`;
+    if (m.kind === 'market') return `market:${m.tab}`;
     return m.kind;
   }
 
@@ -369,7 +378,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     rerender: () => renderModal(),
     openBuilding: (b, tab = 'upgrades') => openModal({ kind: 'building', building: b, tab }),
     openProgress: (tab = 'levels') => openModal({ kind: 'progress', tab }),
-    openMarket: () => openModal({ kind: 'market' }),
+    openMarket: (tab = 'buy') => openModal({ kind: 'market', tab }),
   };
 
   overlay.addEventListener('click', (e) => {
@@ -464,69 +473,6 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       h('p', { class: 'howto' }, t('menu.howTo')),
       h('p', { class: 'hint keys' }, t('menu.keys')),
       langSwitch(),
-    );
-  }
-
-  function trendMark(p: ProductId): HTMLElement | null {
-    const tr = priceTrend(sim.state, p);
-    if (tr === 0) return null;
-    return h('span', { class: `trend trend-${tr > 0 ? 'up' : 'down'}`, title: t(tr > 0 ? 'market.trendUp' : 'market.trendDown') }, tr > 0 ? '▲' : '▼');
-  }
-
-  function marketView(): HTMLElement {
-    const s = sim.state;
-    const products = PRODUCT_IDS.filter((p) => s.inventory[p] > 0 || !Object.values(CROPS).some((c) => c.product === p && s.level < c.unlockLevel));
-    const rows = products.map((p: ProductId) => {
-      const have = s.inventory[p];
-      const price = priceOf(s, p);
-      return h(
-        'div',
-        { class: 'market-row' },
-        icon(PRODUCTS[p].icon, 'icon big'),
-        h(
-          'div',
-          { class: 'market-info' },
-          h('b', {}, t(`product.${p}`)),
-          h('small', {}, h('span', { class: 'nowrap' }, t('market.stock', { n: have })), ' · ', h('span', { class: 'price nowrap' }, t('market.price', { price }), ' ', trendMark(p))),
-        ),
-        h('button', { class: 'btn small', disabled: have <= 0, onclick: () => sim.sell(p, 1) }, t('market.sell1')),
-        h('button', { class: 'btn small primary', disabled: have <= 0, onclick: () => sim.sell(p, 'all') }, t('market.sellAll')),
-      );
-    });
-    const livestock = ANIMAL_IDS.map((a: AnimalId) => {
-      const offer = PROGRESSION.animalsForSale[a];
-      const unlocked = hasFeature(s, offer.unlock);
-      const unlockLevel = PROGRESSION.levels.findIndex((l) => l.unlocks?.includes(offer.unlock)) + 1;
-      const count = s.herds[a].count;
-      const max = animalCapacity(s, a);
-      return h(
-        'div',
-        { class: `market-row ${unlocked ? '' : 'locked'}` },
-        icon(a === 'chicken' ? 'icon_egg' : 'icon_milk', 'icon big'),
-        h(
-          'div',
-          { class: 'market-info' },
-          h('b', {}, t(`animal.${a}`)),
-          h('small', {}, unlocked ? t('market.have', { n: count, max }) : t('market.lockedAt', { level: unlockLevel })),
-        ),
-        h('span', {}),
-        h(
-          'button',
-          { class: 'btn small', disabled: !unlocked || count >= max || s.coins < offer.price, onclick: () => sim.buyAnimal(a) },
-          t('market.buy', { price: offer.price }),
-        ),
-      );
-    });
-    return h(
-      'div',
-      { class: 'sheet market' },
-      h('h2', {}, t('market.title')),
-      h('p', { class: 'tagline' }, t('market.subtitle')),
-      boostActive(s) && h('p', { class: 'fair-banner' }, t('market.fair', { mult: s.marketBoost!.mult, day: dateFromDay(s.marketBoost!.untilDay).dayOfSeason })),
-      ...rows,
-      h('h3', { class: 'market-section' }, t('market.livestock')),
-      ...livestock,
-      h('div', { class: 'market-foot' }, h('span', { class: 'chip' }, icon('icon_coin'), h('b', {}, String(s.coins))), h('button', { class: 'btn', onclick: () => closeModal() }, t('market.close'))),
     );
   }
 

@@ -1,17 +1,38 @@
 // Ventanas de la fase 2: edificios y aldeanos, arbol de progreso, cuentas de la estacion y rango.
 // Solo leen el estado y llaman a la fachada `Game`; todo texto sale de las traducciones.
 import type { Game } from '../sim/game';
-import { ANIMALS, BUILDINGS, BUILDING_IDS, CROPS, JOB_IDS, MAX_LEVEL, PRODUCTS, PROGRESSION, VILLAGERS, type BuildingStats, type UpgradeDef } from '../sim/data';
+import {
+  ANIMALS,
+  BUILDINGS,
+  BUILDING_IDS,
+  CROPS,
+  CROP_IDS,
+  JOB_IDS,
+  MATERIALS,
+  MATERIAL_IDS,
+  MAX_LEVEL,
+  PRODUCTS,
+  PRODUCT_IDS,
+  PROGRESSION,
+  VILLAGERS,
+  type BuildingStats,
+  type MaterialAmounts,
+  type UpgradeDef,
+} from '../sim/data';
+import { hasMaterials, materialsList, materialsPrice, missingMaterials } from '../sim/materials';
+import { eatingOrder, reserved, reserveTotal } from '../sim/pantry';
+import { cropUnlocked } from '../sim/progress';
+import { plantableCrops } from '../sim/rules';
 import { buildingStat, nextUpgrade, storageCapacity, storageUsed } from '../sim/buildings';
-import { beds, dailyFood, efficiency, foodDays, freeBeds, hireCost, toolCost } from '../sim/villagers';
+import { beds, dailyFood, efficiency, farmerPlots, foodDays, freeBeds, hireCost, toolCost, toolMaterials } from '../sim/villagers';
 import { activeModifiers } from '../sim/modifiers';
 import { levelDef, meetsRank, unlocksAt } from '../sim/progress';
 import { buildingOf } from '../sim/rules';
-import type { AnimalId, BuildingId, JobId, Modifier, RankId, Villager } from '../sim/types';
+import type { AnimalId, BuildingId, CropId, JobId, Modifier, RankId, Villager } from '../sim/types';
 import { t } from '../i18n/i18n';
 import { h, icon } from './dom';
 
-export type BuildingTab = 'upgrades' | 'villagers';
+export type BuildingTab = 'upgrades' | 'villagers' | 'pantry';
 export type ProgressTab = 'levels' | 'buildings' | 'tools' | 'ranks';
 
 export interface PanelCtx {
@@ -20,7 +41,7 @@ export interface PanelCtx {
   rerender: () => void;
   openBuilding: (b: BuildingId, tab?: BuildingTab) => void;
   openProgress: (tab?: ProgressTab) => void;
-  openMarket: () => void;
+  openMarket: (tab?: 'sell' | 'buy') => void;
 }
 
 export const BUILDING_ICON: Record<BuildingId, string> = {
@@ -79,6 +100,33 @@ export function buildingStatsText(sim: Game, b: BuildingId): string {
   }
 }
 
+/** Materiales que pide una obra: en rojo los que faltan. */
+export function materialChips(ctx: PanelCtx, need: MaterialAmounts = {}, check = true): HTMLElement | null {
+  const ids = MATERIAL_IDS.filter((m) => need[m]);
+  if (ids.length === 0) return null;
+  const s = ctx.sim.state;
+  return h(
+    'span',
+    { class: 'mat-chips' },
+    ...ids.map((m) =>
+      h(
+        'span',
+        { class: `mat-chip ${check && s.materials[m] < need[m]! ? 'lack' : ''}`, title: t(`material.${m}`) },
+        icon(MATERIALS[m].icon, 'icon tiny'),
+        check ? `${Math.min(s.materials[m], need[m]!)}/${need[m]}` : String(need[m]),
+      ),
+    ),
+  );
+}
+
+/** Boton para comprar de una vez lo que falta (o nada si no falta). */
+function buyMissingButton(ctx: PanelCtx, need: MaterialAmounts | undefined, onBuy: () => void): HTMLElement | null {
+  const missing = missingMaterials(ctx.sim.state, need);
+  if (Object.keys(missing).length === 0) return null;
+  const cost = materialsPrice(missing);
+  return h('button', { class: 'btn small', disabled: ctx.sim.state.coins < cost, onclick: onBuy }, t('panel.buyMissing', { cost }));
+}
+
 /** Fila de una mejora. `interactive` permite comprar la siguiente. */
 function upgradeRow(ctx: PanelCtx, b: BuildingId, up: UpgradeDef, index: number, interactive: boolean): HTMLElement {
   const s = ctx.sim.state;
@@ -90,9 +138,14 @@ function upgradeRow(ctx: PanelCtx, b: BuildingId, up: UpgradeDef, index: number,
   if (bought) action = h('span', { class: 'up-check', 'aria-label': t('panel.bought') }, '✓');
   else if (isNext && interactive && levelOk)
     action = h(
-      'button',
-      { class: 'btn small primary', disabled: s.coins < up.cost, onclick: () => ctx.sim.upgradeBuilding(b) },
-      t('panel.buy', { cost: up.cost }),
+      'div',
+      { class: 'up-actions' },
+      h(
+        'button',
+        { class: 'btn small primary', disabled: s.coins < up.cost || !hasMaterials(s, up.materials), onclick: () => ctx.sim.upgradeBuilding(b) },
+        t('panel.buy', { cost: up.cost }),
+      ),
+      buyMissingButton(ctx, up.materials, () => ctx.sim.buyMissingFor(b)),
     );
   else
     action = h(
@@ -104,7 +157,7 @@ function upgradeRow(ctx: PanelCtx, b: BuildingId, up: UpgradeDef, index: number,
   return h(
     'div',
     { class: `upgrade-row state-${state}` },
-    h('div', { class: 'up-info' }, h('b', {}, t(`upgrade.${b}.${up.id}`)), h('small', {}, statsLine(up.effects))),
+    h('div', { class: 'up-info' }, h('b', {}, t(`upgrade.${b}.${up.id}`)), h('small', {}, statsLine(up.effects)), !bought && materialChips(ctx, up.materials, isNext)),
     action,
   );
 }
@@ -143,8 +196,18 @@ export function buildingView(ctx: PanelCtx, b: BuildingId, tab: BuildingTab): HT
       ),
     );
   }
+  if (b === 'granary')
+    extra.push(
+      h(
+        'p',
+        { class: 'panel-stats store-line' },
+        t('panel.store'),
+        ...MATERIAL_IDS.flatMap((m) => [' ', h('span', { class: 'nowrap' }, icon(MATERIALS[m].icon, 'icon tiny'), `${s.materials[m]}`)]),
+      ),
+    );
   let content: HTMLElement;
   if (b === 'house' && tab === 'villagers') content = villagersList(ctx);
+  else if (b === 'granary' && tab === 'pantry') content = pantryView(ctx);
   else {
     content = h(
       'div',
@@ -166,6 +229,15 @@ export function buildingView(ctx: PanelCtx, b: BuildingId, tab: BuildingTab): HT
         ],
         tab,
         (id) => ctx.openBuilding('house', id),
+      ),
+    b === 'granary' &&
+      tabs<BuildingTab>(
+        [
+          { id: 'upgrades', label: t('panel.tab.upgrades'), icon: 'icon_hammer' },
+          { id: 'pantry', label: t('panel.tab.pantry'), icon: 'icon_wheat' },
+        ],
+        tab,
+        (id) => ctx.openBuilding('granary', id),
       ),
     content,
     h('button', { class: 'btn', onclick: () => ctx.close() }, t('panel.close')),
@@ -194,11 +266,18 @@ function villagerCard(ctx: PanelCtx, v: Villager): HTMLElement {
     toolBtn = h('button', { class: 'btn small', disabled: true }, t('villagers.toolLocked', { tool: `${v.job}.${next}`, level: tier.level }));
   else {
     const cost = toolCost(s, next);
+    const mats = toolMaterials(next);
     toolBtn = h(
-      'button',
-      { class: 'btn small primary', disabled: s.coins < cost, onclick: () => ctx.sim.upgradeTool(v.id) },
-      icon('icon_hammer'),
-      t('villagers.upgradeTool', { tool: `${v.job}.${next}`, cost }),
+      'div',
+      { class: 'tool-actions' },
+      h(
+        'button',
+        { class: 'btn small primary', disabled: s.coins < cost || !hasMaterials(s, mats), onclick: () => ctx.sim.upgradeTool(v.id) },
+        icon('icon_hammer'),
+        t('villagers.upgradeTool', { tool: `${v.job}.${next}`, cost }),
+        materialChips(ctx, mats),
+      ),
+      buyMissingButton(ctx, mats, () => ctx.sim.buyMissingForTool(v.id)),
     );
   }
   const confirming = confirmDismiss === v.id;
@@ -252,7 +331,94 @@ function villagerCard(ctx: PanelCtx, v: Villager): HTMLElement {
       ),
     ),
     h('small', { class: 'job-desc' }, jobDesc(v.job)),
+    v.job === 'farmer' && farmerCropPicker(ctx, v),
     h('div', { class: 'tool-row' }, toolBtn),
+  );
+}
+
+/** Que siembra el labrador en sus parcelas. */
+function farmerCropPicker(ctx: PanelCtx, v: Villager): HTMLElement {
+  const s = ctx.sim.state;
+  const plots = farmerPlots(s).get(v.id) ?? [];
+  const choices: (CropId | 'auto' | null)[] = ['auto', ...CROP_IDS.filter((c) => cropUnlocked(s, c)), null];
+  const waiting = typeof v.crop === 'string' && v.crop !== 'auto' && !plantableCrops(s).includes(v.crop);
+  return h(
+    'div',
+    { class: 'farm-orders' },
+    h('small', { class: 'job-desc' }, plots.length ? t('farmer.plots', { n: plots.length }) : t('farmer.noPlots')),
+    h(
+      'div',
+      { class: 'crop-buttons', role: 'group', 'aria-label': t('farmer.sow') },
+      ...choices.map((c) =>
+        h(
+          'button',
+          {
+            class: `job-btn ${v.crop === c ? 'active' : ''}`,
+            'aria-pressed': String(v.crop === c),
+            onclick: () => v.crop !== c && ctx.sim.setFarmerCrop(v.id, c),
+          },
+          c && c !== 'auto' ? icon(PRODUCTS[CROPS[c].product].icon, 'icon tiny') : null,
+          t(`farmerCrop.${c ?? 'none'}`),
+        ),
+      ),
+    ),
+    waiting && h('small', { class: 'job-desc warn-text' }, t('farmer.outOfSeason', { crop: v.crop as string })),
+  );
+}
+
+// ---------------------------------------------------------------- despensa
+
+function pantryView(ctx: PanelCtx): HTMLElement {
+  const s = ctx.sim.state;
+  const res = reserved(s);
+  const order = eatingOrder(s);
+  const perDay = Math.round(dailyFood(s) * 10) / 10;
+  const days = foodDays(s);
+  return h(
+    'div',
+    { class: 'pantry' },
+    h('p', { class: 'hint left' }, t('pantry.intro')),
+    h(
+      'p',
+      { class: 'panel-stats' },
+      s.villagers.length
+        ? t('pantry.needs', { perDay, days: Number.isFinite(days) ? days : '∞' })
+        : t('pantry.noVillagers'),
+    ),
+    ...PRODUCT_IDS.map((p) => {
+      const eat = s.pantry.eat[p];
+      const rank = order.indexOf(p);
+      return h(
+        'div',
+        { class: 'upgrade-row pantry-row' },
+        icon(PRODUCTS[p].icon, 'icon'),
+        h(
+          'div',
+          { class: 'up-info' },
+          h('b', {}, t(`product.${p}`)),
+          h('small', {}, t('market.stock', { n: s.inventory[p] }), eat && res[p] > 0 ? ` · ${t('market.reserved', { n: res[p] })}` : '', eat && rank >= 0 ? ` · ${t('pantry.order', { n: rank + 1 })}` : ''),
+        ),
+        h(
+          'button',
+          { class: `job-btn toggle ${eat ? 'active' : ''}`, 'aria-pressed': String(eat), onclick: () => ctx.sim.setEdible(p, !eat) },
+          t(eat ? 'pantry.eat' : 'pantry.keep'),
+        ),
+      );
+    }),
+    h('h3', { class: 'market-section' }, t('pantry.reserve')),
+    h('p', { class: 'hint left' }, t('pantry.reserveHint')),
+    h(
+      'div',
+      { class: 'crop-buttons', role: 'group' },
+      ...VILLAGERS.pantry.reserveOptions.map((d) =>
+        h(
+          'button',
+          { class: `job-btn ${s.pantry.reserveDays === d ? 'active' : ''}`, 'aria-pressed': String(s.pantry.reserveDays === d), onclick: () => ctx.sim.setReserveDays(d) },
+          d === 0 ? t('pantry.noReserve') : t('pantry.days', { n: d }),
+        ),
+      ),
+    ),
+    h('p', { class: 'panel-stats' }, t('pantry.reserveTotal', { n: reserveTotal(s) })),
   );
 }
 
@@ -301,13 +467,22 @@ function levelItems(level: number): TreeItem[] {
     items.push({ icon: ic, text: t(`levelup.unlock.${f}`), where: t(`progress.where.${where}`) });
   }
   if (u.maxPlots) items.push({ icon: 'icon_wheat', text: t('levelup.maxPlots', { max: u.maxPlots }), where: t('progress.where.field') });
-  for (const up of u.upgrades)
+  const withMats = (where: string, mats?: MaterialAmounts) => {
+    const list = materialsList(mats ?? {});
+    return list ? `${where} · ${t('progress.needs', { list })}` : where;
+  };
+  for (const up of u.upgrades) {
+    const def = BUILDINGS[up.building].upgrades.find((x) => x.id === up.id);
     items.push({
       icon: BUILDING_ICON[up.building],
       text: t('progress.unlock.upgrade', { building: up.building, upgrade: up.id, cost: up.cost }),
-      where: t(`progress.where.${up.building}`),
+      where: withMats(t(`progress.where.${up.building}`), def?.materials),
     });
-  for (const tl of u.tools) items.push({ icon: 'icon_hammer', text: t('progress.unlock.tool', { tier: t(`tool.tier.${tl.tier}`), cost: tl.cost }), where: t('progress.where.tools') });
+  }
+  for (const tl of u.tools)
+    items.push({ icon: 'icon_hammer', text: t('progress.unlock.tool', { tier: t(`tool.tier.${tl.tier}`), cost: tl.cost }), where: withMats(t('progress.where.tools'), toolMaterials(tl.tier)) });
+  for (const m of MATERIAL_IDS.filter((x) => (MATERIALS[x].unlockLevel ?? 1) === level && level > 1))
+    items.push({ icon: MATERIALS[m].icon, text: t('progress.unlock.material', { material: m }), where: t('progress.where.market') });
   // Rangos que piden algo mas que nivel: aparecen en su nivel minimo con la condicion.
   for (const r of PROGRESSION.ranks.filter((rk) => rk.level === level && (rk.days || rk.baron)))
     items.push({ icon: 'icon_crown', text: t('levelup.rank', { rank: r.id }), where: rankReqText(r.id) });
@@ -402,7 +577,7 @@ function toolsTab(ctx: PanelCtx): HTMLElement {
             h('b', {}, t(`tool.tier.${i + 1}`)),
             h('small', {}, `${t('panel.lockedAt', { level: tier.level })} · ${t('tools.efficiency', { n: eff[i + 1] })}`),
           ),
-          h('span', { class: 'up-req' }, h('span', { class: 'nowrap' }, icon('icon_coin', 'icon tiny'), String(toolCost(s, i + 1)))),
+          h('span', { class: 'up-req' }, h('span', { class: 'nowrap' }, icon('icon_coin', 'icon tiny'), String(toolCost(s, i + 1))), materialChips(ctx, toolMaterials(i + 1), false)),
         ),
         ...JOB_IDS.map((job) =>
           h(

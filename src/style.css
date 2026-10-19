@@ -1819,3 +1819,277 @@ button.level-box:hover .rank-text {
     display: none;
   }
 }
+
+/* ============================================================ mercado, materiales y despensa */
+
+/* ------------------------------------------------------------ reloj y velocidad juntos, a la izquierda */
+
+.time-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 6px 5px 16px;
+}
+
+.time-box .date-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  min-width: 190px;
+  padding: 0;
+}
+
+.time-box .speed {
+  margin-left: 0;
+  padding: 0;
+}
+
+/* ------------------------------------------------------------ mercado */
+
+.overlay-market {
+  overflow: hidden;
+}
+
+.sheet.market {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 520px);
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+}
+
+.market-sub {
+  margin: 0 0 8px;
+  color: var(--ink-soft);
+  font-style: italic;
+  font-size: 15px;
+}
+
+.market-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.trade-row {
+  padding: 10px 0 12px;
+  border-top: 1px solid rgba(110, 80, 40, 0.35);
+}
+
+.trade-row.locked {
+  opacity: 0.6;
+}
+
+.trade-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.trade-head .price {
+  font: 700 17px var(--font-caps);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.qty {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 12px;
+  margin-top: 4px;
+}
+
+.qty-line {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.qty-num {
+  min-width: 3ch;
+  text-align: right;
+  font: 700 19px var(--font-caps);
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--ink);
+}
+
+.qty-note {
+  grid-column: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--blood);
+}
+
+.qty .btn {
+  grid-column: 2;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+/* Barra de cantidad: carril de hierro con relleno granate y pomo dorado, 44 px de alto para el dedo */
+.qty-range {
+  --fill: 0%;
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 44px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+
+.qty-range:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.qty-range::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, var(--blood) var(--fill), #0d0a07 var(--fill));
+  box-shadow: 0 0 0 1px var(--gold-2), inset 0 1px 2px #000;
+}
+
+.qty-range::-moz-range-track {
+  height: 8px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, var(--blood) var(--fill), #0d0a07 var(--fill));
+  box-shadow: 0 0 0 1px var(--gold-2);
+}
+
+.qty-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 28px;
+  height: 28px;
+  margin-top: -10px;
+  border-radius: 50%;
+  border: 2px solid #000;
+  background: radial-gradient(circle at 40% 35%, var(--gold-3), var(--gold-2));
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.qty-range::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid #000;
+  background: radial-gradient(circle at 40% 35%, var(--gold-3), var(--gold-2));
+}
+
+.qty-range:focus-visible {
+  outline: 2px solid var(--blood);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------ materiales en obras y herramientas */
+
+.mat-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.mat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 6px;
+  font: 700 12px var(--font-caps);
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--ink);
+  background: rgba(60, 40, 20, 0.12);
+  border-radius: 2px;
+}
+
+.mat-chip.lack {
+  color: var(--blood);
+  background: rgba(122, 29, 20, 0.14);
+}
+
+.btn .mat-chip {
+  color: var(--gold-3);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.up-actions,
+.tool-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.up-actions .btn {
+  text-transform: none;
+}
+
+.tool-actions .btn.primary {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.store-line .icon.tiny {
+  margin: 0 2px 0 6px;
+}
+
+/* ------------------------------------------------------------ labradores y despensa */
+
+.crop-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 6px 0;
+}
+
+.crop-buttons .job-btn {
+  flex: 1 1 auto;
+  min-height: 44px;
+  gap: 4px;
+}
+
+.farm-orders {
+  margin: 4px 0 6px;
+}
+
+.pantry .upgrade-row {
+  padding: 6px 2px;
+}
+
+.pantry-row .job-btn.toggle {
+  flex: none;
+  min-width: 112px;
+}
+
+@media (max-width: 760px) {
+  .time-box {
+    flex-basis: 100%;
+    padding: 4px 4px 4px 12px;
+  }
+  .time-box .date-box {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .qty .btn {
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+}
+
+.qty-note.muted {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink-soft);
+}

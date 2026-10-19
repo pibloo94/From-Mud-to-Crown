@@ -1000,6 +1000,39 @@ def icon_crown() -> str:
     return svg(32, 32, b)
 
 
+def icon_wood() -> str:
+    """Haz de troncos atado con cuerda."""
+    b = ""
+    for (cx, cy) in ((10, 20), (21, 20), (15.5, 11.5)):
+        b += poly([(cx - 9, cy - 4), (cx + 2, cy - 4), (cx + 2, cy + 4), (cx - 9, cy + 4)], PAL["wood"], PAL["wood_dark"], 0.8)
+        b += ellipse(cx + 2, cy, 4.2, 4.2, "#b08a5a", PAL["wood_dark"], 0.8)
+        b += ellipse(cx + 2, cy, 2.2, 2.2, "none", "#7a5a36", 0.7)
+    b += line((6, 26), (6, 6), "#c9a14a", 1.4, op=0.9)
+    return svg(32, 32, b)
+
+
+def icon_stone() -> str:
+    """Sillares de piedra apilados."""
+    b = poly([(4, 27), (16, 27), (16, 19), (4, 19)], PAL["stone"], PAL["mortar"], 1)
+    b += poly([(16, 27), (28, 27), (28, 19), (16, 19)], PAL["stone_light"], PAL["mortar"], 1)
+    b += poly([(9, 19), (23, 19), (23, 11), (9, 11)], "#827b67", PAL["mortar"], 1)
+    b += poly([(4, 19), (9, 16), (9, 11)], PAL["stone_dark"])
+    for (x, y) in ((8, 23), (21, 24), (14, 15)):
+        b += ellipse(x, y, 1.6, 0.9, PAL["stone_dark"], op=0.7)
+    return svg(32, 32, b)
+
+
+def icon_iron() -> str:
+    """Lingote de hierro forjado."""
+    b = poly([(4, 22), (24, 22), (28, 16), (8, 16)], PAL["iron_light"], PAL["iron"], 1)
+    b += poly([(4, 22), (24, 22), (24, 27), (4, 27)], "#3a3833", PAL["iron"], 1)
+    b += poly([(24, 22), (28, 16), (28, 21), (24, 27)], PAL["iron"], PAL["iron"], 0.8)
+    b += line((10, 18.5), (22, 18.5), "#7c7a72", 1, op=0.8)
+    b += poly([(6, 12), (20, 12), (23, 8), (9, 8)], PAL["iron_light"], PAL["iron"], 1)
+    b += poly([(6, 12), (20, 12), (20, 15), (6, 15)], "#3a3833", PAL["iron"], 0.8)
+    return svg(32, 32, b)
+
+
 def bubble() -> str:
     """Escudo de hierro con borde dorado sobre el que se pinta el producto."""
     defs = lin_grad("b", PAL["iron_light"], PAL["iron"])
@@ -1052,6 +1085,9 @@ def main() -> None:
         "icon_house.svg": icon_house(),
         "icon_scroll.svg": icon_scroll(),
         "icon_crown.svg": icon_crown(),
+        "icon_wood.svg": icon_wood(),
+        "icon_stone.svg": icon_stone(),
+        "icon_iron.svg": icon_iron(),
         "bubble.svg": bubble(),
     }
     for name, content in files.items():
