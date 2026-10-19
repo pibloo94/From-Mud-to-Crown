@@ -12,8 +12,9 @@ import type { AnimalId, MaterialId, ProductId } from '../sim/types';
 import { t } from '../i18n/i18n';
 import { h, icon } from './dom';
 import type { PanelCtx } from './panels';
+import { resetTradeDraft, tradeTab } from './trade';
 
-export type MarketTab = 'sell' | 'buy';
+export type MarketTab = 'sell' | 'buy' | 'trade';
 
 /**
  * Cantidad que el jugador ha movido a mano en cada barra, para que no se pierda al repintar
@@ -25,6 +26,7 @@ const chosen = new Map<string, number>();
 /** Al abrir el mercado, todas las barras vuelven a su valor por defecto. */
 export function resetMarketChoices(): void {
   chosen.clear();
+  resetTradeDraft();
 }
 
 function trendMark(sim: Game, p: ProductId): HTMLElement | null {
@@ -209,7 +211,7 @@ export function marketView(ctx: PanelCtx, tab: MarketTab, openTab: (tab: MarketT
     h(
       'div',
       { class: 'tabs', role: 'tablist' },
-      ...(['sell', 'buy'] as MarketTab[]).map((id) =>
+      ...(['sell', 'buy', 'trade'] as MarketTab[]).map((id) =>
         h(
           'button',
           { class: `tab ${id === tab ? 'active' : ''}`, role: 'tab', 'aria-selected': String(id === tab), onclick: () => openTab(id) },
@@ -217,7 +219,7 @@ export function marketView(ctx: PanelCtx, tab: MarketTab, openTab: (tab: MarketT
         ),
       ),
     ),
-    h('div', { class: 'market-body progress-body' }, ...(tab === 'sell' ? sellTab(ctx) : buyTab(ctx))),
+    h('div', { class: 'market-body progress-body' }, ...(tab === 'sell' ? sellTab(ctx) : tab === 'buy' ? buyTab(ctx) : tradeTab(ctx))),
     h(
       'div',
       { class: 'market-foot' },

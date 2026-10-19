@@ -1,5 +1,5 @@
 // Experiencia, niveles, rangos y lo que desbloquea cada nivel (tambien para el arbol de progreso).
-import { BUILDINGS, BUILDING_IDS, CROPS, CROP_IDS, JOB_IDS, MAX_LEVEL, PROGRESSION, VILLAGERS, WORKSHOPS, WORKSHOP_IDS, type Feature, type RankDef } from './data';
+import { BUILDINGS, BUILDING_IDS, CROPS, CROP_IDS, JOB_IDS, MAX_LEVEL, PROGRESSION, TOWN_IDS, TRADE, VILLAGERS, WORKSHOPS, WORKSHOP_IDS, type Feature, type RankDef } from './data';
 import type { BuildingId, CropId, GameState, JobId, RankId, WorkshopId } from './types';
 
 export function levelDef(level: number) {
@@ -48,7 +48,9 @@ export function meetsRank(state: GameState, r: RankDef): boolean {
     state.level >= r.level &&
     state.day >= (r.days ?? 0) &&
     state.rep.baron >= (r.baron ?? 0) &&
-    workshopCount(state) >= (r.workshops ?? 0)
+    workshopCount(state) >= (r.workshops ?? 0) &&
+    state.stats.trades >= (r.trades ?? 0) &&
+    (!r.stall || state.stall)
   );
 }
 
@@ -106,6 +108,10 @@ export interface Unlocks {
   tools: { tier: number; cost: number; jobs: JobId[] }[];
   workshops: { id: WorkshopId; cost: number }[];
   workshopUpgrades: { workshop: WorkshopId; id: string; cost: number }[];
+  /** Comercio: villas que se abren, puesto en el mercado y carretas nuevas en este nivel. */
+  towns: string[];
+  stall: boolean;
+  carts: number;
 }
 
 /** Lo que se desbloquea exactamente al llegar a `level`: tarjeta de subida y arbol de progreso. */
@@ -119,7 +125,7 @@ export function unlocksAt(level: number): Unlocks {
     .map((t, i) => ({ tier: i + 1, cost: t.cost, level: t.level, jobs: JOB_IDS }))
     .filter((t) => t.level === level)
     .map(({ tier, cost, jobs }) => ({ tier, cost, jobs }));
-  const rank = PROGRESSION.ranks.find((r) => r.level === level && level > 1 && !r.days && !r.baron && !r.workshops)?.id ?? null;
+  const rank = PROGRESSION.ranks.find((r) => r.level === level && level > 1 && !r.days && !r.baron && !r.workshops && !r.trades && !r.stall)?.id ?? null;
   const workshops = WORKSHOP_IDS.filter((id) => WORKSHOPS[id].unlockLevel === level).map((id) => ({ id, cost: WORKSHOPS[id].cost }));
   const workshopUpgrades = WORKSHOP_IDS.flatMap((w) =>
     WORKSHOPS[w].upgrades.filter((u) => u.level === level).map((u) => ({ workshop: w, id: u.id, cost: u.cost })),
@@ -133,5 +139,8 @@ export function unlocksAt(level: number): Unlocks {
     tools,
     workshops,
     workshopUpgrades,
+    towns: TOWN_IDS.filter((t) => TRADE.towns[t].unlockLevel === level),
+    stall: TRADE.stall.level === level,
+    carts: TRADE.maxCarts.filter((c) => c.level === level).length,
   };
 }

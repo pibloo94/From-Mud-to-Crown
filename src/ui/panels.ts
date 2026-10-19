@@ -14,6 +14,7 @@ import {
   PRODUCTS,
   PRODUCT_IDS,
   PROGRESSION,
+  TRADE,
   VILLAGERS,
   WORKSHOPS,
   WORKSHOP_IDS,
@@ -514,10 +515,13 @@ function levelItems(level: number): TreeItem[] {
     const where = withMats(t('progress.where.workshop', { workshop: up.workshop }), def.materials);
     items.push({ icon: 'icon_hammer', text: t('progress.unlock.wsUpgrade', { workshop: up.workshop, wsUpgrade: `${up.workshop}.${up.id}`, cost: up.cost }), where: def.title ? `${where} · ${t('progress.needsTitle', { rank: def.title })}` : where });
   }
+  if (u.carts) items.push({ icon: 'icon_cart', text: t(level === TRADE.unlockLevel ? 'progress.unlock.trade' : 'progress.unlock.cart'), where: t('progress.where.trade') });
+  for (const town of u.towns) items.push({ icon: 'icon_cart', text: t('progress.unlock.town', { town }), where: t('progress.where.trade') });
+  if (u.stall) items.push({ icon: 'icon_coin', text: t('progress.unlock.stall', { cost: TRADE.stall.cost }), where: withMats(t('progress.where.trade'), TRADE.stall.materials) });
   for (const m of MATERIAL_IDS.filter((x) => (MATERIALS[x].unlockLevel ?? 1) === level && level > 1))
     items.push({ icon: MATERIALS[m].icon, text: t('progress.unlock.material', { material: m }), where: t('progress.where.market') });
   // Rangos que piden algo mas que nivel: aparecen en su nivel minimo con la condicion.
-  for (const r of PROGRESSION.ranks.filter((rk) => rk.level === level && (rk.days || rk.baron || rk.workshops)))
+  for (const r of PROGRESSION.ranks.filter((rk) => rk.level === level && (rk.days || rk.baron || rk.workshops || rk.trades || rk.stall)))
     items.push({ icon: 'icon_crown', text: t('levelup.rank', { rank: r.id }), where: rankReqText(r.id) });
   return items;
 }
@@ -528,6 +532,8 @@ function rankReqText(id: RankId): string {
   if (r.days) parts.push(t('progress.req.daysShort', { n: r.days }));
   if (r.baron) parts.push(t('progress.req.baronShort', { n: r.baron }));
   if (r.workshops) parts.push(t('progress.req.workshopsShort', { n: r.workshops }));
+  if (r.trades) parts.push(t('progress.req.tradesShort', { n: r.trades }));
+  if (r.stall) parts.push(t('progress.req.stall'));
   return parts.join(' · ');
 }
 
@@ -657,6 +663,8 @@ function ranksTab(ctx: PanelCtx): HTMLElement {
     if (r.days) reqs.push([t('progress.req.days', { n: r.days, have: s.day }), s.day >= r.days]);
     if (r.baron) reqs.push([t('progress.req.baron', { n: r.baron, have: s.rep.baron }), s.rep.baron >= r.baron]);
     if (r.workshops) reqs.push([t('progress.req.workshops', { n: r.workshops, have: workshopCount(s) }), workshopCount(s) >= r.workshops]);
+    if (r.trades) reqs.push([t('progress.req.trades', { n: r.trades, have: s.stats.trades }), s.stats.trades >= r.trades]);
+    if (r.stall) reqs.push([t('progress.req.stall'), s.stall]);
     return h(
       'section',
       { class: `tree-rank ${got ? 'got' : ''} ${current ? 'current' : ''}` },
@@ -750,6 +758,27 @@ export function seasonView(ctx: PanelCtx, params: Record<string, string | number
     ),
     n('grace') > 0 && h('p', { class: 'hint' }, t('seasonCard.grace')),
     n('unpaid') > 0 && h('p', { class: 'fair-banner' }, t('seasonCard.unpaid', { n: n('unpaid') })),
+    h('button', { class: 'btn primary', onclick: () => ctx.close() }, t('seasonCard.ok')),
+  );
+}
+
+/** Tarjeta de vuelta de una caravana. */
+export function caravanView(ctx: PanelCtx, params: Record<string, string | number>): HTMLElement {
+  const robbed = Number(params.robbed) > 0;
+  const mats = String(params.mats ?? '');
+  return h(
+    'div',
+    { class: 'sheet event' },
+    h('div', { class: 'event-seal' }, icon('icon_cart', 'event-icon')),
+    h('h2', {}, t('trade.backTitle', { town: String(params.town) })),
+    h('p', { class: 'event-text' }, t(robbed ? 'trade.back.robbedText' : 'trade.back.okText', params)),
+    h(
+      'div',
+      { class: 'accounts' },
+      h('div', { class: 'acct-row total' }, h('span', {}, t('trade.earned')), h('b', {}, `+${params.coins}`)),
+      robbed && h('div', { class: 'acct-row warn-text' }, h('span', {}, t('trade.lostToBandits')), h('b', {}, `−${params.lost}`)),
+      mats && h('div', { class: 'acct-row' }, h('span', {}, t('trade.brought')), h('b', {}, t('progress.needs', { list: mats }))),
+    ),
     h('button', { class: 'btn primary', onclick: () => ctx.close() }, t('seasonCard.ok')),
   );
 }

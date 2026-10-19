@@ -49,6 +49,10 @@ export function createNewGame(seed: number = newSeed()): GameState {
     rank: 'peasant',
     titles: [],
     workshops: {},
+    carts: 0,
+    caravans: [],
+    nextCaravanId: 1,
+    stall: false,
     landBought: 0,
     leases: 0,
     buildings,
@@ -63,7 +67,7 @@ export function createNewGame(seed: number = newSeed()): GameState {
     marketBoost: null,
     events: { pending: null, lastDay: 0, cooldowns: {} },
     rng: seed >>> 0,
-    stats: { harvested: 0, earned: 0, seasonEarned: 0, seasonFood: 0 },
+    stats: { harvested: 0, earned: 0, seasonEarned: 0, seasonFood: 0, trades: 0, tradeEarned: 0 },
   };
   for (let i = 0; i < (START.villagers ?? 0); i++) addVillager(state);
   rollPrices(state);

@@ -11,6 +11,7 @@ import { activeModifiers } from '../sim/modifiers';
 import { materialUnlocked } from '../sim/materials';
 import {
   buildingView,
+  caravanView,
   modifierText,
   progressView,
   rankView,
@@ -29,6 +30,7 @@ import type { Insets } from '../render/FarmScene';
 import { h, icon } from './dom';
 import { siteView, workshopView } from './workshops';
 import { marketView, resetMarketChoices, type MarketTab } from './market';
+import { siteView, workshopView } from './workshops';
 import { music } from '../audio/music';
 
 const AUTOSAVE_EVERY_DAYS = 3;
@@ -53,10 +55,11 @@ type Modal =
   | { kind: 'levelup'; level: number }
   | { kind: 'season'; params: Record<string, string | number> }
   | { kind: 'rank'; rank: RankId }
+  | { kind: 'caravan'; params: Record<string, string | number> }
   | { kind: 'event'; id: string; result?: CommandResult };
 
 /** Todas las ventanas detienen el tiempo mientras estan abiertas; al cerrarlas vuelve la velocidad anterior. */
-const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'progress', 'levelup', 'season', 'rank', 'event'];
+const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'progress', 'levelup', 'season', 'rank', 'caravan', 'event'];
 /** Ventanas que se cierran con Escape o tocando fuera. */
 const DISMISSABLE: Modal['kind'][] = ['menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'progress'];
 /** Ventanas desde las que se puede ir a otra y volver con "Atras". */
@@ -116,8 +119,14 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   );
   const materialsInner = h('span', { class: 'status-inner' });
   const materialsPill = h('button', { class: 'status-pill', onclick: () => openModal({ kind: 'market', tab: 'buy' }) }, materialsInner);
+  const caravanText = h('b', {});
+  const caravanPill = h(
+    'button',
+    { class: 'status-pill', onclick: () => openModal({ kind: 'market', tab: 'trade' }) },
+    h('span', { class: 'status-inner' }, icon('icon_cart'), caravanText),
+  );
   const modsBox = h('div', { class: 'mods' });
-  const statusRow = h('div', { class: 'status-row' }, storagePill, villagersPill, materialsPill, modsBox);
+  const statusRow = h('div', { class: 'status-row' }, storagePill, villagersPill, materialsPill, caravanPill, modsBox);
 
   const speedButtons = SPEEDS.map((sp) =>
     h('button', { class: 'speed-btn', 'data-speed': sp, onclick: () => setSpeed(sp) }, sp === 0 ? '❚❚' : '▶'.repeat(sp)),
@@ -231,6 +240,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       case 'notice':
         if (e.notice.card === 'season') showCard({ kind: 'season', params: e.notice.params ?? {} });
         else if (e.notice.card === 'rank') showCard({ kind: 'rank', rank: e.notice.params?.rank as RankId });
+        else if (e.notice.card === 'caravan') showCard({ kind: 'caravan', params: e.notice.params ?? {} });
         else toast(t(e.notice.msg, e.notice.params), e.notice.ok ? 'good' : 'warn');
         break;
       case 'result':
@@ -308,6 +318,13 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     );
     materialsPill.title = t('hud.materials');
     materialsPill.setAttribute('aria-label', `${t('hud.materials')}: ${MATERIAL_IDS.map((m) => `${s.materials[m]} ${t(`material.${m}`)}`).join(', ')}`);
+    caravanPill.hidden = s.caravans.length === 0;
+    if (s.caravans.length) {
+      const soon = Math.max(0, Math.min(...s.caravans.map((c) => c.returnDay)) - s.day);
+      caravanText.textContent = s.caravans.length > 1 ? `${s.caravans.length} · ${soon} d` : `${soon} d`;
+      caravanPill.title = t('hud.caravans', { n: s.caravans.length, days: soon });
+      caravanPill.setAttribute('aria-label', caravanPill.title);
+    }
     const mods = activeModifiers(s);
     const modsKey = mods.map((m) => `${m.kind}${m.value}${m.untilDay - s.day}`).join('|');
     if (modsBox.dataset.key !== modsKey) {
@@ -411,6 +428,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       levelup: levelUpView,
       season: () => seasonView(panelCtx, (modal as Extract<Modal, { kind: 'season' }>).params),
       rank: () => rankView(panelCtx, (modal as Extract<Modal, { kind: 'rank' }>).rank),
+      caravan: () => caravanView(panelCtx, (modal as Extract<Modal, { kind: 'caravan' }>).params),
       event: eventView,
     };
     // Al repintar la misma ventana se conserva el desplazamiento (p. ej. al mejorar algo de la lista).

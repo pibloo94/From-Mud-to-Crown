@@ -52,6 +52,7 @@ const TRANSLATED: Record<string, (v: string, all: Record<string, string | number
   tool: (v) => t(`tool.${v}`),
   material: (v) => t(`material.${v}`).toLowerCase(),
   workshop: (v) => t(`workshop.${v}`),
+  town: (v) => t(`town.${v}`),
   wsUpgrade: (v) => t(`wsUpgrade.${v}`),
   choice: (v) => t(`farmerCrop.${v}`),
   // "wood:4,stone:2" -> "4 madera, 2 piedra"

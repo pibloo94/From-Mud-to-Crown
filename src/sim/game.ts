@@ -9,6 +9,7 @@ import * as materials from './materials';
 import type { AnimalId, BuildingId, CommandResult, CropId, GameState, JobId, MaterialId, Notice, ProductId, Speed, WorkshopId } from './types';
 import { BUILDINGS, WORKSHOPS } from './data';
 import * as workshops from './workshops';
+import * as trade from './trade';
 
 export type GameEvent =
   | { type: 'change' }
@@ -59,7 +60,7 @@ export class Game {
       else if (notice.tile) this.emit({ type: 'result', result: notice, x: notice.tile.x, y: notice.tile.y });
       else this.emit({ type: 'notice', notice });
     }
-    if (notices.some((n) => n.card === 'rank' || n.msg === 'msg.villagerLeftHunger')) this.emit({ type: 'mapChanged' });
+    if (notices.some((n) => n.card === 'rank' || n.card === 'caravan' || n.msg === 'msg.villagerLeftHunger')) this.emit({ type: 'mapChanged' });
     if (days > 0 || before !== this.state.dayProgress) this.emit({ type: 'change' });
     this.announcePendingEvent();
   }
@@ -204,6 +205,29 @@ export class Game {
   buyMissingForWorkshop(id: WorkshopId): void {
     const need = this.state.workshops[id] ? workshops.nextWorkshopUpgrade(this.state, id)?.materials : WORKSHOPS[id].materials;
     this.report({ result: materials.buyMissing(this.state, need), levelUps: [] });
+  }
+
+  /** Compra los materiales que falten de una lista (carreta, puesto...). */
+  buyMaterialsFor(need: Partial<Record<MaterialId, number>> | undefined): void {
+    this.report({ result: materials.buyMissing(this.state, need), levelUps: [] });
+  }
+
+  buyCart(): void {
+    const result = trade.buyCart(this.state);
+    if (result.ok) this.emit({ type: 'mapChanged' });
+    this.report({ result, levelUps: [] });
+  }
+
+  buyStall(): void {
+    const result = trade.buyStall(this.state);
+    if (result.ok) this.emit({ type: 'mapChanged' });
+    this.report({ result, levelUps: [] });
+  }
+
+  sendCaravan(town: string, cargo: Partial<Record<ProductId, number>>, buy: Partial<Record<MaterialId, number>>, escort: boolean): void {
+    const result = trade.sendCaravan(this.state, town, cargo, buy, escort);
+    if (result.ok) this.emit({ type: 'mapChanged' });
+    this.report({ result, levelUps: [] });
   }
 
   dismissVillager(id: number): void {

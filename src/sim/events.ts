@@ -17,7 +17,8 @@ import { priceOf } from './market';
 import { addModifier } from './modifiers';
 import { buildingStat, store } from './buildings';
 import { addVillager, clampRep, freeBeds } from './villagers';
-import type { AnimalId, CommandResult, GameState, ProductId, WorkshopId } from './types';
+import type { AnimalId, CommandResult, GameState, MaterialId, ProductId, WorkshopId } from './types';
+import { delayCaravans } from './trade';
 
 /**
  * Condiciones de eventos y opciones. Claves admitidas:
@@ -28,6 +29,7 @@ import type { AnimalId, CommandResult, GameState, ProductId, WorkshopId } from '
  * - "baron", "village": reputacion minima
  * - "flag:<nombre>": que haya pasado algo antes (1) o que no (0)
  * - "workshop:<taller>": que el taller este construido (1) o no (0)
+ * - "caravans": caravanas en camino (minimo)
  * - "level": nivel minimo
  */
 export function meetsRequirements(state: GameState, req: Record<string, number> = {}): boolean {
@@ -53,6 +55,7 @@ function meets(state: GameState, key: string, value: number): boolean {
   if (key === 'village') return state.rep.village >= value;
   if (key === 'level') return state.level >= value;
   if (key.startsWith('flag:')) return state.flags.includes(key.slice(5)) === value > 0;
+  if (key === 'caravans') return state.caravans.length >= value;
   if (key.startsWith('workshop:')) return !!state.workshops[key.slice(9) as WorkshopId] === value > 0;
   throw new Error(`Requisito de evento desconocido: ${key}`);
 }
@@ -161,6 +164,8 @@ function applyEffects(state: GameState, source: string, fx: EventEffects = {}, p
     for (const plot of Object.values(state.plots)) if (plot.crop) plot.growth = Math.max(0, plot.growth - fx.cropSetback);
   }
   if (fx.seedVouchers) state.seedVouchers += fx.seedVouchers;
+  for (const [m, n] of Object.entries(fx.materials ?? {})) state.materials[m as MaterialId] = Math.max(0, state.materials[m as MaterialId] + (n ?? 0));
+  if (fx.caravanDelay) delayCaravans(state, fx.caravanDelay);
   if (fx.marketBoost) state.marketBoost = { mult: fx.marketBoost.mult, untilDay: state.day + fx.marketBoost.days };
   const levelUps: number[] = [];
   if (fx.sellAll) {
