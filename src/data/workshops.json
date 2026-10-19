@@ -1,0 +1,127 @@
+{
+  "mill": {
+    "unlockLevel": 9,
+    "cost": 300,
+    "materials": {
+      "wood": 20,
+      "stone": 10
+    },
+    "recipe": {
+      "in": {
+        "wheat": 3
+      },
+      "out": {
+        "flour": 2
+      }
+    },
+    "batchesPerDay": 2,
+    "xpPerBatch": 2,
+    "upgrades": [
+      {
+        "id": "stones",
+        "cost": 250,
+        "level": 11,
+        "materials": {
+          "stone": 15,
+          "iron": 2
+        },
+        "batches": 1
+      },
+      {
+        "id": "sails",
+        "cost": 520,
+        "level": 14,
+        "materials": {
+          "wood": 30,
+          "iron": 6
+        },
+        "batches": 2,
+        "title": "artisan"
+      }
+    ]
+  },
+  "bakery": {
+    "unlockLevel": 10,
+    "cost": 350,
+    "materials": {
+      "wood": 15,
+      "stone": 15
+    },
+    "recipe": {
+      "in": {
+        "flour": 2,
+        "egg": 1
+      },
+      "out": {
+        "bread": 3
+      }
+    },
+    "batchesPerDay": 2,
+    "xpPerBatch": 3,
+    "upgrades": [
+      {
+        "id": "oven",
+        "cost": 300,
+        "level": 12,
+        "materials": {
+          "stone": 20,
+          "iron": 2
+        },
+        "batches": 1
+      },
+      {
+        "id": "guildOven",
+        "cost": 600,
+        "level": 15,
+        "materials": {
+          "stone": 30,
+          "iron": 6
+        },
+        "batches": 2,
+        "title": "artisan"
+      }
+    ]
+  },
+  "cheesery": {
+    "unlockLevel": 11,
+    "cost": 400,
+    "materials": {
+      "wood": 15,
+      "stone": 20,
+      "iron": 2
+    },
+    "recipe": {
+      "in": {
+        "milk": 3
+      },
+      "out": {
+        "cheese": 1
+      }
+    },
+    "batchesPerDay": 1,
+    "xpPerBatch": 4,
+    "upgrades": [
+      {
+        "id": "cellar",
+        "cost": 350,
+        "level": 13,
+        "materials": {
+          "stone": 25,
+          "iron": 3
+        },
+        "batches": 1
+      },
+      {
+        "id": "press",
+        "cost": 650,
+        "level": 16,
+        "materials": {
+          "wood": 20,
+          "iron": 8
+        },
+        "batches": 1,
+        "title": "artisan"
+      }
+    ]
+  }
+}

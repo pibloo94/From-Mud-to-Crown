@@ -1,7 +1,8 @@
 // Interfaz HTML encima del lienzo: barra superior, controles de tiempo, ventanas, tarjetas y avisos.
 import type { Game } from '../sim/game';
 import { createNewGame } from '../sim/state';
-import { CROPS, EVENTS, MATERIALS, MATERIAL_IDS, PRODUCTS, PRODUCT_IDS, PROGRESSION, type EventOptionDef } from '../sim/data';
+import { CROPS, EVENTS, MATERIALS, MATERIAL_IDS, PRODUCTS, PRODUCT_IDS, PROGRESSION, WORKSHOPS, type EventOptionDef } from '../sim/data';
+import { builtWorkshops } from '../sim/workshops';
 import { dateFromDay } from '../sim/calendar';
 import { levelProgress, nextLevelXp, unlocksAt } from '../sim/progress';
 import { storageCapacity, storageUsed } from '../sim/buildings';
@@ -20,12 +21,14 @@ import {
   type ProgressTab,
 } from './panels';
 import { optionAvailable } from '../sim/events';
-import type { BuildingId, CommandResult, CropId, RankId, Speed } from '../sim/types';
+import type { BuildingId, CommandResult, CropId, RankId, Speed, WorkshopId } from '../sim/types';
 import { getLang, onLangChange, setLang, t, type Lang } from '../i18n/i18n';
 import { autosave, forgetLinkedFile, hasLinkedFile, loadGameFromFile, readBackup, saveGame, supportsFilePicker } from '../save/storage';
 import { SaveError } from '../save/serialize';
 import type { Insets } from '../render/FarmScene';
 import { h, icon } from './dom';
+import { marketView, type MarketTab } from './market';
+import { siteView, workshopView } from './workshops';
 import { marketView, resetMarketChoices, type MarketTab } from './market';
 import { music } from '../audio/music';
 
@@ -45,6 +48,8 @@ type Modal =
   | { kind: 'land'; x: number; y: number; cost: number }
   | { kind: 'lease'; x: number; y: number; cost: number }
   | { kind: 'building'; building: BuildingId; tab: BuildingTab }
+  | { kind: 'site'; x: number; y: number; options: WorkshopId[] }
+  | { kind: 'workshop'; workshop: WorkshopId }
   | { kind: 'progress'; tab: ProgressTab }
   | { kind: 'levelup'; level: number }
   | { kind: 'season'; params: Record<string, string | number> }
@@ -52,11 +57,11 @@ type Modal =
   | { kind: 'event'; id: string; result?: CommandResult };
 
 /** Todas las ventanas detienen el tiempo mientras estan abiertas; al cerrarlas vuelve la velocidad anterior. */
-const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'progress', 'levelup', 'season', 'rank', 'event'];
+const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'progress', 'levelup', 'season', 'rank', 'event'];
 /** Ventanas que se cierran con Escape o tocando fuera. */
-const DISMISSABLE: Modal['kind'][] = ['menu', 'market', 'plant', 'land', 'lease', 'building', 'progress'];
+const DISMISSABLE: Modal['kind'][] = ['menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'progress'];
 /** Ventanas desde las que se puede ir a otra y volver con "Atras". */
-const NAVIGABLE: Modal['kind'][] = ['market', 'building', 'progress', 'levelup'];
+const NAVIGABLE: Modal['kind'][] = ['market', 'building', 'workshop', 'site', 'progress', 'levelup'];
 
 export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI {
   let lastSpeed: Speed = 1;
@@ -212,6 +217,12 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       case 'building':
         openModal({ kind: 'building', building: e.building, tab: 'upgrades' });
         break;
+      case 'site':
+        openModal({ kind: 'site', x: e.x, y: e.y, options: e.options });
+        break;
+      case 'workshop':
+        openModal({ kind: 'workshop', workshop: e.workshop });
+        break;
       case 'levelUp':
         showCard({ kind: 'levelup', level: e.level });
         break;
@@ -235,7 +246,12 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     const shownOnMap = r.ok && hasTile && (r.params?.amount !== undefined || r.msg === 'msg.planted' || r.msg === 'msg.landBought');
     const text = t(r.msg, r.params);
     if (!shownOnMap && text) toast(text, r.ok ? 'good' : 'warn');
-    if (modal && ['market', 'building', 'progress'].includes(modal.kind)) renderModal();
+    // Al levantar un taller, el solar pasa a ser el panel del taller.
+    if (modal?.kind === 'site' && r.ok && r.msg === 'msg.workshopBuilt') {
+      openModal({ kind: 'workshop', workshop: r.params!.workshop as WorkshopId });
+      return;
+    }
+    if (modal && ['market', 'building', 'progress', 'workshop', 'site'].includes(modal.kind)) renderModal();
   }
 
   // ---------------------------------------------------------------- avisos
@@ -270,7 +286,9 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       amounts.get(p)!.textContent = String(s.inventory[p]);
       // Los productos que aun no se pueden conseguir no ocupan sitio en la barra.
       const crop = Object.values(CROPS).find((c) => c.product === p);
-      resources.querySelector<HTMLElement>(`[data-res="${p}"]`)!.hidden = !!crop && s.level < crop.unlockLevel && s.inventory[p] === 0;
+      // Lo que sale de un taller solo aparece cuando hay taller que lo haga (o ya se tiene).
+      const fromWorkshop = !!PRODUCTS[p].artisan && !builtWorkshops(s).some((id) => WORKSHOPS[id].recipe.out[p]);
+      resources.querySelector<HTMLElement>(`[data-res="${p}"]`)!.hidden = s.inventory[p] === 0 && ((!!crop && s.level < crop.unlockLevel) || fromWorkshop);
     }
     const used = storageUsed(s);
     const cap = storageCapacity(s);
@@ -318,7 +336,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   // ---------------------------------------------------------------- ventanas y tarjetas
   /** Ventanas anteriores, para volver atras (p. ej. Progreso -> Casa -> atras). */
   const history: Modal[] = [];
-  const pageKey = (m: Modal) => (m.kind === 'building' ? `building:${m.building}` : m.kind);
+  const pageKey = (m: Modal) => (m.kind === 'building' ? `building:${m.building}` : m.kind === 'workshop' ? `workshop:${m.workshop}` : m.kind);
 
   function openModal(next: Modal): void {
     if (modal?.kind === 'start') return;
@@ -386,6 +404,11 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
         return buildingView(panelCtx, m.building, m.tab);
       },
       progress: () => progressView(panelCtx, (modal as Extract<Modal, { kind: 'progress' }>).tab),
+      site: () => {
+        const m = modal as Extract<Modal, { kind: 'site' }>;
+        return siteView(panelCtx, m.x, m.y, m.options);
+      },
+      workshop: () => workshopView(panelCtx, (modal as Extract<Modal, { kind: 'workshop' }>).workshop),
       levelup: levelUpView,
       season: () => seasonView(panelCtx, (modal as Extract<Modal, { kind: 'season' }>).params),
       rank: () => rankView(panelCtx, (modal as Extract<Modal, { kind: 'rank' }>).rank),
@@ -425,6 +448,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     openBuilding: (b, tab = 'upgrades') => openModal({ kind: 'building', building: b, tab }),
     openProgress: (tab = 'levels') => openModal({ kind: 'progress', tab }),
     openMarket: (tab = 'buy') => openModal({ kind: 'market', tab }),
+    openWorkshop: (id) => openModal({ kind: 'workshop', workshop: id }),
   };
 
   overlay.addEventListener('click', (e) => {
@@ -609,6 +633,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     if (u.maxPlots) items.push(t('levelup.maxPlots', { max: u.maxPlots }));
     for (const up of u.upgrades) items.push(t('progress.unlock.upgrade', { building: up.building, upgrade: up.id, cost: up.cost }));
     for (const tl of u.tools) items.push(t('progress.unlock.tool', { tier: t(`tool.tier.${tl.tier}`), cost: tl.cost }));
+    for (const w of u.workshops) items.push(t('progress.unlock.workshop', { workshop: w.id, cost: w.cost }));
     return h(
       'div',
       { class: `sheet levelup ${u.rank ? 'rank-up' : ''}` },

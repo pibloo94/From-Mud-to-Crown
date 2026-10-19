@@ -6,6 +6,8 @@ Se juega en el navegador, en ordenador y en móvil, en español e inglés.
 
 ## Estado
 
+**Fase 3a · Talleres.** Molino, horno y quesería en los solares del mapa, oficio de artesano, título de rama Artesano y niveles hasta el 20. Siguen comercio y Burgués, nobleza, y tutorial y sonido.
+
 **Fase 2 · La aldea.** Sobre la progresión de la fase 1 se añaden aldeanos con oficio y herramientas, mejoras de cada edificio (casa, granero, gallinero y corral) que se ven en el mapa, un granero con capacidad limitada, reputación con el barón y la aldea, impuestos cada estación, 21 eventos (ofertas, obligaciones y percances), el rango de Terrateniente con las tierras del este y la pantalla de *Progreso*.
 
 El roadmap completo está en el documento de diseño del proyecto.
@@ -22,6 +24,8 @@ El roadmap completo está en el documento de diseño del proyecto.
 - **Despensa:** en el granero, pestaña *Despensa*. Eliges qué productos pueden comer los aldeanos (comen primero lo más barato) y cuántos días de comida se reservan. El mercado avisa si vas a vender la reserva y el carretero no la toca.
 - **Impuestos:** al empezar cada estación pagas el diezmo (10 % de lo vendido) y el tributo al barón (según tus parcelas y tu rango). La primera estación es gratis. Lo que no puedas pagar enfada al barón.
 - **Reputación:** el barón y la aldea recuerdan lo que haces. Con el barón por debajo de 30 pagas más tributo; con la aldea en 70 o más, contratar cuesta la mitad.
+- **Talleres:** desde el nivel 9 se levantan en los tres solares del mapa (estacas con cuerda): molino (trigo → harina), horno (harina y huevo → pan) y quesería (leche → queso). Cada uno necesita un aldeano artesano; la herramienta y las mejoras del taller dan más tandas al día. Nunca gastan la reserva de la despensa.
+- **Artesano:** título de rama (nivel 12 y dos talleres) que se suma a tu rango: lo hecho en los talleres se vende un 15 % más caro y se abren las mejoras del gremio.
 - **Terrateniente:** nivel 8, 240 días de partida y favor del barón 60. Se abren las tierras del este, que se arriendan a aparceros que pagan renta cada estación.
 - **Rotura tierra** desde el nivel 2: la hierba junto al campo aparece punteada; tócala para comprarla.
 - **Invierno:** el trigo y las zanahorias no crecen ni se siembran. La col sí.

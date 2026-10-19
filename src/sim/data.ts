@@ -8,7 +8,8 @@ import eventsJson from '../data/events.json';
 import buildingsJson from '../data/buildings.json';
 import villagersJson from '../data/villagers.json';
 import materialsJson from '../data/materials.json';
-import type { AnimalId, BuildingId, CropId, JobId, MaterialId, ModifierKind, ProductId, RankId, TileKind } from './types';
+import workshopsJson from '../data/workshops.json';
+import type { AnimalId, BuildingId, CropId, JobId, MaterialId, ModifierKind, ProductId, RankId, TileKind, WorkshopId } from './types';
 import type { Season } from './calendar';
 
 export interface ProductDef {
@@ -20,6 +21,8 @@ export interface ProductDef {
   season: Record<Season, number>;
   /** Experiencia por unidad recogida de un animal. */
   xpCollect: number;
+  /** Producto de taller: sube de precio con el titulo de Artesano. */
+  artisan?: boolean;
 }
 
 export interface CropDef {
@@ -61,6 +64,10 @@ export interface LevelDef {
 export interface RankDef {
   id: RankId;
   level: number;
+  /** Titulo de rama: se suma al rango principal en vez de sustituirlo. */
+  branch?: boolean;
+  /** Talleres construidos que pide (rama Artesano). */
+  workshops?: number;
   /** Dias de juego minimos (opcional). */
   days?: number;
   /** Reputacion minima ante el baron (opcional). */
@@ -70,6 +77,8 @@ export interface RankDef {
 export interface ProgressionDef {
   levels: LevelDef[];
   ranks: RankDef[];
+  /** Multiplicador de precio de los productos artesanos con el titulo de Artesano. */
+  artisanPriceBonus: number;
   xpPerCoinSold: number;
   land: { baseCost: number; growth: number };
   animalsForSale: Record<AnimalId, { price: number; unlock: Feature }>;
@@ -100,6 +109,27 @@ export interface BuildingStats {
   capacity?: number;
   maxAnimals?: number;
   animalBonus?: number;
+}
+
+export interface WorkshopUpgradeDef {
+  id: string;
+  cost: number;
+  level: number;
+  materials?: MaterialAmounts;
+  /** Tandas por dia que suma. */
+  batches: number;
+  /** Titulo necesario (las mejores mejoras son del gremio de artesanos). */
+  title?: RankId;
+}
+
+export interface WorkshopDef {
+  unlockLevel: number;
+  cost: number;
+  materials?: MaterialAmounts;
+  recipe: { in: Partial<Record<ProductId, number>>; out: Partial<Record<ProductId, number>> };
+  batchesPerDay: number;
+  xpPerBatch: number;
+  upgrades: WorkshopUpgradeDef[];
 }
 
 export type MaterialAmounts = Partial<Record<MaterialId, number>>;
@@ -138,6 +168,7 @@ export interface VillagersDef {
     farmer: { growthBonus: number; plots: number; plotsPerTool: number };
     herder: { animalBonus: number };
     carter: { sellEvery: number; priceRate: number; priceRatePerTier: number };
+    artisan: { perWorkshop: number };
   };
   tools: { efficiency: number[]; tiers: { cost: number; level: number; materials?: MaterialAmounts }[] };
   names: string[];
@@ -200,6 +231,8 @@ export const EVENTS = eventsJson as unknown as Record<string, EventDef>;
 export const BUILDINGS = buildingsJson as Record<BuildingId, BuildingDef>;
 export const VILLAGERS = villagersJson as VillagersDef;
 export const MATERIALS = materialsJson as Record<MaterialId, MaterialDef>;
+export const WORKSHOPS = workshopsJson as Record<WorkshopId, WorkshopDef>;
+export const WORKSHOP_IDS = Object.keys(WORKSHOPS) as WorkshopId[];
 
 export const PRODUCT_IDS = Object.keys(PRODUCTS) as ProductId[];
 export const CROP_IDS = Object.keys(CROPS) as CropId[];

@@ -15,6 +15,9 @@
       "sellEvery": 7,
       "priceRate": 0.75,
       "priceRatePerTier": 0.08
+    },
+    "artisan": {
+      "perWorkshop": 1
     }
   },
   "tools": {
@@ -75,7 +78,8 @@
       "wheat",
       "carrot",
       "cabbage",
-      "egg"
+      "egg",
+      "bread"
     ],
     "reserveDays": 7,
     "reserveOptions": [

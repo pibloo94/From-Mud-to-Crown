@@ -1,5 +1,5 @@
 // Precios del mercado: base del producto x estacion x variacion semanal x ferias.
-import { PRODUCTS, PRODUCT_IDS } from './data';
+import { PRODUCTS, PRODUCT_IDS, PROGRESSION } from './data';
 import { dateFromDay } from './calendar';
 import { random } from './random';
 import { multiplier } from './modifiers';
@@ -17,7 +17,9 @@ export function priceOf(state: GameState, p: ProductId): number {
   const def = PRODUCTS[p];
   const season = dateFromDay(state.day).season;
   const boost = (state.marketBoost && state.day < state.marketBoost.untilDay ? state.marketBoost.mult : 1) * multiplier(state, 'priceAll');
-  return Math.max(1, Math.round(def.price * def.season[season] * (state.priceMult[p] ?? 1) * boost));
+  // Sello del gremio: con el titulo de Artesano, lo hecho en los talleres vale mas.
+  const guild = def.artisan && state.titles?.includes('artisan') ? PROGRESSION.artisanPriceBonus : 1;
+  return Math.max(1, Math.round(def.price * def.season[season] * (state.priceMult[p] ?? 1) * boost * guild));
 }
 
 /** -1 por debajo del precio base, 0 parecido, 1 por encima. */

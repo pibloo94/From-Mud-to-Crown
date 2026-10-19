@@ -48,6 +48,46 @@
     {
       "xp": 6200,
       "maxPlots": 18
+    },
+    {
+      "xp": 7800,
+      "maxPlots": 19
+    },
+    {
+      "xp": 9600,
+      "maxPlots": 20
+    },
+    {
+      "xp": 11600,
+      "maxPlots": 21
+    },
+    {
+      "xp": 13800,
+      "maxPlots": 22
+    },
+    {
+      "xp": 16200,
+      "maxPlots": 23
+    },
+    {
+      "xp": 18800,
+      "maxPlots": 24
+    },
+    {
+      "xp": 21600,
+      "maxPlots": 25
+    },
+    {
+      "xp": 24600,
+      "maxPlots": 26
+    },
+    {
+      "xp": 27800,
+      "maxPlots": 27
+    },
+    {
+      "xp": 31200,
+      "maxPlots": 28
     }
   ],
   "ranks": [
@@ -64,6 +104,12 @@
       "level": 8,
       "days": 240,
       "baron": 60
+    },
+    {
+      "id": "artisan",
+      "level": 12,
+      "branch": true,
+      "workshops": 2
     }
   ],
   "xpPerCoinSold": 0.15,
@@ -98,7 +144,8 @@
     "rankTribute": {
       "peasant": 1,
       "freeFarmer": 1.5,
-      "landowner": 2.5
+      "landowner": 2.5,
+      "artisan": 1.5
     }
   },
   "reputation": {
@@ -110,5 +157,6 @@
     "leaseBaseCost": 40,
     "leaseGrowth": 1.2,
     "rentPerSeason": 10
-  }
+  },
+  "artisanPriceBonus": 1.15
 }

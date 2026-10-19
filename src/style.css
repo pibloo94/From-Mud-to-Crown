@@ -2184,3 +2184,99 @@ button.level-box:hover .rank-text {
     padding-top: 58px;
   }
 }
+
+/* ============================================================ talleres */
+
+.workshop-portrait {
+  width: 64px;
+  height: 72px;
+  object-fit: contain;
+  flex: none;
+}
+
+.site-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 2px;
+  border-top: 1px solid rgba(110, 80, 40, 0.3);
+  text-align: left;
+}
+
+.site-option.locked {
+  opacity: 0.65;
+}
+
+.recipe {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 4px;
+  margin: 2px 0;
+  font: 700 14px var(--font-caps);
+  color: var(--ink);
+}
+
+.ws-status {
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  border-radius: 2px;
+  font: 700 13px var(--font-caps);
+  letter-spacing: 0.04em;
+  color: var(--gold-3);
+  background: linear-gradient(180deg, var(--blood), var(--blood-2));
+}
+
+.ws-status.ws-working {
+  background: linear-gradient(180deg, #3d4a2a, #263018);
+}
+
+.artisan-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 4px 0 8px;
+  font: 700 16px var(--font-caps);
+  color: var(--ink);
+}
+
+@media (max-width: 760px) {
+  .site-option {
+    flex-wrap: wrap;
+  }
+  .site-option .up-info {
+    flex: 1 1 60%;
+  }
+  .site-option .up-actions {
+    flex: 1 1 100%;
+  }
+  .workshop-portrait {
+    width: 48px;
+    height: 56px;
+  }
+}
+
+/* Escritorio: fichas mas compactas para que nivel, monedas, productos y estado quepan en una fila */
+@media (min-width: 761px) {
+  .resources {
+    gap: 2px;
+    padding: 4px 10px;
+  }
+  .resources .chip {
+    padding: 4px 7px;
+    font-size: 16px;
+    gap: 5px;
+  }
+  .resources .chip .icon {
+    width: 20px;
+    height: 20px;
+  }
+  .resources > .status-row .status-inner {
+    font-size: 15px;
+    padding: 3px 6px;
+  }
+  .level-info {
+    min-width: 84px;
+  }
+}

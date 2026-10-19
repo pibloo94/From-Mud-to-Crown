@@ -1,13 +1,16 @@
 // Tipos del estado de la partida. La simulacion no sabe nada de Phaser ni del DOM.
 
-export type ProductId = 'wheat' | 'carrot' | 'cabbage' | 'egg' | 'milk';
+export type ProductId = 'wheat' | 'carrot' | 'cabbage' | 'egg' | 'milk' | 'flour' | 'bread' | 'cheese';
 export type CropId = 'wheat' | 'carrot' | 'cabbage';
 /** Materiales de construccion: se compran en el mercado y se guardan aparte del granero. */
 export type MaterialId = 'wood' | 'stone' | 'iron';
 export type AnimalId = 'chicken' | 'cow';
 export type BuildingId = 'house' | 'granary' | 'coop' | 'pen';
-export type JobId = 'farmer' | 'herder' | 'carter';
-export type RankId = 'peasant' | 'freeFarmer' | 'landowner';
+export type JobId = 'farmer' | 'herder' | 'carter' | 'artisan';
+/** Talleres que transforman productos: se construyen en los solares del mapa. */
+export type WorkshopId = 'mill' | 'bakery' | 'cheesery';
+/** Rangos de la escalera principal y titulos de rama (Artesano), que se suman sin sustituir el rango. */
+export type RankId = 'peasant' | 'freeFarmer' | 'landowner' | 'artisan';
 export type Speed = 0 | 1 | 2 | 3;
 
 export type TileKind =
@@ -24,6 +27,10 @@ export type TileKind =
   | 'rocks'
   /** Tierras del este, cerradas hasta ser Terrateniente. */
   | 'wild'
+  /** Solar donde se puede levantar un taller. */
+  | 'site'
+  /** Taller ya construido (ver `GameState.workshops`). */
+  | 'workshop'
   /** Parcela arrendada a un aparcero: paga renta cada estacion. */
   | 'tenant';
 
@@ -59,6 +66,20 @@ export interface Villager {
   hungry: number;
   /** Solo labradores: que siembran en sus parcelas. 'auto' elige lo mejor de la temporada; null no siembra. */
   crop: CropId | 'auto' | null;
+  /** Solo artesanos: taller en el que trabaja. */
+  workshop?: WorkshopId | null;
+}
+
+/** Taller construido en un solar. */
+export interface Workshop {
+  x: number;
+  y: number;
+  /** Mejoras compradas. */
+  level: number;
+  /** Tandas acumuladas (con decimales por la herramienta del artesano). */
+  progress: number;
+  /** Tandas hechas en total, para el panel. */
+  made: number;
 }
 
 /** Despensa: que productos comen los aldeanos y cuantos dias de comida se guardan sin vender. */
@@ -106,6 +127,9 @@ export interface GameState {
   xp: number;
   level: number;
   rank: RankId;
+  /** Titulos de rama conseguidos (Artesano...). */
+  titles: RankId[];
+  workshops: Partial<Record<WorkshopId, Workshop>>;
   /** Parcelas compradas, para calcular el precio de la siguiente. */
   landBought: number;
   /** Parcelas arrendadas en las tierras del este. */

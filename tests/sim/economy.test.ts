@@ -90,7 +90,7 @@ describe('materiales', () => {
 describe('despensa', () => {
   it('por defecto se come grano, verdura y huevos, pero no la leche', () => {
     const s = newGame();
-    expect(s.pantry.eat).toEqual({ wheat: true, carrot: true, cabbage: true, egg: true, milk: false });
+    expect(s.pantry.eat).toEqual({ wheat: true, carrot: true, cabbage: true, egg: true, milk: false, flour: false, bread: true, cheese: false });
     expect(s.pantry.reserveDays).toBe(VILLAGERS.pantry.reserveDays);
   });
 
@@ -101,7 +101,7 @@ describe('despensa', () => {
     s.inventory.wheat = 4;
     s.inventory.carrot = 20;
     s.inventory.milk = 9;
-    expect(eatingOrder(s)).toEqual(['wheat', 'carrot', 'cabbage']);
+    expect(eatingOrder(s)).toEqual(['wheat', 'carrot', 'bread', 'cabbage']);
     const need = reserveTotal(s);
     expect(need).toBe(Math.ceil(2 * 0.9 * 5)); // 2 aldeanos con el hogar, 5 dias
     expect(reserved(s)).toMatchObject({ wheat: 4, carrot: need - 4, milk: 0 });

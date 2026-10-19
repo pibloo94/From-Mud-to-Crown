@@ -34,9 +34,9 @@ describe('experiencia y niveles', () => {
     const s = createNewGame(1);
     expect(s.rank).toBe('peasant');
     s.level = 4;
-    expect(updateRank(s)).toBeNull();
+    expect(updateRank(s)).toEqual([]);
     s.level = 5;
-    expect(updateRank(s)).toBe('freeFarmer');
+    expect(updateRank(s)).toEqual(['freeFarmer']);
     expect(s.rank).toBe('freeFarmer');
     expect(unlocksAt(5).rank).toBe('freeFarmer');
   });
@@ -46,19 +46,19 @@ describe('experiencia y niveles', () => {
     s.level = 8;
     s.day = 239;
     s.rep.baron = 60;
-    expect(updateRank(s)).toBe('freeFarmer');
+    expect(updateRank(s)).toEqual(['freeFarmer']);
     s.day = 240;
     s.rep.baron = 59;
-    expect(updateRank(s)).toBeNull();
+    expect(updateRank(s)).toEqual([]);
     s.rep.baron = 60;
-    expect(updateRank(s)).toBe('landowner');
+    expect(updateRank(s)).toEqual(['landowner']);
     // no aparece en el arbol de niveles porque no depende solo del nivel
     expect(unlocksAt(8).rank).toBeNull();
   });
 
   it('el arbol informa de mejoras y herramientas por nivel', () => {
     expect(unlocksAt(1).upgrades.map((u) => u.id)).toContain('pallet');
-    expect(unlocksAt(2).tools).toEqual([{ tier: 1, cost: 20, jobs: ['farmer', 'herder', 'carter'] }]);
+    expect(unlocksAt(2).tools).toEqual([{ tier: 1, cost: 20, jobs: ['farmer', 'herder', 'carter', 'artisan'] }]);
     expect(unlocksAt(9).upgrades.map((u) => `${u.building}.${u.id}`)).toEqual(['granary.stoneBarn', 'pen.dairy']);
   });
 

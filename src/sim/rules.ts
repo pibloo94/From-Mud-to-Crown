@@ -9,8 +9,9 @@ import { buildingStat, storageFree, store } from './buildings';
 import { expireModifiers, multiplier } from './modifiers';
 import { carterSells, farmerPlots, feedVillagers, growthPerDay, hasHerder, herderBonus } from './villagers';
 import { isIdle } from './modifiers';
+import { buildableWorkshops, workshopAt, workshopsWork } from './workshops';
 import { settleSeason } from './taxes';
-import type { AnimalId, BuildingId, CommandResult, CropId, GameState, Notice, Plot, ProductId, Speed } from './types';
+import type { AnimalId, BuildingId, CommandResult, CropId, GameState, Notice, Plot, ProductId, Speed, WorkshopId } from './types';
 
 /** Avance maximo por fotograma, para que una pausa del navegador no salte muchos dias de golpe. */
 const MAX_FRAME_MS = 250;
@@ -74,8 +75,9 @@ export function advanceDay(state: GameState): Notice[] {
   // El pastor recoge solo lo que quepa en el granero.
   if (hasHerder(state)) for (const id of ANIMAL_IDS) collectInto(state, id);
 
-  // Los labradores cosechan y siembran sus parcelas antes de comer.
+  // Los labradores cosechan y siembran sus parcelas antes de comer; despues trabajan los talleres.
   notices.push(...farmersWork(state));
+  notices.push(...workshopsWork(state));
 
   notices.push(...feedVillagers(state));
 
@@ -138,13 +140,15 @@ export function setSpeed(state: GameState, speed: Speed): void {
 
 /** Comprueba el ascenso de rango; al ser Terrateniente se abren las tierras del este. */
 export function checkRank(state: GameState): Notice[] {
-  const gained = updateRank(state);
-  if (!gained) return [];
-  if (gained === 'landowner') openEastLands(state);
-  // Los rangos que solo piden nivel ya se anuncian en la tarjeta de subida de nivel.
-  const def = rankDef(gained);
-  if (!def.days && !def.baron) return [];
-  return [{ ok: true, msg: 'report.rank', card: 'rank', params: { rank: gained } }];
+  const notices: Notice[] = [];
+  for (const gained of updateRank(state)) {
+    if (gained === 'landowner') openEastLands(state);
+    // Los rangos que solo piden nivel ya se anuncian en la tarjeta de subida de nivel.
+    const def = rankDef(gained);
+    if (!def.days && !def.baron && !def.workshops) continue;
+    notices.push({ ok: true, msg: 'report.rank', card: 'rank', params: { rank: gained } });
+  }
+  return notices;
 }
 
 // ------------------------------------------------------------------ cultivos
@@ -346,6 +350,8 @@ export type Interaction =
   | { kind: 'offerLand'; x: number; y: number; cost: number }
   | { kind: 'offerLease'; x: number; y: number; cost: number }
   | { kind: 'building'; building: BuildingId }
+  | { kind: 'site'; x: number; y: number; options: WorkshopId[] }
+  | { kind: 'workshop'; workshop: WorkshopId }
   | { kind: 'openMarket' };
 
 export function interact(state: GameState, x: number, y: number): Interaction {
@@ -371,6 +377,12 @@ export function interact(state: GameState, x: number, y: number): Interaction {
     }
     case 'wild':
       return { kind: 'done', outcome: fail('msg.wildLocked') };
+    case 'site':
+      return { kind: 'site', x, y, options: buildableWorkshops(state) };
+    case 'workshop': {
+      const id = workshopAt(state, x, y);
+      return id ? { kind: 'workshop', workshop: id } : { kind: 'done', outcome: fail('msg.nothing') };
+    }
     case 'tenant':
       return { kind: 'done', outcome: done({ ok: true, msg: 'msg.tenant', params: { rent: PROGRESSION.lands.rentPerSeason } }) };
     // Gallinero y corral: si hay algo que recoger se recoge; si no, se abre el edificio.
