@@ -91,6 +91,7 @@
   },
   "feast": {
     "category": "offer",
+    "maxRank": "lord",
     "weight": 1,
     "cooldownDays": 30,
     "minLevel": 3,
@@ -242,6 +243,7 @@
   },
   "levy": {
     "category": "obligation",
+    "maxRank": "lord",
     "weight": 2,
     "cooldownDays": 24,
     "icon": "icon_banner",
@@ -292,6 +294,7 @@
   },
   "corvee": {
     "category": "obligation",
+    "maxRank": "lord",
     "weight": 2,
     "cooldownDays": 30,
     "minLevel": 2,
@@ -441,6 +444,7 @@
   },
   "hunt": {
     "category": "obligation",
+    "maxRank": "lord",
     "weight": 1,
     "cooldownDays": 40,
     "minLevel": 4,
@@ -487,6 +491,7 @@
   },
   "baronsMen": {
     "category": "obligation",
+    "maxRank": "lord",
     "weight": 3,
     "cooldownDays": 20,
     "icon": "icon_banner",
@@ -787,6 +792,7 @@
   },
   "bakerOrder": {
     "category": "offer",
+    "maxRank": "lord",
     "weight": 3,
     "cooldownDays": 25,
     "icon": "icon_bread",
@@ -919,6 +925,196 @@
         "effects": {
           "caravanDelay": 2
         }
+      }
+    ]
+  },
+  "royalHost": {
+    "category": "obligation",
+    "weight": 3,
+    "cooldownDays": 90,
+    "icon": "icon_banner",
+    "requires": {
+      "rank:lord": 1
+    },
+    "options": [
+      {
+        "id": "send",
+        "requires": {
+          "soldiers": 4
+        },
+        "effects": {
+          "rep": {
+            "baron": 10
+          },
+          "prestige": 40
+        },
+        "risk": {
+          "chance": 0.35,
+          "effects": {
+            "soldiers": -1
+          }
+        }
+      },
+      {
+        "id": "scutage",
+        "cost": {
+          "coins": 1500
+        },
+        "effects": {
+          "rep": {
+            "baron": 4
+          }
+        }
+      },
+      {
+        "id": "refuse",
+        "effects": {
+          "rep": {
+            "baron": -15
+          },
+          "modifier": {
+            "kind": "tribute",
+            "value": 1.5,
+            "seasons": 1
+          }
+        }
+      }
+    ]
+  },
+  "bandits": {
+    "category": "mishap",
+    "weight": 3,
+    "cooldownDays": 60,
+    "icon": "icon_banner",
+    "requires": {
+      "hamlets": 1
+    },
+    "options": [
+      {
+        "id": "fight",
+        "requires": {
+          "soldiers": 3
+        },
+        "effects": {
+          "prestige": 15,
+          "rep": {
+            "village": 5
+          }
+        },
+        "risk": {
+          "chance": 0.3,
+          "effects": {
+            "soldiers": -1
+          }
+        }
+      },
+      {
+        "id": "ransom",
+        "cost": {
+          "coins": 800
+        },
+        "effects": {}
+      },
+      {
+        "id": "endure",
+        "effects": {
+          "materials": {
+            "wood": -20,
+            "stone": -20,
+            "iron": -5
+          },
+          "rep": {
+            "village": -6
+          }
+        }
+      }
+    ]
+  },
+  "bishop": {
+    "category": "offer",
+    "weight": 2,
+    "cooldownDays": 120,
+    "icon": "icon_scroll",
+    "requires": {
+      "rank:lord": 1
+    },
+    "options": [
+      {
+        "id": "donate",
+        "cost": {
+          "coins": 1200
+        },
+        "effects": {
+          "prestige": 40,
+          "rep": {
+            "village": 5
+          }
+        }
+      },
+      {
+        "id": "decline",
+        "effects": {}
+      }
+    ]
+  },
+  "marriage": {
+    "category": "offer",
+    "weight": 1,
+    "cooldownDays": 360,
+    "icon": "icon_crown",
+    "requires": {
+      "rank:lord": 1,
+      "prestige": 150
+    },
+    "options": [
+      {
+        "id": "dowry",
+        "cost": {
+          "coins": 3000
+        },
+        "effects": {
+          "prestige": 120,
+          "rep": {
+            "baron": 10
+          }
+        }
+      },
+      {
+        "id": "decline",
+        "effects": {}
+      }
+    ]
+  },
+  "joust": {
+    "category": "offer",
+    "weight": 2,
+    "cooldownDays": 120,
+    "icon": "icon_banner",
+    "requires": {
+      "soldiers": 2
+    },
+    "options": [
+      {
+        "id": "enter",
+        "cost": {
+          "coins": 400
+        },
+        "effects": {
+          "prestige": 60,
+          "coins": 1500
+        },
+        "risk": {
+          "chance": 0.45,
+          "effects": {
+            "coins": -1500,
+            "prestige": -50,
+            "soldiers": -1
+          }
+        }
+      },
+      {
+        "id": "decline",
+        "effects": {}
       }
     ]
   }

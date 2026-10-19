@@ -28,10 +28,11 @@ import { autosave, forgetLinkedFile, hasLinkedFile, loadGameFromFile, readBackup
 import { SaveError } from '../save/serialize';
 import type { Insets } from '../render/FarmScene';
 import { h, icon } from './dom';
-import { siteView, workshopView } from './workshops';
 import { marketView, resetMarketChoices, type MarketTab } from './market';
 import { siteView, workshopView } from './workshops';
 import { music } from '../audio/music';
+import { manorView, type ManorTab } from './noble';
+import { isNoble, liegeOf } from '../sim/noble';
 
 const AUTOSAVE_EVERY_DAYS = 3;
 const SPEEDS: Speed[] = [0, 1, 2, 3];
@@ -51,6 +52,7 @@ type Modal =
   | { kind: 'building'; building: BuildingId; tab: BuildingTab }
   | { kind: 'site'; x: number; y: number; options: WorkshopId[] }
   | { kind: 'workshop'; workshop: WorkshopId }
+  | { kind: 'manor'; tab: ManorTab; focus: string | null }
   | { kind: 'progress'; tab: ProgressTab }
   | { kind: 'levelup'; level: number }
   | { kind: 'season'; params: Record<string, string | number> }
@@ -59,11 +61,11 @@ type Modal =
   | { kind: 'event'; id: string; result?: CommandResult };
 
 /** Todas las ventanas detienen el tiempo mientras estan abiertas; al cerrarlas vuelve la velocidad anterior. */
-const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'progress', 'levelup', 'season', 'rank', 'caravan', 'event'];
+const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'levelup', 'season', 'rank', 'caravan', 'event'];
 /** Ventanas que se cierran con Escape o tocando fuera. */
-const DISMISSABLE: Modal['kind'][] = ['menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'progress'];
+const DISMISSABLE: Modal['kind'][] = ['menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress'];
 /** Ventanas desde las que se puede ir a otra y volver con "Atras". */
-const NAVIGABLE: Modal['kind'][] = ['market', 'building', 'workshop', 'site', 'progress', 'levelup'];
+const NAVIGABLE: Modal['kind'][] = ['market', 'building', 'workshop', 'site', 'manor', 'progress', 'levelup'];
 
 export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI {
   let lastSpeed: Speed = 1;
@@ -125,8 +127,14 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     { class: 'status-pill', onclick: () => openModal({ kind: 'market', tab: 'trade' }) },
     h('span', { class: 'status-inner' }, icon('icon_cart'), caravanText),
   );
+  const prestigeText = h('b', {});
+  const prestigePill = h(
+    'button',
+    { class: 'status-pill', onclick: () => openModal({ kind: 'manor', tab: 'house', focus: null }) },
+    h('span', { class: 'status-inner' }, icon('icon_prestige'), prestigeText),
+  );
   const modsBox = h('div', { class: 'mods' });
-  const statusRow = h('div', { class: 'status-row' }, storagePill, villagersPill, materialsPill, caravanPill, modsBox);
+  const statusRow = h('div', { class: 'status-row' }, storagePill, villagersPill, materialsPill, caravanPill, prestigePill, modsBox);
 
   const speedButtons = SPEEDS.map((sp) =>
     h('button', { class: 'speed-btn', 'data-speed': sp, onclick: () => setSpeed(sp) }, sp === 0 ? '❚❚' : '▶'.repeat(sp)),
@@ -228,6 +236,9 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       case 'site':
         openModal({ kind: 'site', x: e.x, y: e.y, options: e.options });
         break;
+      case 'manor':
+        openModal({ kind: 'manor', tab: e.hamlet ? 'fief' : 'house', focus: e.hamlet });
+        break;
       case 'workshop':
         openModal({ kind: 'workshop', workshop: e.workshop });
         break;
@@ -260,7 +271,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       openModal({ kind: 'workshop', workshop: r.params!.workshop as WorkshopId });
       return;
     }
-    if (modal && ['market', 'building', 'progress', 'workshop', 'site'].includes(modal.kind)) renderModal();
+    if (modal && ['market', 'building', 'progress', 'workshop', 'site', 'manor'].includes(modal.kind)) renderModal();
   }
 
   // ---------------------------------------------------------------- avisos
@@ -325,6 +336,10 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       caravanPill.title = t('hud.caravans', { n: s.caravans.length, days: soon });
       caravanPill.setAttribute('aria-label', caravanPill.title);
     }
+    prestigePill.hidden = !isNoble(s);
+    prestigeText.textContent = String(s.noble.prestige);
+    prestigePill.title = t('hud.prestige');
+    prestigePill.setAttribute('aria-label', `${t('noble.prestige')} ${s.noble.prestige}. ${t('hud.prestige')}`);
     const mods = activeModifiers(s);
     const modsKey = mods.map((m) => `${m.kind}${m.value}${m.untilDay - s.day}`).join('|');
     if (modsBox.dataset.key !== modsKey) {
@@ -425,6 +440,10 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
         return siteView(panelCtx, m.x, m.y, m.options);
       },
       workshop: () => workshopView(panelCtx, (modal as Extract<Modal, { kind: 'workshop' }>).workshop),
+      manor: () => {
+        const m = modal as Extract<Modal, { kind: 'manor' }>;
+        return manorView(panelCtx, m.tab, m.focus, (tab) => openModal({ kind: 'manor', tab, focus: null }));
+      },
       levelup: levelUpView,
       season: () => seasonView(panelCtx, (modal as Extract<Modal, { kind: 'season' }>).params),
       rank: () => rankView(panelCtx, (modal as Extract<Modal, { kind: 'rank' }>).rank),
@@ -448,6 +467,8 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       if (body) body.scrollTop = keepScroll.body;
     } else if (modal.kind === 'progress' && modal.tab === 'levels') {
       scrollTreeToCurrent(overlay);
+    } else if (modal.kind === 'manor' && modal.focus) {
+      overlay.querySelector(`#hamlet-${modal.focus}`)?.scrollIntoView({ block: 'nearest' });
     }
   }
 
@@ -455,6 +476,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     if (m.kind === 'building') return `building:${m.building}:${m.tab}`;
     if (m.kind === 'progress') return `progress:${m.tab}`;
     if (m.kind === 'market') return `market:${m.tab}`;
+    if (m.kind === 'manor') return `manor:${m.tab}`;
     return m.kind;
   }
 
@@ -679,7 +701,8 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     if (fx.herds?.chicken && fx.herds.chicken > 0) parts.push(t('fx.hen'));
     if (fx.seedVouchers) parts.push(t('fx.vouchers', { n: fx.seedVouchers }));
     const signed = (n: number) => (n > 0 ? `+${n}` : `${n}`);
-    if (fx.rep?.baron) parts.push(t('fx.repBaron', { n: signed(fx.rep.baron) }));
+    if (fx.prestige) parts.push(t('fx.prestige', { n: signed(fx.prestige) }));
+    if (fx.rep?.baron) parts.push(t('fx.repBaron', { n: signed(fx.rep.baron), liegeTitle: liegeOf(sim.state) }));
     if (fx.rep?.village) parts.push(t('fx.repVillage', { n: signed(fx.rep.village) }));
     if (fx.modifier) {
       const m = fx.modifier;
@@ -692,7 +715,8 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     if (opt.risk) {
       const r = opt.risk.effects;
       let what = '';
-      if (r.herds?.chicken) what = t('fx.loseHen');
+      if (r.soldiers) what = t('fx.loseSoldier');
+      else if (r.herds?.chicken) what = t('fx.loseHen');
       else if (r.loseFraction) what = t('fx.loseStock');
       else if (r.cropSetback) what = t('fx.setback');
       else if (r.modifier) what = t(`modifier.${r.modifier.kind}`, { pct: Math.round(r.modifier.value * 100) });

@@ -5,9 +5,10 @@ import { defaultPantry } from '../sim/pantry';
 import { rollPrices } from '../sim/market';
 import { buildingStat, storageCapacity, storageUsed } from '../sim/buildings';
 import { addVillager, beds } from '../sim/villagers';
+import { defaultNoble } from '../sim/noble';
 
 export const SAVE_FORMAT = 'from-mud-to-crown-save';
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;
@@ -84,6 +85,8 @@ export function migrate(state: Record<string, unknown>, from: number): GameState
     s = { ...s, carts: 0, caravans: [], nextCaravanId: 1, stall: false };
     s.stats = { ...s.stats, trades: 0, tradeEarned: 0 };
   }
+  // v6 -> v7 (fase 3c): carta de nobleza, casa solariega, aldeas, mesnada, prestigio y mecenazgo.
+  if (from < 7) s = { ...s, noble: defaultNoble() };
   return s as GameState;
 }
 

@@ -2,12 +2,13 @@
 // No contiene reglas del juego: todo pasa por `Game`.
 import Phaser from 'phaser';
 import type { Game, GameEvent } from '../sim/game';
-import { CROPS, PROGRESSION } from '../sim/data';
+import { CROPS, NOBILITY, PROGRESSION, START } from '../sim/data';
 import { canExpandAt, canLeaseAt, cropStage, plotCount } from '../sim/rules';
 import { visualStage } from '../sim/buildings';
 import { workshopAt } from '../sim/workshops';
 import { idleCarts } from '../sim/trade';
-import { hasFeature, levelDef } from '../sim/progress';
+import { hasFeature, hasRank, levelDef } from '../sim/progress';
+import { hamletAt, hamletLevel, manorStage } from '../sim/noble';
 import { dateFromDay, type Season } from '../sim/calendar';
 import { plotKey } from '../sim/state';
 import type { AnimalId, BuildingId, JobId, Tile } from '../sim/types';
@@ -26,6 +27,8 @@ const SPRITES = [
   'site', 'mill', 'bakery', 'cheesery', 'villager_artisan', 'cart', 'stall',
   'cow', 'chicken', 'villager_farmer', 'villager_herder', 'villager_carter',
   'bubble', 'icon_egg', 'icon_milk', 'icon_wheat', 'icon_coin',
+  'manor_0', 'manor_1', 'manor_2', 'manor_3', 'villager_soldier',
+  ...['wood', 'stone', 'iron'].flatMap((m) => [0, 1, 2, 3].map((i) => `hamlet_${m}_${i}`)),
 ];
 
 /**
@@ -140,8 +143,9 @@ export class FarmScene extends Phaser.Scene {
     // En vertical (movil) el mapa entero queda diminuto: se encuadra la parte central y se puede arrastrar.
     // En vertical se encuadra la granja (sin las tierras cerradas del este, que se ven arrastrando).
     const portrait = H > W;
-    const homeW = this.sim.state.rank === 'landowner' ? mw : Math.min(mw, PROGRESSION.lands.eastFrom);
-    const homeBw = (homeW + mh) * (TILE_W / 2);
+    const homeW = hasRank(this.sim.state, 'landowner') ? mw : Math.min(mw, PROGRESSION.lands.eastFrom);
+    // El feudo (filas del sur) no cuenta para el zoom en vertical: se llega arrastrando.
+    const homeBw = (homeW + Math.min(mh, START.map.rows.length)) * (TILE_W / 2);
     const portraitZoom = Math.min(W / (homeBw * 0.64), avail / bh);
     const zoom = portrait ? Math.max(this.fitZoom, portraitZoom) : this.fitZoom;
     cam.setZoom(zoom);
@@ -226,6 +230,14 @@ export class FarmScene extends Phaser.Scene {
       case 'workshop': {
         const id = workshopAt(this.sim.state, tile.x, tile.y);
         if (id) this.img(id, sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 5));
+        break;
+      }
+      case 'manor':
+        this.img(`manor_${manorStage(this.sim.state)}`, sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 5));
+        break;
+      case 'hamlet': {
+        const id = hamletAt(tile.x, tile.y);
+        if (id) this.img(`hamlet_${NOBILITY.hamlets[id].material}_${hamletLevel(this.sim.state, id)}`, sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 5));
         break;
       }
       case 'wild':
@@ -398,6 +410,12 @@ export class FarmScene extends Phaser.Scene {
       ),
     };
     for (const v of this.sim.state.villagers) this.addAnimal(`villager_${v.job}`, areas[v.job], 0.95);
+    // La mesnada ronda la casa solariega (como mucho seis, para no llenar el mapa).
+    const manor = tiles.find((tl) => tl.kind === 'manor');
+    if (manor) {
+      const yard = tiles.filter((tl) => (tl.kind === 'grass' || tl.kind === 'path') && Math.abs(tl.x - manor.x) <= 2 && Math.abs(tl.y - manor.y) <= 1 && !(tl.x === manor.x && tl.y === manor.y));
+      for (let i = 0; i < Math.min(6, this.sim.state.noble.soldiers); i++) this.addAnimal('villager_soldier', yard, 0.95);
+    }
   }
 
   private addAnimal(key: string, area: { x: number; y: number }[], oy: number): void {

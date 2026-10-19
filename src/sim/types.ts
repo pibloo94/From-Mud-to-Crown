@@ -9,8 +9,13 @@ export type BuildingId = 'house' | 'granary' | 'coop' | 'pen';
 export type JobId = 'farmer' | 'herder' | 'carter' | 'artisan';
 /** Talleres que transforman productos: se construyen en los solares del mapa. */
 export type WorkshopId = 'mill' | 'bakery' | 'cheesery';
-/** Rangos de la escalera principal y titulos de rama (Artesano), que se suman sin sustituir el rango. */
-export type RankId = 'peasant' | 'freeFarmer' | 'landowner' | 'artisan' | 'burgher';
+/**
+ * Rangos de la escalera principal (de campesino a conde) y titulos de rama (Artesano, Burgues),
+ * que se suman sin sustituir el rango.
+ */
+export type RankId = 'peasant' | 'freeFarmer' | 'landowner' | 'lord' | 'baron' | 'count' | 'artisan' | 'burgher';
+/** Senor feudal al que se rinde tributo: cambia al subir en la escalera noble. */
+export type LiegeId = 'baron' | 'count' | 'king';
 export type Speed = 0 | 1 | 2 | 3;
 
 export type TileKind =
@@ -32,7 +37,11 @@ export type TileKind =
   /** Taller ya construido (ver `GameState.workshops`). */
   | 'workshop'
   /** Parcela arrendada a un aparcero: paga renta cada estacion. */
-  | 'tenant';
+  | 'tenant'
+  /** Casa solariega del feudo (ver `GameState.noble.manor`). */
+  | 'manor'
+  /** Aldea vasalla del feudo. */
+  | 'hamlet';
 
 export interface Tile {
   x: number;
@@ -97,6 +106,20 @@ export interface Workshop {
 }
 
 /** Despensa: que productos comen los aldeanos y cuantos dias de comida se guardan sin vender. */
+/** Todo lo de la nobleza: carta, prestigio, casa solariega, aldeas, mesnada y mecenazgo. */
+export interface NobleState {
+  /** Carta de nobleza comprada al rey. */
+  charter: boolean;
+  prestige: number;
+  /** Mejoras de la casa solariega (0 = solar sin levantar). */
+  manor: number;
+  /** Nivel de cada aldea vasalla (0 = sin tomar). */
+  hamlets: Record<string, number>;
+  soldiers: number;
+  /** Estacion (numero desde el inicio) en que se uso cada accion de mecenazgo. */
+  patronage: Record<string, number>;
+}
+
 export interface Pantry {
   eat: Record<ProductId, boolean>;
   reserveDays: number;
@@ -150,6 +173,7 @@ export interface GameState {
   nextCaravanId: number;
   /** Puesto propio en el mercado de la villa. */
   stall: boolean;
+  noble: NobleState;
   /** Parcelas compradas, para calcular el precio de la siguiente. */
   landBought: number;
   /** Parcelas arrendadas en las tierras del este. */

@@ -6,7 +6,7 @@ Se juega en el navegador, en ordenador y en móvil, en español e inglés.
 
 ## Estado
 
-**Fase 3b · Comercio.** Sobre los talleres de la 3a: carretas que llevan mercancía a otras cuatro villas, puesto propio en el mercado y título de rama Burgués. Siguen nobleza, y tutorial y sonido.
+**Fase 3c · Nobleza.** Sobre talleres y comercio: carta de nobleza, feudo al sur del mapa con casa solariega, aldeas vasallas, mesnada y mecenazgo, y la escalera noble Señor → Barón → Conde. Siguen el tutorial y el sonido.
 
 **Fase 2 · La aldea.** Sobre la progresión de la fase 1 se añaden aldeanos con oficio y herramientas, mejoras de cada edificio (casa, granero, gallinero y corral) que se ven en el mapa, un granero con capacidad limitada, reputación con el barón y la aldea, impuestos cada estación, 21 eventos (ofertas, obligaciones y percances), el rango de Terrateniente con las tierras del este y la pantalla de *Progreso*.
 
@@ -29,6 +29,12 @@ El roadmap completo está en el documento de diseño del proyecto.
 - **Comercio:** desde el nivel 13, en la pestaña *Comercio* del mercado. Compra una carreta, elige villa (cada una paga más por lo que le falta), cárgala y decide si llevas escolta: sin ella, los bandidos pueden quedarse con la mitad. Vuelve en unos días con las monedas y con los materiales que compres allí. El puesto propio (nivel 14) sube un 10 % lo que vendes en casa.
 - **Burgués:** título de rama (nivel 15, cinco caravanas y puesto propio): carretas más grandes, mitad de peaje y mejores precios en otras villas.
 - **Terrateniente:** nivel 8, 240 días de partida y favor del barón 60. Se abren las tierras del este, que se arriendan a aparceros que pagan renta cada estación.
+- **Carta de nobleza y Señor:** con nivel 20, 5 años de partida, favor del barón 70, aldea 60 y un título de rama, el rey te vende la carta (en *Progreso › Rangos*). Al ser Señor se abre **el feudo**, cinco filas nuevas al sur del mapa.
+- **Casa solariega:** toca el solar del feudo (o el escudo de prestigio de la barra). Cinco obras caras (casa, muralla, capilla, torre del homenaje y gran salón) que dan prestigio, plazas para soldados, una capilla que rebaja el diezmo a la mitad y fama cada estación.
+- **Aldeas vasallas:** Robledal, Peñagris y Valdehierro. Se toman y se mejoran hasta nivel 3; cada estación pagan rentas (más cuanto mejor te quiere la aldea) y entregan madera, piedra o hierro.
+- **Mesnada:** soldados con soldada por estación (si no cobran, se marchan). Con dos o más, las caravanas salen escoltadas gratis; también sirven en la hueste del rey, contra los bandidos y en las justas.
+- **Mecenazgo:** donativo a la abadía, banquete (gasta pan y queso) y torneo, una vez por estación cada uno. Cambian monedas por **prestigio** y reputación.
+- **Barón y Conde:** Barón pide 900 días, casa con tres obras, las tres aldeas, seis soldados y prestigio 800; Conde, 1260 días, todo al máximo, diez soldados, prestigio 3000 y el favor del conde. Al subir cambia tu señor feudal (el conde, luego el rey) y los eventos del barón dejan de salir.
 - **Rotura tierra** desde el nivel 2: la hierba junto al campo aparece punteada; tócala para comprarla.
 - **Invierno:** el trigo y las zanahorias no crecen ni se siembran. La col sí.
 - **Eventos:** de vez en cuando el juego se pausa con una decisión. Las **ofertas** se pueden rechazar sin castigo; las **obligaciones** (leva, prestación, cacería...) castigan si no cumples, por ejemplo con más tributo durante una estación; los **percances** (zorro, tormenta, plaga...) te dejan pagar para evitarlos o arriesgarte. Algunos se encadenan.
@@ -78,7 +84,7 @@ tests/       tests de la simulación, el guardado y el contenido
 - **Un cultivo nuevo:** entrada en `src/data/crops.json`, su producto en `products.json`, sus dibujos de crecimiento en `tools/gen_sprites.py` y su nombre en `es.json` y `en.json` (`crop.<id>`, `product.<id>`).
 - **Un evento nuevo:** entrada en `src/data/events.json` (categoría `offer`, `obligation` o `mishap`, peso, condiciones, opciones con coste, efectos y riesgo) y sus textos `event.<id>.*` en los dos idiomas. Las ofertas deben tener una opción `decline` sin efectos. Para encadenar eventos, una opción marca un `flag` y el siguiente lo pide con `"flag:<nombre>": 1`. Los tests comprueban textos y reglas.
 - **Una mejora de edificio:** entrada en `src/data/buildings.json` (coste, nivel y lo que suma: camas, capacidad, animales...) y su nombre `upgrade.<edificio>.<id>`. Aparece sola en el panel del edificio y en la pantalla de *Progreso*.
-- **Ajustar el ritmo:** experiencia por nivel, rangos, precio de la tierra, impuestos, reputación, arriendos y frecuencia de eventos están en `src/data/progression.json`; aldeanos, oficios y herramientas, en `src/data/villagers.json`.
+- **Ajustar el ritmo:** experiencia por nivel, rangos, precio de la tierra, impuestos, reputación, arriendos y frecuencia de eventos están en `src/data/progression.json`; aldeanos, oficios y herramientas, en `src/data/villagers.json`; la carta, el feudo, la casa solariega, las aldeas, la mesnada y el mecenazgo, en `src/data/nobility.json`.
 - **Un texto nuevo:** misma clave en `src/i18n/es.json` y `en.json`. Un test comprueba que no falte ninguna.
 - **Cambiar el arte:** `python3 tools/gen_sprites.py` regenera los SVG. Para usar otro arte (p. ej. Kenney), sustituye los archivos de `public/assets/sprites/` respetando nombres y anclajes.
 

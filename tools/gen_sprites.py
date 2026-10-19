@@ -1258,6 +1258,300 @@ def icon_cart() -> str:
     return svg(32, 32, b)
 
 
+# ---------------------------------------------------------------- fase 3c: nobleza
+
+def crenels(a, c, height, n, depth=7, fill=None, outline=None):
+    """Almenas a lo largo de la arista a-c a la altura `height`."""
+    fill = fill or PAL["stone"]
+    outline = outline or PAL["mortar"]
+    out = ""
+    for k in range(n):
+        if k % 2:
+            continue
+        p0, p1 = lerp(a, c, k / n), lerp(a, c, (k + 1) / n)
+        out += poly([(p0[0], p0[1] - height), (p1[0], p1[1] - height), (p1[0], p1[1] - height - depth), (p0[0], p0[1] - height - depth)], fill, outline, 0.8)
+    return out
+
+
+def banner(base, h=34, flip=False, col=None):
+    col = col or PAL["oxblood"]
+    x, y = base
+    d = -1 if flip else 1
+    out = line((x, y), (x, y - h), PAL["wood_dark"], 2.2)
+    out += poly([(x, y - h + 1), (x + 18 * d, y - h + 4), (x + 15 * d, y - h + 9), (x + 18 * d, y - h + 14), (x, y - h + 13)], col, PAL["oxblood_dark"], 0.9)
+    out += line((x + 3 * d, y - h + 7.5), (x + 11 * d, y - h + 8.5), PAL["gold"], 1.4, op=0.9)
+    return out
+
+
+def stone_box(cx, by, hw, hh, wall, rnd, rows=5):
+    box, p = iso_box_c(cx, by, hw, hh, wall, PAL["stone"], PAL["stone_dark"], PAL["mortar"], 1.1)
+    out = box + stone_wall_face(p["l"], p["b"], wall, rnd, rows) + stone_wall_face(p["b"], p["r"], wall, rnd, rows)
+    # sombra en la cara derecha
+    out += poly([p["b"], p["r"], p["R"], p["B"]], "rgba(20,16,10,0.28)")
+    return out, p
+
+
+def keep_tower(cx, by, rnd):
+    """Torre del homenaje cuadrada con almenas y estandarte."""
+    out, p = stone_box(cx, by, 26, 13, 150, rnd, 11)
+    for f in (0.35, 0.65):
+        out += window_on(p["l"], p["b"], f, 100, 6, False)
+    out += window_on(p["b"], p["r"], 0.5, 112, 6, True)
+    # plataforma superior y almenas
+    out += poly([p["L"], p["B"], p["R"], p["T"]], PAL["stone_dark"], PAL["mortar"], 1)
+    out += crenels(p["l"], p["b"], 150, 7) + crenels(p["b"], p["r"], 150, 7)
+    out += banner((p["T"][0] + 2, p["T"][1] + 10), 40)
+    return out, p
+
+
+def chapel(cx, by, rnd):
+    """Capilla de piedra con espadana y campana."""
+    out, p = stone_box(cx, by, 26, 13, 46, rnd, 4)
+    out += door_on(p["b"], p["r"], 0.35, 0.65, 24, PAL["wood_dark"])
+    out += window_on(p["l"], p["b"], 0.5, 22, 7, True)
+    roof, apex, _ = hip_roof(p, 0.12, 40, PAL["shingle"], PAL["shingle_shade"], PAL["wood_dark"], None)
+    out += roof
+    # espadana con campana
+    bx, byy = apex[0], apex[1] + 8
+    out += poly([(bx - 8, byy), (bx + 8, byy), (bx + 8, byy - 22), (bx, byy - 30), (bx - 8, byy - 22)], PAL["stone_light"], PAL["mortar"], 1)
+    out += poly([(bx - 4, byy - 6), (bx + 4, byy - 6), (bx + 4, byy - 16), (bx - 4, byy - 16)], PAL["ink"])
+    out += ellipse(bx, byy - 9, 3, 3.4, PAL["gold_dark"], PAL["gold"], 0.6)
+    out += line((bx, byy - 30), (bx, byy - 40), PAL["iron"], 1.6) + line((bx - 4, byy - 36), (bx + 4, byy - 36), PAL["iron"], 1.6)
+    return out, p
+
+
+def manor_hall(cx, by, rnd, big=False):
+    """Casa solariega de piedra de dos plantas con tejado de pizarra."""
+    hw, hh, wall = (60, 30, 84) if big else (56, 28, 78)
+    out, p = stone_box(cx, by, hw, hh, wall, rnd, 7)
+    out += line((p["l"][0], p["l"][1] - 40), (p["b"][0], p["b"][1] - 40), PAL["stone_dark"], 3)
+    out += line((p["b"][0], p["b"][1] - 40), (p["r"][0], p["r"][1] - 40), PAL["stone_dark"], 3)
+    out += door_on(p["b"], p["r"], 0.18, 0.4, 32, PAL["oxblood_dark"])
+    # escudo sobre la puerta
+    d = lerp(p["b"], p["r"], 0.29)
+    out += f'<path d="M{d[0] - 6},{d[1] - 44} h12 v6 c0 5 -6 8 -6 8 c0 0 -6 -3 -6 -8 Z" fill="{PAL["oxblood"]}" stroke="{PAL["gold"]}" stroke-width="1.2"/>'
+    for f in (0.2, 0.5, 0.8):
+        out += window_on(p["l"], p["b"], f, 54, 9, True)
+    out += window_on(p["l"], p["b"], 0.5, 14, 8, False)
+    for f in (0.6, 0.85):
+        out += window_on(p["b"], p["r"], f, 54, 9, True)
+    out += window_on(p["b"], p["r"], 0.7, 14, 8, False)
+    roof, apex, (L, B, R) = hip_roof(p, 0.14, 56, "url(#ml)", "url(#mr)", PAL["ink"], "#1a1d22", 12)
+    out += roof + line(L, B, "#2b2f36", 2.6) + line(B, R, "#15171b", 2.6)
+    out += chimney((apex[0] + 24, apex[1] + 26), 1.2) + chimney((apex[0] - 34, apex[1] + 34), 1.0)
+    out += banner((apex[0], apex[1] + 3), 36)
+    return out, p
+
+
+def curtain_wall(cx, by, hw, hh, rnd, height=30):
+    """Muralla baja almenada en las dos aristas traseras del recinto."""
+    l = (cx - hw, by - hh)
+    t = (cx, by - 2 * hh)
+    r = (cx + hw, by - hh)
+    out = stone_wall_face(l, t, height, rnd, 3) + stone_wall_face(t, r, height, rnd, 3)
+    out += poly([(t[0], t[1]), (r[0], r[1]), (r[0], r[1] - height), (t[0], t[1] - height)], "rgba(20,16,10,0.25)")
+    out += crenels(l, t, height, 13) + crenels(t, r, height, 13)
+    # torrecillas en las esquinas
+    for q in (l, t, r):
+        out += poly([(q[0] - 8, q[1] + 4), (q[0] + 8, q[1] + 4), (q[0] + 8, q[1] - height - 12), (q[0] - 8, q[1] - height - 12)], PAL["stone"], PAL["mortar"], 1)
+        out += poly([(q[0], q[1] + 4), (q[0] + 8, q[1] + 4), (q[0] + 8, q[1] - height - 12), (q[0], q[1] - height - 12)], PAL["stone_dark"], None)
+        for dx in (-8, 2):
+            out += poly([(q[0] + dx, q[1] - height - 12), (q[0] + dx + 6, q[1] - height - 12), (q[0] + dx + 6, q[1] - height - 18), (q[0] + dx, q[1] - height - 18)], PAL["stone_light"], PAL["mortar"], 0.8)
+    return out
+
+
+def manor_stage(stage: int) -> str:
+    """Casa solariega: 0 solar con ruinas, 1 casa, 2 con muralla y capilla, 3 con torre del homenaje."""
+    rnd = random.Random(300 + stage)
+    if stage == 0:
+        w, h = TW + 20, 120
+        oy = h - TH
+        cx = w / 2
+        body = poly([(cx + x - TW / 2, y) for x, y in diamond(oy=oy)], "#4c4a36", None, ' opacity="0.45"')
+        # restos de muros viejos y un estandarte del nuevo senor
+        for (u0, v0, u1, v1, hgt) in ((0.15, 0.2, 0.15, 0.7, 16), (0.15, 0.2, 0.6, 0.2, 22), (0.6, 0.2, 0.75, 0.2, 9)):
+            a = tile_point(u0, v0, oy)
+            c = tile_point(u1, v1, oy)
+            a, c = (a[0] + 10, a[1]), (c[0] + 10, c[1])
+            body += stone_wall_face(a, c, hgt, rnd, 2)
+        for _ in range(18):
+            x, y = tile_point(rnd.uniform(0.1, 0.9), rnd.uniform(0.1, 0.9), oy)
+            for dx in (-2, 0, 2):
+                body += line((x + 10 + dx * 0.4, y), (x + 10 + dx, y - rnd.uniform(4, 9)), rnd.choice(["#3e4a26", "#56663a", "#6c7a45"]), 1.1)
+        bx, byy = tile_point(0.62, 0.62, oy)
+        body += banner((bx + 10, byy), 52)
+        return svg(int(w), h, body)
+    w, h = {1: (210, 236), 2: (260, 262), 3: (270, 300)}[stage]
+    cx, by = w / 2, h - 6
+    defs = lin_grad("ml", "#4a4f57", "#30343a") + lin_grad("mr", "#2a2d33", "#1b1d21")
+    body = ellipse(cx, h - 30, w * 0.42, 26, PAL["shadow"])
+    if stage >= 2:
+        body += curtain_wall(cx, by + 4, w * 0.46, w * 0.23, rnd)
+    if stage >= 3:
+        k, _ = keep_tower(cx + 54, by - 70, rnd)
+        body += k
+    if stage >= 2:
+        c, _ = chapel(cx - 62, by - 30, rnd)
+        body += c
+    hall, _ = manor_hall(cx + (6 if stage >= 2 else 0), by, rnd, big=stage >= 3)
+    body += hall
+    if stage >= 2:
+        # tramos delanteros de la muralla, bajos para no tapar la casa
+        l = (cx - w * 0.46, by + 4 - w * 0.23)
+        b = (cx, by + 4)
+        r = (cx + w * 0.46, by + 4 - w * 0.23)
+        for (a0, a1) in ((lerp(l, b, 0.0), lerp(l, b, 0.42)), (lerp(b, r, 0.58), lerp(b, r, 1.0))):
+            body += stone_wall_face(a0, a1, 16, rnd, 2) + crenels(a0, a1, 16, 5, 5)
+    return svg(w, h, body, defs)
+
+
+def hut(cx, by, rnd, kind="thatch", ruined=False, size=1.0):
+    hw, hh, wall = 20 * size, 10 * size, 18 * size
+    if ruined:
+        box, p = iso_box_c(cx, by, hw, hh, wall * 0.7, "#6b604a", "#4f4636", PAL["timber"], 1)
+        out = box
+        out += poly([p["L"], (lerp(p["L"], p["B"], 0.5)[0], lerp(p["L"], p["B"], 0.5)[1] - 10), p["B"]], "#3a2d1c", PAL["timber"], 0.8)
+        out += line(p["B"], (p["B"][0] + 8, p["B"][1] - 14), PAL["wood_dark"], 2)
+        out += line(p["L"], (p["L"][0] + 14, p["L"][1] - 18), PAL["wood_dark"], 2)
+        return out
+    fills = ("url(#wl)", "url(#wr)") if kind == "thatch" else (PAL["stone"], PAL["stone_dark"])
+    box, p = iso_box_c(cx, by, hw, hh, wall, fills[0], fills[1], PAL["timber"], 1)
+    out = box
+    if kind == "thatch":
+        out += timber_frame(p, 0, wall, 1.6)
+        roof, _, _ = hip_roof(p, 0.22, 20 * size, "url(#rl)", "url(#rr)", PAL["thatch_line"], PAL["thatch_line"], 5)
+    else:
+        out += stone_wall_face(p["l"], p["b"], wall, rnd, 2) + stone_wall_face(p["b"], p["r"], wall, rnd, 2)
+        roof, _, _ = hip_roof(p, 0.18, 20 * size, PAL["shingle"], PAL["shingle_shade"], PAL["wood_dark"], None)
+    out += door_on(p["b"], p["r"], 0.35, 0.65, 11 * size)
+    return out + roof
+
+
+def hamlet_prop(kind, x, y, rnd):
+    out = ""
+    if kind == "wood":
+        # troncos apilados y tocon con hacha
+        for k, (dx, dy) in enumerate(((0, 0), (9, 3), (4.5, -5))):
+            out += poly([(x + dx - 14, y + dy - 4), (x + dx, y + dy + 2), (x + dx, y + dy + 8), (x + dx - 14, y + dy + 2)], PAL["wood"], PAL["wood_dark"], 0.8)
+            out += ellipse(x + dx, y + dy + 5, 3.4, 3.4, "#b08a5a", PAL["wood_dark"], 0.8)
+        out += ellipse(x + 22, y + 8, 6, 3, "#8a6a44", PAL["wood_dark"], 0.8)
+        out += line((x + 20, y + 6), (x + 27, y - 6), PAL["wood_dark"], 1.6)
+        out += poly([(x + 25, y - 8), (x + 31, y - 7), (x + 29, y - 3)], PAL["iron_light"], PAL["iron"], 0.6)
+    elif kind == "stone":
+        for (dx, dy, s) in ((0, 0, 1.0), (12, 4, 0.8), (6, -6, 0.7), (-10, 5, 0.6)):
+            out += poly([(x + dx - 8 * s, y + dy), (x + dx + 6 * s, y + dy + 5 * s), (x + dx + 6 * s, y + dy - 5 * s), (x + dx - 8 * s, y + dy - 10 * s)], PAL["stone_light"], PAL["mortar"], 0.8)
+            out += poly([(x + dx + 6 * s, y + dy + 5 * s), (x + dx + 11 * s, y + dy + 2 * s), (x + dx + 11 * s, y + dy - 8 * s), (x + dx + 6 * s, y + dy - 5 * s)], PAL["stone_dark"], PAL["mortar"], 0.8)
+        out += line((x - 16, y + 10), (x - 6, y - 10), PAL["wood_dark"], 1.6)
+    else:
+        # bocamina en un monticulo y vagoneta con mineral
+        out += f'<path d="M{x - 26},{y + 8} Q{x - 6},{y - 30} {x + 18},{y + 8} Z" fill="#4a4434" stroke="#2c281e" stroke-width="1"/>'
+        out += poly([(x - 10, y + 6), (x + 2, y + 6), (x + 2, y - 10), (x - 10, y - 10)], PAL["ink"])
+        out += line((x - 12, y + 6), (x - 12, y - 12), PAL["wood"], 2.4) + line((x + 4, y + 6), (x + 4, y - 12), PAL["wood"], 2.4)
+        out += line((x - 14, y - 12), (x + 6, y - 12), PAL["wood"], 2.6)
+        out += poly([(x + 14, y + 10), (x + 28, y + 14), (x + 30, y + 6), (x + 16, y + 2)], PAL["iron_light"], PAL["iron"], 0.8)
+        for (dx, dy) in ((19, 3), (24, 5), (21, 0)):
+            out += ellipse(x + dx, y + dy, 2.6, 2, "#3a3833", PAL["iron"], 0.5)
+    return out
+
+
+def hamlet_stage(material: str, stage: int) -> str:
+    """Aldea vasalla: 0 abandonada, 1-3 cada vez con mas casas."""
+    rnd = random.Random(400 + stage * 7 + len(material))
+    w, h = TW + 24, 130
+    oy = h - TH
+    ox = 12
+    defs = lin_grad("wl", PAL["plaster"], PAL["plaster_shade"]) + lin_grad("wr", PAL["plaster_shade"], "#7d6a4b")
+    defs += lin_grad("rl", PAL["thatch"], PAL["thatch_shade"]) + lin_grad("rr", PAL["thatch_shade"], "#4f3a18")
+    tp = lambda u, v: (tile_point(u, v, oy)[0] + ox, tile_point(u, v, oy)[1])
+    body = poly([(x + ox, y) for x, y in diamond(oy=oy)], "#5b4a30", None, ' opacity="0.35"')
+    spots = [(0.28, 0.3, "thatch"), (0.72, 0.32, "thatch"), (0.3, 0.72, "thatch"), (0.7, 0.7, "stone")]
+    n = {0: 2, 1: 2, 2: 3, 3: 4}[stage]
+    items = []
+    for (u, v, kind) in spots[:n]:
+        x, y = tp(u, v)
+        items.append((y, hut(x, y + 9, rnd, kind if stage == 3 else "thatch", ruined=stage == 0, size=0.9 if stage < 3 else 1.0)))
+    px, py = tp(0.55, 0.52)
+    items.append((py, hamlet_prop(material, px, py, rnd) if stage > 0 else ""))
+    if stage >= 2:
+        # cerca de estacas
+        a, c = tp(0.05, 0.95), tp(0.95, 0.95)
+        fence = line((a[0], a[1] - 8), (c[0], c[1] - 8), PAL["wood_dark"], 1.6)
+        for k in range(9):
+            q = lerp(a, c, k / 8)
+            fence += line(q, (q[0], q[1] - 12), PAL["wood_dark"], 2)
+        items.append((c[1] + 1, fence))
+    if stage >= 1:
+        bx, byy = tp(0.12, 0.5)
+        items.append((byy, banner((bx, byy), 30)))
+    if stage == 0:
+        for _ in range(16):
+            x, y = tp(rnd.uniform(0.1, 0.9), rnd.uniform(0.1, 0.9))
+            items.append((y, line((x, y), (x + rnd.uniform(-2, 2), y - rnd.uniform(5, 10)), rnd.choice(["#3e4a26", "#56663a"]), 1.2)))
+    for _, frag in sorted(items, key=lambda it: it[0]):
+        body += frag
+    return svg(w, h, body, defs)
+
+
+def villager_soldier() -> str:
+    w, h = 30, 50
+    b = ellipse(15, 47, 8, 2.4, PAL["shadow"])
+    b += line((12, 37), (12, 46), PAL["ink"], 2.6) + line((18, 37), (18, 46), PAL["ink"], 2.6)
+    b += f'<path d="M7 39 C7 26 9 21 15 21 C21 21 23 26 23 39 Z" fill="#5d5f63" stroke="{PAL["timber"]}" stroke-width="1"/>'
+    b += f'<path d="M10 23 L20 23 L20 40 L15 42 L10 40 Z" fill="{PAL["oxblood"]}" stroke="{PAL["oxblood_dark"]}" stroke-width="0.8"/>'
+    b += line((12, 30), (18, 30), PAL["gold"], 1.2)
+    b += ellipse(15, 16, 4.4, 4.8, "#d8b48a", PAL["timber"], 0.8)
+    b += ellipse(15, 12, 8, 2.2, PAL["iron_light"], PAL["iron"], 0.8)
+    b += f'<path d="M10 12 C10 6 20 6 20 12 Z" fill="{PAL["iron_light"]}" stroke="{PAL["iron"]}" stroke-width="0.8"/>'
+    b += line((25, 4), (24, 46), PAL["wood_dark"], 1.8)
+    b += poly([(23.5, 0.5), (26.5, 0.8), (25, 6)], PAL["iron_light"], PAL["iron"], 0.6)
+    b += ellipse(6.5, 31, 5.4, 6.4, "#6a4a2c", PAL["iron"], 1.2)
+    b += ellipse(6.5, 31, 1.6, 1.6, PAL["iron_light"])
+    return svg(w, h, b)
+
+
+def icon_prestige() -> str:
+    """Escudo de armas granate con banda dorada."""
+    b = f'<path d="M5 4 H27 V15 C27 23 21 27 16 30 C11 27 5 23 5 15 Z" fill="{PAL["oxblood"]}" stroke="{PAL["gold"]}" stroke-width="1.8" stroke-linejoin="round"/>'
+    b += f'<path d="M6 8 L26 20 L26 24 L6 12 Z" fill="{PAL["gold"]}" opacity="0.95"/>'
+    b += poly([(16, 6.5), (17.4, 9.6), (20.6, 9.8), (18.1, 11.8), (19, 15), (16, 13.2), (13, 15), (13.9, 11.8), (11.4, 9.8), (14.6, 9.6)], PAL["gold_light"])
+    return svg(32, 32, b)
+
+
+def icon_soldier() -> str:
+    """Capacete de hierro con lanza."""
+    b = line((24, 3), (8, 29), PAL["wood_dark"], 2)
+    b += poly([(23, 2), (28, 1), (26, 6)], PAL["iron_light"], PAL["iron"], 0.8)
+    b += ellipse(15, 21, 12, 3.4, PAL["iron_light"], PAL["iron"], 1)
+    b += f'<path d="M7 20 C7 10 23 10 23 20 Z" fill="{PAL["iron_light"]}" stroke="{PAL["iron"]}" stroke-width="1.1"/>'
+    b += line((15, 11.5), (15, 20), "#7c7a72", 1.4)
+    b += ellipse(11, 15, 2, 1.4, "#8a8880", op=0.7)
+    return svg(32, 32, b)
+
+
+def icon_charter() -> str:
+    """Carta de nobleza con sello de lacre y cintas."""
+    b = poly([(5, 5), (25, 5), (25, 22), (5, 22)], PAL["parch"], PAL["parch_dark"], 1)
+    b += ellipse(5, 5, 3, 3, PAL["parch_dark"]) + ellipse(25, 22, 3, 3, PAL["parch_dark"])
+    for y in (9, 12.5, 16):
+        b += line((8.5, y), (21.5, y), PAL["clay_dark"], 1.1, op=0.8)
+    b += line((14, 22), (11, 30), PAL["oxblood"], 2) + line((18, 22), (21, 30), PAL["oxblood"], 2)
+    b += ellipse(16, 22, 5, 5, PAL["oxblood"], PAL["oxblood_dark"], 1)
+    b += poly([(16, 19), (17, 21.5), (19.5, 21.6), (17.5, 23), (18.2, 25.4), (16, 24), (13.8, 25.4), (14.5, 23), (12.5, 21.6), (15, 21.5)], PAL["gold"])
+    return svg(32, 32, b)
+
+
+def icon_manor() -> str:
+    """Torre almenada con estandarte."""
+    b = poly([(9, 29), (23, 29), (23, 10), (9, 10)], PAL["stone"], PAL["mortar"], 1)
+    b += poly([(16, 29), (23, 29), (23, 10), (16, 10)], PAL["stone_dark"])
+    for x in (8, 13.5, 19):
+        b += poly([(x, 10), (x + 5, 10), (x + 5, 6), (x, 6)], PAL["stone_light"], PAL["mortar"], 0.8)
+    b += poly([(13, 29), (19, 29), (19, 21), (16, 18), (13, 21)], PAL["ink"])
+    b += line((16, 6), (16, 0.5), PAL["wood_dark"], 1.4)
+    b += poly([(16, 1), (24, 2.6), (16, 5)], PAL["oxblood"])
+    return svg(32, 32, b)
+
+
 def bubble() -> str:
     """Escudo de hierro con borde dorado sobre el que se pinta el producto."""
     defs = lin_grad("b", PAL["iron_light"], PAL["iron"])
@@ -1325,6 +1619,13 @@ def main() -> None:
         "icon_stone.svg": icon_stone(),
         "icon_iron.svg": icon_iron(),
         "bubble.svg": bubble(),
+        **{f"manor_{i}.svg": manor_stage(i) for i in range(4)},
+        **{f"hamlet_{m}_{i}.svg": hamlet_stage(m, i) for m in ("wood", "stone", "iron") for i in range(4)},
+        "villager_soldier.svg": villager_soldier(),
+        "icon_prestige.svg": icon_prestige(),
+        "icon_soldier.svg": icon_soldier(),
+        "icon_charter.svg": icon_charter(),
+        "icon_manor.svg": icon_manor(),
     }
     for name, content in files.items():
         with open(os.path.join(OUT, name), "w", encoding="utf-8") as fh:

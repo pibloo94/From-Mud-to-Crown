@@ -2425,3 +2425,60 @@ button.level-box:hover .rank-text {
     align-items: stretch;
   }
 }
+
+/* ============================================================ nobleza */
+
+.manor-hero {
+  display: flex;
+  justify-content: center;
+  margin: 0 0 4px;
+}
+
+.workshop-portrait.large {
+  width: 168px;
+  height: 168px;
+}
+
+.workshop-portrait.soldier {
+  width: 48px;
+}
+
+.prestige-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px 8px;
+}
+
+.prestige-line small {
+  flex: 1 1 100%;
+  color: var(--ink-soft);
+}
+
+.up-fx {
+  color: #3d4a2a;
+  font-weight: 700;
+}
+
+.site-option.hamlet.focus {
+  background: rgba(201, 161, 74, 0.18);
+  box-shadow: inset 3px 0 0 var(--gold-2);
+}
+
+.charter-offer {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.charter-offer .fair-banner {
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .workshop-portrait.large {
+    width: 132px;
+    height: 132px;
+  }
+}

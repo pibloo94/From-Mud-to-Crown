@@ -3,6 +3,7 @@ import { defaultPantry } from './pantry';
 import { rollPrices } from './market';
 import { newSeed } from './random';
 import { addVillager } from './villagers';
+import { defaultNoble } from './noble';
 import type { AnimalId, BuildingId, GameState, Herd, Plot, ProductId, Tile } from './types';
 
 export const plotKey = (x: number, y: number): string => `${x},${y}`;
@@ -53,6 +54,7 @@ export function createNewGame(seed: number = newSeed()): GameState {
     caravans: [],
     nextCaravanId: 1,
     stall: false,
+    noble: defaultNoble(),
     landBought: 0,
     leases: 0,
     buildings,

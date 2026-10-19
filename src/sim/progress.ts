@@ -43,15 +43,34 @@ export function workshopCount(state: GameState): number {
   return WORKSHOP_IDS.filter((id) => state.workshops[id]).length;
 }
 
+/** Titulos de rama conseguidos (Artesano, Burgues). */
+export const branchCount = (state: GameState): number => state.titles.length;
+export const hamletsTaken = (state: GameState): number => Object.values(state.noble.hamlets).filter((l) => l > 0).length;
+export const hamletLevelSum = (state: GameState): number => Object.values(state.noble.hamlets).reduce((a, b) => a + b, 0);
+
 export function meetsRank(state: GameState, r: RankDef): boolean {
+  const n = state.noble;
   return (
     state.level >= r.level &&
     state.day >= (r.days ?? 0) &&
     state.rep.baron >= (r.baron ?? 0) &&
+    state.rep.village >= (r.village ?? 0) &&
+    branchCount(state) >= (r.branches ?? 0) &&
     workshopCount(state) >= (r.workshops ?? 0) &&
     state.stats.trades >= (r.trades ?? 0) &&
-    (!r.stall || state.stall)
+    (!r.stall || state.stall) &&
+    (!r.charter || n.charter) &&
+    n.manor >= (r.manor ?? 0) &&
+    hamletsTaken(state) >= (r.hamlets ?? 0) &&
+    hamletLevelSum(state) >= (r.hamletLevels ?? 0) &&
+    n.soldiers >= (r.soldiers ?? 0) &&
+    n.prestige >= (r.prestige ?? 0)
   );
+}
+
+/** Rango que llega solo con el nivel (se anuncia en la tarjeta de subida de nivel, no aparte). */
+export function levelOnlyRank(r: RankDef): boolean {
+  return Object.keys(r).every((k) => k === 'id' || k === 'level' || k === 'branch');
 }
 
 /** Rangos de la escalera principal (sin las ramas). */
@@ -125,7 +144,7 @@ export function unlocksAt(level: number): Unlocks {
     .map((t, i) => ({ tier: i + 1, cost: t.cost, level: t.level, jobs: JOB_IDS }))
     .filter((t) => t.level === level)
     .map(({ tier, cost, jobs }) => ({ tier, cost, jobs }));
-  const rank = PROGRESSION.ranks.find((r) => r.level === level && level > 1 && !r.days && !r.baron && !r.workshops && !r.trades && !r.stall)?.id ?? null;
+  const rank = PROGRESSION.ranks.find((r) => r.level === level && level > 1 && levelOnlyRank(r))?.id ?? null;
   const workshops = WORKSHOP_IDS.filter((id) => WORKSHOPS[id].unlockLevel === level).map((id) => ({ id, cost: WORKSHOPS[id].cost }));
   const workshopUpgrades = WORKSHOP_IDS.flatMap((w) =>
     WORKSHOPS[w].upgrades.filter((u) => u.level === level).map((u) => ({ workshop: w, id: u.id, cost: u.cost })),

@@ -106,6 +106,34 @@
       "baron": 60
     },
     {
+      "id": "lord",
+      "level": 20,
+      "days": 600,
+      "baron": 70,
+      "village": 60,
+      "branches": 1,
+      "charter": true
+    },
+    {
+      "id": "baron",
+      "level": 20,
+      "days": 900,
+      "manor": 3,
+      "hamlets": 3,
+      "soldiers": 6,
+      "prestige": 800
+    },
+    {
+      "id": "count",
+      "level": 20,
+      "days": 1260,
+      "manor": 5,
+      "hamletLevels": 9,
+      "soldiers": 10,
+      "prestige": 3000,
+      "baron": 80
+    },
+    {
       "id": "artisan",
       "level": 12,
       "branch": true,
@@ -153,7 +181,10 @@
       "freeFarmer": 1.5,
       "landowner": 2.5,
       "artisan": 1.5,
-      "burgher": 1.5
+      "burgher": 1.5,
+      "lord": 3,
+      "baron": 3.5,
+      "count": 4
     }
   },
   "reputation": {

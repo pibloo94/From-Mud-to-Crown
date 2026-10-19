@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import es from '../../src/i18n/es.json';
 import en from '../../src/i18n/en.json';
-import { CROPS, CROP_IDS, PRODUCTS, ANIMALS, EVENTS, PROGRESSION, BUILDINGS, VILLAGERS, JOB_IDS, MATERIAL_IDS, WORKSHOPS, TOWN_IDS } from '../../src/sim/data';
+import { CROPS, CROP_IDS, PRODUCTS, ANIMALS, EVENTS, PROGRESSION, BUILDINGS, VILLAGERS, JOB_IDS, MATERIAL_IDS, WORKSHOPS, TOWN_IDS, NOBILITY, HAMLET_IDS, PATRONAGE_IDS, START } from '../../src/sim/data';
 import { toScreen, toTile } from '../../src/render/iso';
 
 describe('traducciones', () => {
@@ -105,6 +105,42 @@ describe('geometria isometrica', () => {
         const { sx, sy } = toScreen(x, y);
         expect(toTile(sx, sy + 32)).toEqual({ x, y });
       }
+    }
+  });
+});
+
+describe('textos de la nobleza', () => {
+  it('rangos, senores, obras, aldeas y mecenazgo tienen texto en los dos idiomas', () => {
+    for (const dict of [es, en] as Record<string, string>[]) {
+      for (const r of PROGRESSION.ranks) expect(dict[`rank.${r.id}.desc`], `rank.${r.id}.desc`).toBeTruthy();
+      for (const l of ['baron', ...Object.values(NOBILITY.lieges)]) {
+        expect(dict[`liege.${l}`], `liege.${l}`).toBeTruthy();
+        expect(dict[`liege.title.${l}`], `liege.title.${l}`).toBeTruthy();
+      }
+      for (const up of NOBILITY.manor.upgrades) {
+        expect(dict[`manorUp.${up.id}`], `manorUp.${up.id}`).toBeTruthy();
+        expect(dict[`manorUp.${up.id}.desc`]).toBeTruthy();
+      }
+      for (const id of HAMLET_IDS) expect(dict[`hamlet.${id}`] && dict[`hamlet.${id}.desc`], `hamlet.${id}`).toBeTruthy();
+      for (const id of PATRONAGE_IDS) {
+        expect(dict[`patronage.${id}`] && dict[`patronage.${id}.desc`], `patronage.${id}`).toBeTruthy();
+        expect(dict[`noble.patronage.${id}.done`]).toBeTruthy();
+      }
+      for (const k of ['noble.patronage.done', 'noble.patronage.needSoldiers', 'noble.patronage.cantPay', 'noble.notNoble', 'noble.charterNotReady'])
+        expect(dict[k], k).toBeTruthy();
+    }
+  });
+
+  it('el feudo usa solo simbolos conocidos y cabe en el ancho del mapa', () => {
+    const legend: Record<string, string> = { ...START.map.legend, ...NOBILITY.fief.legend };
+    for (const row of NOBILITY.fief.rows) {
+      expect(row.length).toBe(START.map.rows[0].length);
+      for (const ch of row) expect(legend[ch], ch).toBeTruthy();
+    }
+    // Cada aldea de los datos esta sobre una baldosa de aldea del feudo.
+    for (const id of HAMLET_IDS) {
+      const { x, y } = NOBILITY.hamlets[id];
+      expect(legend[NOBILITY.fief.rows[y - START.map.rows.length][x]]).toBe('hamlet');
     }
   });
 });
