@@ -500,5 +500,6 @@
   "progress.needs": "{list}",
   "progress.unlock.material": "{material} on sale",
   "market.noneToSell": "None to sell",
-  "market.allReserved": "All of it is reserved as food: move the slider if you still want to sell"
+  "market.allReserved": "All of it is reserved as food: move the slider if you still want to sell",
+  "panel.back": "Back"
 }

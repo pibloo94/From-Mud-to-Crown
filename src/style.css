@@ -2093,3 +2093,94 @@ button.level-box:hover .rank-text {
   margin-top: 4px;
   color: var(--ink-soft);
 }
+
+/* ============================================================ escritorio: reloj abajo a la izquierda */
+
+.time-dock {
+  position: absolute;
+  left: calc(10px + var(--safe-left));
+  bottom: calc(10px + var(--safe-bottom));
+}
+
+.time-dock:empty {
+  display: none;
+}
+
+.time-dock .time-box {
+  min-height: 52px;
+}
+
+/* La fila de estado dentro de la barra superior: mismas fichas que los recursos */
+.resources {
+  flex-wrap: wrap;
+}
+
+.resources > .status-row {
+  flex-basis: auto;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 2px;
+  margin-left: 4px;
+  padding-left: 8px;
+  border-left: 1px solid rgba(201, 161, 74, 0.25);
+  pointer-events: auto;
+}
+
+.resources > .status-row .status-pill {
+  align-items: center;
+}
+
+.resources > .status-row .status-inner {
+  min-height: 0;
+  padding: 3px 8px;
+  font-size: 17px;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+
+.resources > .status-row .status-pill.warn .status-inner,
+.resources > .status-row .status-pill.mod .status-inner {
+  font-size: 13px;
+  background: linear-gradient(180deg, var(--blood), var(--blood-2));
+  border-radius: 2px;
+}
+
+.resources > .status-row .status-pill.mod-toolDiscount .status-inner {
+  background: linear-gradient(180deg, #2f3a22, #1e2616);
+}
+
+/* ============================================================ volver atras */
+
+.sheet.has-back {
+  padding-top: 56px;
+}
+
+.back-btn {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 14px 0 10px;
+  font: 700 13px var(--font-caps);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold-3);
+  background: linear-gradient(180deg, var(--iron-2), var(--iron));
+  border: 1px solid #000;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px var(--gold-2), 0 2px 0 #000;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.back-btn:hover {
+  color: #fff1c9;
+}
+
+@media (max-width: 760px) {
+  .sheet.has-back {
+    padding-top: 58px;
+  }
+}

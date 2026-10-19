@@ -500,5 +500,6 @@
   "progress.needs": "{list}",
   "progress.unlock.material": "{material} a la venta",
   "market.noneToSell": "No tienes para vender",
-  "market.allReserved": "Todo está reservado para comer: mueve la barra si aun así quieres vender"
+  "market.allReserved": "Todo está reservado para comer: mueve la barra si aun así quieres vender",
+  "panel.back": "Atrás"
 }
