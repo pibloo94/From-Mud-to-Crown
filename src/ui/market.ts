@@ -14,8 +14,17 @@ import type { PanelCtx } from './panels';
 
 export type MarketTab = 'sell' | 'buy';
 
-/** Cantidad elegida en cada barra, para que no se pierda al repintar la ventana. */
+/**
+ * Cantidad que el jugador ha movido a mano en cada barra, para que no se pierda al repintar
+ * la ventana. Solo guarda lo que el jugador toca: si no, cada barra arranca en su valor por
+ * defecto (lo que sobra tras la reserva), que cambia con lo que hay en el granero.
+ */
 const chosen = new Map<string, number>();
+
+/** Al abrir el mercado, todas las barras vuelven a su valor por defecto. */
+export function resetMarketChoices(): void {
+  chosen.clear();
+}
 
 function trendMark(sim: Game, p: ProductId): HTMLElement | null {
   const tr = priceTrend(sim.state, p);
@@ -54,14 +63,16 @@ function slider(opts: {
   const btn = h('button', { class: `btn small ${opts.primary ? 'primary' : ''}` }) as HTMLButtonElement;
   const sync = () => {
     const n = Number(input.value);
-    chosen.set(opts.key, n);
     qtyText.textContent = String(n);
     btn.textContent = opts.label(n, n * opts.unit);
     btn.disabled = n <= 0;
     noteText.textContent = opts.note?.(n) ?? '';
     input.style.setProperty('--fill', `${max ? (n / max) * 100 : 0}%`);
   };
-  input.addEventListener('input', sync);
+  input.addEventListener('input', () => {
+    chosen.set(opts.key, Number(input.value));
+    sync();
+  });
   btn.addEventListener('click', () => {
     const n = Number(input.value);
     if (n <= 0) return;
