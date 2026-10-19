@@ -110,6 +110,13 @@
       "level": 12,
       "branch": true,
       "workshops": 2
+    },
+    {
+      "id": "burgher",
+      "level": 15,
+      "branch": true,
+      "trades": 5,
+      "stall": true
     }
   ],
   "xpPerCoinSold": 0.15,
@@ -145,7 +152,8 @@
       "peasant": 1,
       "freeFarmer": 1.5,
       "landowner": 2.5,
-      "artisan": 1.5
+      "artisan": 1.5,
+      "burgher": 1.5
     }
   },
   "reputation": {

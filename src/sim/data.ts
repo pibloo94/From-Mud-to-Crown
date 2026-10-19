@@ -9,6 +9,7 @@ import buildingsJson from '../data/buildings.json';
 import villagersJson from '../data/villagers.json';
 import materialsJson from '../data/materials.json';
 import workshopsJson from '../data/workshops.json';
+import tradeJson from '../data/trade.json';
 import type { AnimalId, BuildingId, CropId, JobId, MaterialId, ModifierKind, ProductId, RankId, TileKind, WorkshopId } from './types';
 import type { Season } from './calendar';
 
@@ -68,6 +69,10 @@ export interface RankDef {
   branch?: boolean;
   /** Talleres construidos que pide (rama Artesano). */
   workshops?: number;
+  /** Caravanas completadas que pide (rama Burgues). */
+  trades?: number;
+  /** Pide tener puesto propio en el mercado. */
+  stall?: boolean;
   /** Dias de juego minimos (opcional). */
   days?: number;
   /** Reputacion minima ante el baron (opcional). */
@@ -132,6 +137,32 @@ export interface WorkshopDef {
   upgrades: WorkshopUpgradeDef[];
 }
 
+export interface TownDef {
+  unlockLevel: number;
+  /** Dias de ida y vuelta. */
+  days: number;
+  toll: number;
+  escort: number;
+  /** Probabilidad de asalto sin escolta. */
+  danger: number;
+  /** Multiplicador sobre el precio de la villa propia (lo que no aparece se paga a 0,9). */
+  demand: Partial<Record<ProductId, number>>;
+  /** Materiales que vende, con su precio. */
+  sells?: Partial<Record<MaterialId, number>>;
+  rep?: { baron?: number; village?: number };
+}
+
+export interface TradeDef {
+  unlockLevel: number;
+  cart: { cost: number; materials?: MaterialAmounts; capacity: number };
+  maxCarts: { level: number }[];
+  stall: { cost: number; level: number; materials?: MaterialAmounts; priceBonus: number };
+  xpPerCoin: number;
+  burgher: { capacityMult: number; tollMult: number; priceBonus: number };
+  towns: Record<string, TownDef>;
+  robbedFraction: number;
+}
+
 export type MaterialAmounts = Partial<Record<MaterialId, number>>;
 
 export interface MaterialDef {
@@ -194,6 +225,10 @@ export interface EventEffects {
   /** Los cultivos que crecen retroceden estos dias. */
   cropSetback?: number;
   seedVouchers?: number;
+  /** Materiales que se reciben. */
+  materials?: MaterialAmounts;
+  /** Dias que se retrasan las caravanas en camino. */
+  caravanDelay?: number;
   marketBoost?: { mult: number; days: number };
   sellAll?: { product: ProductId; mult: number };
 }
@@ -233,6 +268,8 @@ export const VILLAGERS = villagersJson as VillagersDef;
 export const MATERIALS = materialsJson as Record<MaterialId, MaterialDef>;
 export const WORKSHOPS = workshopsJson as Record<WorkshopId, WorkshopDef>;
 export const WORKSHOP_IDS = Object.keys(WORKSHOPS) as WorkshopId[];
+export const TRADE = tradeJson as unknown as TradeDef;
+export const TOWN_IDS = Object.keys(TRADE.towns);
 
 export const PRODUCT_IDS = Object.keys(PRODUCTS) as ProductId[];
 export const CROP_IDS = Object.keys(CROPS) as CropId[];

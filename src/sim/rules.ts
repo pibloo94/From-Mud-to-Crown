@@ -10,6 +10,7 @@ import { expireModifiers, multiplier } from './modifiers';
 import { carterSells, farmerPlots, feedVillagers, growthPerDay, hasHerder, herderBonus } from './villagers';
 import { isIdle } from './modifiers';
 import { buildableWorkshops, workshopAt, workshopsWork } from './workshops';
+import { caravansReturn } from './trade';
 import { settleSeason } from './taxes';
 import type { AnimalId, BuildingId, CommandResult, CropId, GameState, Notice, Plot, ProductId, Speed, WorkshopId } from './types';
 
@@ -90,6 +91,7 @@ export function advanceDay(state: GameState): Notice[] {
   } else if (state.day % PROGRESSION.priceDays === 0) {
     rollPrices(state);
   }
+  notices.push(...caravansReturn(state));
   const sale = carterSells(state);
   if (sale) notices.push(sale);
   expireModifiers(state);
@@ -145,7 +147,7 @@ export function checkRank(state: GameState): Notice[] {
     if (gained === 'landowner') openEastLands(state);
     // Los rangos que solo piden nivel ya se anuncian en la tarjeta de subida de nivel.
     const def = rankDef(gained);
-    if (!def.days && !def.baron && !def.workshops) continue;
+    if (!def.days && !def.baron && !def.workshops && !def.trades && !def.stall) continue;
     notices.push({ ok: true, msg: 'report.rank', card: 'rank', params: { rank: gained } });
   }
   return notices;

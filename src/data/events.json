@@ -870,5 +870,56 @@
         }
       }
     ]
+  },
+  "ironPeddler": {
+    "category": "offer",
+    "weight": 2,
+    "cooldownDays": 30,
+    "icon": "icon_iron",
+    "minLevel": 8,
+    "options": [
+      {
+        "id": "buy",
+        "cost": {
+          "coins": 45
+        },
+        "effects": {
+          "materials": {
+            "iron": 5
+          }
+        }
+      },
+      {
+        "id": "decline"
+      }
+    ]
+  },
+  "bridgeOut": {
+    "category": "mishap",
+    "weight": 3,
+    "cooldownDays": 30,
+    "icon": "icon_cart",
+    "requires": {
+      "caravans": 1
+    },
+    "options": [
+      {
+        "id": "repair",
+        "cost": {
+          "coins": 15
+        },
+        "effects": {
+          "rep": {
+            "village": 2
+          }
+        }
+      },
+      {
+        "id": "wait",
+        "effects": {
+          "caravanDelay": 2
+        }
+      }
+    ]
   }
 }

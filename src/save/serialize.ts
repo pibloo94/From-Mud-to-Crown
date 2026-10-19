@@ -7,7 +7,7 @@ import { buildingStat, storageCapacity, storageUsed } from '../sim/buildings';
 import { addVillager, beds } from '../sim/villagers';
 
 export const SAVE_FORMAT = 'from-mud-to-crown-save';
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;
@@ -79,6 +79,11 @@ export function migrate(state: Record<string, unknown>, from: number): GameState
     s.villagers = (s.villagers as Record<string, unknown>[]).map((v) => ({ ...v, crop: 'auto' }));
   }
   if (from < 5) s = migrateV5(s);
+  if (from < 6) {
+    // v5 -> v6 (fase 3b): carretas, caravanas, puesto en el mercado y estadisticas de comercio.
+    s = { ...s, carts: 0, caravans: [], nextCaravanId: 1, stall: false };
+    s.stats = { ...s.stats, trades: 0, tradeEarned: 0 };
+  }
   return s as GameState;
 }
 

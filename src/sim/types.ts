@@ -10,7 +10,7 @@ export type JobId = 'farmer' | 'herder' | 'carter' | 'artisan';
 /** Talleres que transforman productos: se construyen en los solares del mapa. */
 export type WorkshopId = 'mill' | 'bakery' | 'cheesery';
 /** Rangos de la escalera principal y titulos de rama (Artesano), que se suman sin sustituir el rango. */
-export type RankId = 'peasant' | 'freeFarmer' | 'landowner' | 'artisan';
+export type RankId = 'peasant' | 'freeFarmer' | 'landowner' | 'artisan' | 'burgher';
 export type Speed = 0 | 1 | 2 | 3;
 
 export type TileKind =
@@ -68,6 +68,20 @@ export interface Villager {
   crop: CropId | 'auto' | null;
   /** Solo artesanos: taller en el que trabaja. */
   workshop?: WorkshopId | null;
+}
+
+/** Caravana de comercio camino de otra villa. */
+export interface Caravan {
+  id: number;
+  town: string;
+  cargo: Partial<Record<ProductId, number>>;
+  /** Materiales comprados en la villa: llegan con la caravana. */
+  buy: Partial<Record<MaterialId, number>>;
+  escort: boolean;
+  /** Monedas que traera si no la asaltan (precios fijados al salir). */
+  value: number;
+  departDay: number;
+  returnDay: number;
 }
 
 /** Taller construido en un solar. */
@@ -130,6 +144,12 @@ export interface GameState {
   /** Titulos de rama conseguidos (Artesano...). */
   titles: RankId[];
   workshops: Partial<Record<WorkshopId, Workshop>>;
+  /** Carretas para mandar caravanas a otras villas. */
+  carts: number;
+  caravans: Caravan[];
+  nextCaravanId: number;
+  /** Puesto propio en el mercado de la villa. */
+  stall: boolean;
   /** Parcelas compradas, para calcular el precio de la siguiente. */
   landBought: number;
   /** Parcelas arrendadas en las tierras del este. */
@@ -154,7 +174,7 @@ export interface GameState {
   events: EventsState;
   /** Semilla del generador aleatorio: la partida es reproducible y se guarda con ella. */
   rng: number;
-  stats: { harvested: number; earned: number; seasonEarned: number; seasonFood: number };
+  stats: { harvested: number; earned: number; seasonEarned: number; seasonFood: number; trades: number; tradeEarned: number };
 }
 
 /** Resultado de una orden del jugador; `msg` es una clave de traduccion. */
@@ -166,7 +186,7 @@ export interface CommandResult {
 
 /** Aviso que la simulacion genera por si sola al pasar los dias. `card` pide mostrarlo como tarjeta. */
 export interface Notice extends CommandResult {
-  card?: 'season' | 'rank' | 'levelup';
+  card?: 'season' | 'rank' | 'levelup' | 'caravan';
   /** Baldosa donde ocurrio (p. ej. una cosecha de los labradores), para mostrarlo sobre el mapa. */
   tile?: { x: number; y: number };
 }
