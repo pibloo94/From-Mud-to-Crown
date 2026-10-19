@@ -1202,6 +1202,62 @@ def icon_cheese() -> str:
     return svg(32, 32, b)
 
 
+# ---------------------------------------------------------------- fase 3b: comercio
+
+def cart_sprite() -> str:
+    """Carreta de dos ruedas cargada de sacos, con lona y varas."""
+    w, h = 110, 84
+    b = ellipse(56, 76, 40, 8, PAL["shadow"])
+    # varas
+    b += line((70, 58), (104, 44), PAL["wood_dark"], 3) + line((62, 62), (98, 48), PAL["wood_dark"], 3)
+    # caja
+    b += poly([(18, 52), (74, 66), (74, 50), (18, 36)], PAL["wood"], PAL["wood_dark"], 1.2)
+    b += poly([(74, 66), (86, 58), (86, 42), (74, 50)], PAL["wood_shade"], PAL["wood_dark"], 1.2)
+    for k in range(1, 4):
+        b += line((18, 36 + k * 4), (74, 50 + k * 4), PAL["wood_dark"], 0.8, op=0.7)
+    # carga con lona
+    b += '<path d="M20 38 C24 18 70 24 84 42 L74 50 L18 36 Z" fill="#c2a676" stroke="#5c4228" stroke-width="1.1"/>'
+    b += '<path d="M40 30 C44 24 60 26 66 34" fill="none" stroke="#8a7350" stroke-width="1" opacity="0.8"/>'
+    b += ellipse(30, 30, 7, 6, "#a68a5a", PAL["wood_dark"], 0.9)
+    b += line((26, 38), (78, 48), PAL["clay_dark"], 1.4)
+    # rueda
+    b += ellipse(50, 64, 13, 13, "none", PAL["wood_dark"], 3.2)
+    b += ellipse(50, 64, 13, 13, "none", PAL["iron"], 1)
+    for a in range(0, 180, 45):
+        r = math.radians(a)
+        b += line((50 - math.cos(r) * 12, 64 - math.sin(r) * 12), (50 + math.cos(r) * 12, 64 + math.sin(r) * 12), PAL["wood_dark"], 1.6)
+    b += ellipse(50, 64, 2.5, 2.5, PAL["iron"])
+    return svg(w, h, b)
+
+
+def stall_sprite() -> str:
+    """Puesto propio: mostrador con toldo verde y ocre y un pendon."""
+    w, h = 110, 110
+    b = ellipse(55, 96, 40, 12, PAL["shadow"])
+    b += poly([(18, 78), (55, 96), (92, 78), (92, 66), (55, 84), (18, 66)], PAL["wood"], PAL["wood_dark"], 1.2)
+    b += poly([(18, 66), (55, 84), (92, 66), (55, 50)], "#5a3e24", PAL["wood_dark"], 1)
+    for (x, y, c) in ((38, 66, "#e0b54e"), (52, 70, "#b8742f"), (66, 66, "#e3d7bd"), (48, 62, "#7d9a5c")):
+        b += ellipse(x, y, 6, 3.6, c, PAL["wood_dark"], 0.8)
+    for x in (20, 90):
+        b += line((x, 70), (x, 30), PAL["wood_dark"], 2.4)
+    b += poly([(12, 34), (55, 18), (98, 34), (55, 50)], "#3d5a2a", PAL["wood_dark"], 1.2)
+    for k in range(4):
+        f = (k + 0.5) / 4
+        b += line((12 + 43 * f, 34 - 16 * f), (12 + 43 * f + 43 * 0.0, 34 - 16 * f + 16), "#b48a3c", 5, "butt", op=0.85)
+    b += line((55, 18), (55, 4), PAL["wood_dark"], 1.8)
+    b += poly([(55, 5), (70, 9), (55, 14)], PAL["oxblood"], PAL["oxblood_dark"], 0.8)
+    return svg(w, h, b)
+
+
+def icon_cart() -> str:
+    b = poly([(3, 18), (22, 18), (22, 10), (3, 10)], PAL["wood"], PAL["wood_dark"], 1)
+    b += '<path d="M4 11 C6 4 18 4 21 11 Z" fill="#c2a676" stroke="#5c4228" stroke-width="1"/>'
+    b += line((22, 16), (30, 13), PAL["wood_dark"], 2)
+    b += ellipse(12, 22, 6, 6, "none", PAL["wood_dark"], 2.4)
+    b += line((6, 22), (18, 22), PAL["wood_dark"], 1.2) + line((12, 16), (12, 28), PAL["wood_dark"], 1.2)
+    return svg(32, 32, b)
+
+
 def bubble() -> str:
     """Escudo de hierro con borde dorado sobre el que se pinta el producto."""
     defs = lin_grad("b", PAL["iron_light"], PAL["iron"])
@@ -1235,6 +1291,9 @@ def main() -> None:
         "boundary.svg": boundary_stone(),
         "tenant.svg": tenant(),
         "site.svg": site_marker(),
+        "cart.svg": cart_sprite(),
+        "stall.svg": stall_sprite(),
+        "icon_cart.svg": icon_cart(),
         "mill.svg": windmill(),
         "bakery.svg": bakery(),
         "cheesery.svg": cheesery(),

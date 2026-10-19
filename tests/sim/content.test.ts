@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import es from '../../src/i18n/es.json';
 import en from '../../src/i18n/en.json';
-import { CROPS, CROP_IDS, PRODUCTS, ANIMALS, EVENTS, PROGRESSION, BUILDINGS, VILLAGERS, JOB_IDS, MATERIAL_IDS, WORKSHOPS } from '../../src/sim/data';
+import { CROPS, CROP_IDS, PRODUCTS, ANIMALS, EVENTS, PROGRESSION, BUILDINGS, VILLAGERS, JOB_IDS, MATERIAL_IDS, WORKSHOPS, TOWN_IDS } from '../../src/sim/data';
 import { toScreen, toTile } from '../../src/render/iso';
 
 describe('traducciones', () => {
@@ -60,6 +60,8 @@ describe('textos de la aldea', () => {
         for (const up of def.upgrades) expect(dict[`wsUpgrade.${w}.${up.id}`], `wsUpgrade.${w}.${up.id}`).toBeTruthy();
       }
       for (const st of ['working', 'noArtisan', 'noInputs', 'full', 'idle']) expect(dict[`workshop.status.${st}`]).toBeTruthy();
+      for (const town of TOWN_IDS) expect(dict[`town.${town}`], `town.${town}`).toBeTruthy();
+      for (const pr of ['locked', 'noCart', 'empty', 'tooMuch', 'notEnough', 'notSold', 'coins']) expect(dict[`trade.problem.${pr}`]).toBeTruthy();
     }
   });
 });

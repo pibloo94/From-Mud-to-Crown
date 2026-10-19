@@ -6,6 +6,7 @@ import { CROPS, PROGRESSION } from '../sim/data';
 import { canExpandAt, canLeaseAt, cropStage, plotCount } from '../sim/rules';
 import { visualStage } from '../sim/buildings';
 import { workshopAt } from '../sim/workshops';
+import { idleCarts } from '../sim/trade';
 import { hasFeature, levelDef } from '../sim/progress';
 import { dateFromDay, type Season } from '../sim/calendar';
 import { plotKey } from '../sim/state';
@@ -22,7 +23,7 @@ const SPRITES = [
   'cabbage_0', 'cabbage_1', 'cabbage_2', 'cabbage_3',
   'house_1', 'house_2', 'house_3', 'granary_1', 'granary_2', 'granary_3', 'coop_1', 'coop_2', 'coop_3', 'pen_shed',
   'market', 'well', 'rocks', 'tree_a', 'tree_b', 'wild', 'boundary', 'tenant',
-  'site', 'mill', 'bakery', 'cheesery', 'villager_artisan',
+  'site', 'mill', 'bakery', 'cheesery', 'villager_artisan', 'cart', 'stall',
   'cow', 'chicken', 'villager_farmer', 'villager_herder', 'villager_carter',
   'bubble', 'icon_egg', 'icon_milk', 'icon_wheat', 'icon_coin',
 ];
@@ -231,9 +232,20 @@ export class FarmScene extends Phaser.Scene {
         // Mojones del baron en la linde de sus tierras
         if (tile.x === PROGRESSION.lands.eastFrom && tile.y % 2 === 0) this.img('boundary', sx - TILE_W / 4, sy + TILE_H * 0.75, 0.5, 1, depthOf(tile.x, tile.y, 3));
         break;
-      case 'market':
+      case 'market': {
         this.img('market', sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 5));
+        const st = this.sim.state;
+        // Puesto propio a un lado del mercado y carreta lista para salir al otro.
+        if (st.stall) {
+          const p = toScreen(tile.x - 1, tile.y);
+          this.img('stall', p.sx, p.sy + TILE_H, 0.5, 1, depthOf(tile.x - 1, tile.y, 5));
+        }
+        if (idleCarts(st) > 0) {
+          const p = toScreen(tile.x + 1, tile.y);
+          this.img('cart', p.sx, p.sy + TILE_H - 6, 0.5, 1, depthOf(tile.x + 1, tile.y, 4));
+        }
         break;
+      }
       case 'well':
         this.img('well', sx, bottom - 4, 0.5, 1, depthOf(tile.x, tile.y, 5));
         break;

@@ -2280,3 +2280,148 @@ button.level-box:hover .rank-text {
     min-width: 84px;
   }
 }
+
+/* ============================================================ comercio */
+
+.town-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 6px;
+  margin: 6px 0 10px;
+}
+
+.town {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 64px;
+  padding: 8px 10px;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  background: rgba(255, 245, 220, 0.35);
+  border: 1px solid var(--parch-3);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.town b {
+  font: 700 15px var(--font-caps);
+}
+
+.town small {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.town.active {
+  background: linear-gradient(180deg, var(--iron-2), var(--iron));
+  border-color: #000;
+  color: var(--gold-3);
+}
+
+.town.active small,
+.town.active .town-wants {
+  color: var(--bone-dim);
+}
+
+.town:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.town-wants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font: 700 12px var(--font-caps);
+  color: var(--ink-soft);
+}
+
+.caravan-form .btn.primary {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.load-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 8px;
+  font: 700 14px var(--font-caps);
+}
+
+.mini-bar.load {
+  flex: 1 1 auto;
+  width: auto;
+  height: 8px;
+}
+
+.mini-bar.load.over .mini-fill {
+  background: linear-gradient(90deg, var(--blood), #b23a24);
+}
+
+.cargo-row {
+  display: grid;
+  grid-template-columns: minmax(0, 150px) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid rgba(110, 80, 40, 0.25);
+}
+
+.cargo-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font: 700 14px var(--font-caps);
+  color: var(--ink);
+}
+
+.cargo-name > span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cargo-name small {
+  font: italic 500 12px var(--font-body);
+  color: var(--ink-soft);
+}
+
+.escort-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 10px 0 4px;
+}
+
+.escort-line small {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.escort-line .job-btn {
+  flex: none;
+  min-width: 150px;
+  min-height: 44px;
+}
+
+.caravan-summary .acct-row {
+  font-size: 15px;
+  padding: 5px 2px;
+}
+
+@media (max-width: 760px) {
+  .cargo-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding-top: 6px;
+  }
+  .escort-line {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

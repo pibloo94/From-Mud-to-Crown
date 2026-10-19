@@ -207,6 +207,11 @@ export class Game {
     this.report({ result: materials.buyMissing(this.state, need), levelUps: [] });
   }
 
+  /** Compra los materiales que falten de una lista (carreta, puesto...). */
+  buyMaterialsFor(need: Partial<Record<MaterialId, number>> | undefined): void {
+    this.report({ result: materials.buyMissing(this.state, need), levelUps: [] });
+  }
+
   buyCart(): void {
     const result = trade.buyCart(this.state);
     if (result.ok) this.emit({ type: 'mapChanged' });
