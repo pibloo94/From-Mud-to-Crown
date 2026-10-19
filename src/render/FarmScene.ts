@@ -5,6 +5,7 @@ import type { Game, GameEvent } from '../sim/game';
 import { CROPS, PROGRESSION } from '../sim/data';
 import { canExpandAt, canLeaseAt, cropStage, plotCount } from '../sim/rules';
 import { visualStage } from '../sim/buildings';
+import { workshopAt } from '../sim/workshops';
 import { hasFeature, levelDef } from '../sim/progress';
 import { dateFromDay, type Season } from '../sim/calendar';
 import { plotKey } from '../sim/state';
@@ -21,6 +22,7 @@ const SPRITES = [
   'cabbage_0', 'cabbage_1', 'cabbage_2', 'cabbage_3',
   'house_1', 'house_2', 'house_3', 'granary_1', 'granary_2', 'granary_3', 'coop_1', 'coop_2', 'coop_3', 'pen_shed',
   'market', 'well', 'rocks', 'tree_a', 'tree_b', 'wild', 'boundary', 'tenant',
+  'site', 'mill', 'bakery', 'cheesery', 'villager_artisan',
   'cow', 'chicken', 'villager_farmer', 'villager_herder', 'villager_carter',
   'bubble', 'icon_egg', 'icon_milk', 'icon_wheat', 'icon_coin',
 ];
@@ -217,6 +219,14 @@ export class FarmScene extends Phaser.Scene {
       case 'tenant':
         this.img('tenant', sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 1));
         break;
+      case 'site':
+        this.img('site', sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 1));
+        break;
+      case 'workshop': {
+        const id = workshopAt(this.sim.state, tile.x, tile.y);
+        if (id) this.img(id, sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 5));
+        break;
+      }
       case 'wild':
         // Mojones del baron en la linde de sus tierras
         if (tile.x === PROGRESSION.lands.eastFrom && tile.y % 2 === 0) this.img('boundary', sx - TILE_W / 4, sy + TILE_H * 0.75, 0.5, 1, depthOf(tile.x, tile.y, 3));
@@ -636,7 +646,7 @@ export class FarmScene extends Phaser.Scene {
     const s = this.sim.state;
     const tile = x >= 0 && y >= 0 && x < s.map.width && y < s.map.height ? s.map.tiles[y * s.map.width + x] : undefined;
     const expandable = tile?.kind === 'grass' && ((hasFeature(s, 'buyLand') && canExpandAt(s, x, y)) || canLeaseAt(s, x, y));
-    if (!tile || (!expandable && !['soil', 'coop', 'pen', 'market', 'house', 'granary', 'tenant'].includes(tile.kind))) {
+    if (!tile || (!expandable && !['soil', 'coop', 'pen', 'market', 'house', 'granary', 'tenant', 'site', 'workshop'].includes(tile.kind))) {
       this.input.setDefaultCursor('default');
       return;
     }

@@ -69,7 +69,7 @@ export function upgradeWorkshop(state: GameState, id: WorkshopId): WorkOutcome {
   payMaterials(state, up.materials);
   w.level++;
   const levelUps = addXp(state, 15);
-  return { result: { ok: true, msg: 'msg.workshopUpgraded', params: { workshop: id, upgrade: up.id, cost: up.cost } }, levelUps };
+  return { result: { ok: true, msg: 'msg.workshopUpgraded', params: { workshop: id, wsUpgrade: `${id}.${up.id}`, cost: up.cost } }, levelUps };
 }
 
 /** Tandas por dia que hace el taller con un artesano sin herramienta. */

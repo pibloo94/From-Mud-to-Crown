@@ -1033,6 +1033,175 @@ def icon_iron() -> str:
     return svg(32, 32, b)
 
 
+# ---------------------------------------------------------------- fase 3a: talleres
+
+def site_marker() -> str:
+    """Solar: estacas con cuerda, tablones apilados y una piedra marcada."""
+    rnd = random.Random(91)
+    w, h = TW, 92
+    oy = h - TH
+    body = poly(diamond(oy=oy), "#6b5a3a", None, extra=' opacity="0.35"')
+    corners = [tile_point(0.18, 0.18, oy), tile_point(0.82, 0.18, oy), tile_point(0.82, 0.82, oy), tile_point(0.18, 0.82, oy)]
+    for i in range(4):
+        a, c = corners[i], corners[(i + 1) % 4]
+        body += line((a[0], a[1] - 12), (c[0], c[1] - 12), "#c2a676", 1.1, op=0.9)
+    for (x, y) in corners:
+        body += line((x, y), (x, y - 16), PAL["wood_dark"], 2.6)
+        body += line((x - 1, y - 16), (x + 1, y - 18), PAL["wood"], 2)
+    # tablones y sillares esperando
+    px, py = tile_point(0.42, 0.55, oy)
+    for k in range(3):
+        body += poly([(px - 16, py - k * 4), (px + 10, py + 9 - k * 4), (px + 14, py + 7 - k * 4), (px - 12, py - 2 - k * 4)], rnd.choice([PAL["wood"], "#7a5a36"]), PAL["wood_dark"], 0.8)
+    sx, sy = tile_point(0.62, 0.38, oy)
+    body += poly([(sx - 8, sy), (sx + 6, sy + 5), (sx + 6, sy - 5), (sx - 8, sy - 10)], PAL["stone"], PAL["mortar"], 0.8)
+    body += poly([(sx + 6, sy + 5), (sx + 12, sy + 2), (sx + 12, sy - 8), (sx + 6, sy - 5)], PAL["stone_dark"], PAL["mortar"], 0.8)
+    return svg(w, h, body)
+
+
+def windmill() -> str:
+    """Molino de viento de torre de piedra con aspas de lona."""
+    rnd = random.Random(101)
+    w, h = 170, 230
+    cx, by = w / 2, h - 6
+    body = ellipse(cx, h - 26, 54, 20, PAL["shadow"])
+    # torre troncoconica de piedra
+    bw, tw_, th = 34, 22, 110
+    tower = f'M{cx - bw},{by - 18} L{cx - tw_},{by - 18 - th} L{cx + tw_},{by - 18 - th} L{cx + bw},{by - 18} Q{cx},{by + 2} {cx - bw},{by - 18} Z'
+    body += f'<path d="{tower}" fill="{PAL["stone"]}" stroke="{PAL["mortar"]}" stroke-width="1.2"/>'
+    body += f'<path d="M{cx + 4},{by - 8} L{cx + tw_ * 0.4},{by - 18 - th} L{cx + tw_},{by - 18 - th} L{cx + bw},{by - 18} Q{cx + 20},{by - 6} {cx + 4},{by - 8} Z" fill="{PAL["stone_dark"]}" opacity="0.8"/>'
+    for r in range(7):
+        y = by - 26 - r * 15
+        f = r / 7
+        half = bw - (bw - tw_) * f
+        body += line((cx - half + 2, y), (cx + half - 2, y + 3), PAL["mortar"], 0.8, op=0.6)
+        for k in range(3):
+            x = cx - half + 6 + k * half * 0.6 + rnd.uniform(-2, 2)
+            body += line((x, y), (x, y - 13), PAL["mortar"], 0.6, op=0.4)
+    body += poly([(cx - 6, by - 10), (cx + 8, by - 8), (cx + 8, by - 34), (cx - 6, by - 36)], PAL["wood_shade"], PAL["timber"], 1.2)
+    body += poly([(cx - 14, by - 74), (cx - 4, by - 73), (cx - 4, by - 86), (cx - 14, by - 87)], "#e2a54b", PAL["timber"], 1)
+    # caperuza de tablillas
+    top = by - 18 - th
+    body += f'<path d="M{cx - tw_ - 6},{top + 4} Q{cx},{top - 44} {cx + tw_ + 6},{top + 4} Z" fill="{PAL["shingle"]}" stroke="{PAL["wood_dark"]}" stroke-width="1.2"/>'
+    body += f'<path d="M{cx + 2},{top - 18} Q{cx + 16},{top - 14} {cx + tw_ + 6},{top + 4} L{cx + 4},{top + 4} Z" fill="{PAL["shingle_shade"]}" opacity="0.9"/>'
+    # aspas en aspa, de madera con lona
+    hub = (cx - 2, top - 6)
+    for ang in (35, 125, 215, 305):
+        a = math.radians(ang)
+        tip = (hub[0] + math.cos(a) * 74, hub[1] + math.sin(a) * 74 * 0.92)
+        body += line(hub, tip, PAL["wood_dark"], 3)
+        # lona a un lado del brazo
+        n = (-math.sin(a) * 11, math.cos(a) * 11)
+        p0 = (hub[0] + math.cos(a) * 16, hub[1] + math.sin(a) * 16 * 0.92)
+        sail = [p0, tip, (tip[0] + n[0], tip[1] + n[1]), (p0[0] + n[0], p0[1] + n[1])]
+        body += poly(sail, "#d8c39a", PAL["wood_dark"], 0.9, ' opacity="0.92"')
+        for k in range(1, 5):
+            q0 = lerp(p0, tip, k / 5)
+            body += line(q0, (q0[0] + n[0], q0[1] + n[1]), PAL["wood_shade"], 0.7, op=0.8)
+    body += ellipse(hub[0], hub[1], 5, 5, PAL["iron"], PAL["iron_light"], 1)
+    return svg(w, h, body)
+
+
+def bakery() -> str:
+    """Horno del pueblo: casa de piedra con horno abombado y humo."""
+    rnd = random.Random(111)
+    w, h = 160, 170
+    cx, by = w / 2, h - 4
+    defs = lin_grad("rl", PAL["thatch"], PAL["thatch_shade"]) + lin_grad("rr", PAL["thatch_shade"], "#4f3a18")
+    body = ellipse(cx, h - 26, 60, 22, PAL["shadow"])
+    box, p = iso_box(2 * cx, by, 46, 23, 40, PAL["stone"], PAL["stone_dark"], PAL["mortar"], 1.2)
+    body += box
+    body += stone_wall_face(p["l"], p["b"], 40, rnd, 4) + stone_wall_face(p["b"], p["r"], 40, rnd, 4)
+    # boca del horno con brasas
+    m = lerp(p["l"], p["b"], 0.5)
+    body += f'<path d="M{m[0] - 12},{m[1] - 4} L{m[0] - 12},{m[1] - 16} Q{m[0]},{m[1] - 30} {m[0] + 10},{m[1] - 10} L{m[0] + 10},{m[1] + 2} Z" fill="#1a110a" stroke="{PAL["mortar"]}" stroke-width="1.4"/>'
+    body += ellipse(m[0] - 1, m[1] - 6, 7, 3.5, "#d9622b", op=0.9)
+    body += ellipse(m[0] - 1, m[1] - 7, 4, 2, "#f2b347")
+    body += door_on(p["b"], p["r"], 0.25, 0.5, 26)
+    body += window_on(p["b"], p["r"], 0.7, 24, 8)
+    roof, apex, (L, B, R) = hip_roof(p, 0.2, 36, "url(#rl)", "url(#rr)", PAL["thatch_line"], PAL["thatch_line"], 8)
+    body += roof + line(L, B, PAL["thatch_shade"], 3) + line(B, R, "#4f3a18", 3)
+    # chimenea gruesa con humo
+    c = (apex[0] + 14, apex[1] + 18)
+    body += chimney(c, 1.3)
+    for k, (dx, r) in enumerate(((2, 6), (8, 8), (4, 10))):
+        body += ellipse(c[0] + 9 + dx, c[1] - 34 - k * 13, r, r * 0.8, "#8f8a80", op=0.35 - k * 0.08)
+    # panes en una tabla junto a la puerta
+    t0 = lerp(p["b"], p["r"], 0.55)
+    body += poly([(t0[0] + 4, t0[1] + 6), (t0[0] + 30, t0[1] - 7), (t0[0] + 30, t0[1] - 3), (t0[0] + 4, t0[1] + 10)], PAL["wood"], PAL["wood_dark"], 0.8)
+    for k in range(3):
+        bx, bym = t0[0] + 9 + k * 8, t0[1] + 3 - k * 4
+        body += ellipse(bx, bym, 5, 3, "#b0702f", PAL["clay_dark"], 0.7)
+    return svg(w, h, body, defs)
+
+
+def cheesery() -> str:
+    """Queseria: casa de entramado con quesos curandose bajo un porche."""
+    rnd = random.Random(121)
+    w, h = 160, 168
+    cx, by = w / 2, h - 4
+    defs = lin_grad("wl", PAL["plaster"], PAL["plaster_shade"]) + lin_grad("wr", PAL["plaster_shade"], "#7d6a4b")
+    body = ellipse(cx, h - 26, 60, 22, PAL["shadow"])
+    box, p = iso_box(2 * cx, by, 46, 23, 44, "url(#wl)", "url(#wr)", PAL["timber"], 1.2)
+    body += box
+    body += stone_band(p["l"], p["b"], 12, rnd) + stone_band(p["b"], p["r"], 12, rnd)
+    body += timber_frame(p, 12, 44, 2.6)
+    body += door_on(p["b"], p["r"], 0.15, 0.38, 26)
+    body += window_on(p["l"], p["b"], 0.35, 28, 9)
+    roof, apex, (L, B, R) = hip_roof(p, 0.22, 34, PAL["shingle"], PAL["shingle_shade"], PAL["wood_dark"], PAL["wood_dark"], 8)
+    body += roof
+    # porche con estante de quesos
+    q0, q1 = lerp(p["b"], p["r"], 0.5), lerp(p["b"], p["r"], 0.95)
+    for q in (q0, q1):
+        body += line((q[0] + 10, q[1] + 5), (q[0] + 10, q[1] - 30), PAL["wood_dark"], 2.4)
+    body += poly([(q0[0] - 2, q0[1] - 32), (q1[0] + 4, q1[1] - 32), (q1[0] + 16, q1[1] - 24), (q0[0] + 10, q0[1] - 24)], PAL["shingle_shade"], PAL["wood_dark"], 1)
+    for shelf in (6, 18):
+        s0, s1 = (q0[0] + 4, q0[1] - shelf + 2), (q1[0] + 10, q1[1] - shelf + 2)
+        body += line(s0, s1, PAL["wood"], 2)
+        for k in range(3):
+            c = lerp(s0, s1, 0.2 + k * 0.3)
+            body += ellipse(c[0], c[1] - 3, 5, 3, "#e0b54e", "#9a6a1e", 0.8)
+            body += ellipse(c[0], c[1] - 4.5, 5, 1.6, "#efd27a")
+    return svg(w, h, body, defs)
+
+
+def villager_artisan() -> str:
+    w, h = 28, 46
+    b = ellipse(14, 43, 8, 2.4, PAL["shadow"])
+    b += line((11, 34), (11, 42), PAL["ink"], 2.6) + line((17, 34), (17, 42), PAL["ink"], 2.6)
+    b += f'<path d="M6 36 C6 24 8 19 14 19 C20 19 22 24 22 36 Z" fill="#4c4f5a" stroke="{PAL["timber"]}" stroke-width="1"/>'
+    b += f'<path d="M9 23 L19 23 L19 37 L9 37 Z" fill="#c9b48a" stroke="{PAL["timber"]}" stroke-width="0.8"/>'
+    b += ellipse(14, 14, 4.6, 5, "#d8b48a", PAL["timber"], 0.8)
+    b += f'<path d="M9 12 C9 7 19 7 19 12 Z" fill="#7a1d14"/>'
+    b += line((22, 28), (25, 18), PAL["wood_dark"], 1.8)
+    b += poly([(22.5, 15), (28, 17), (27, 20.5), (21.5, 18.5)], PAL["iron_light"], PAL["iron"], 0.7)
+    return svg(w, h, b)
+
+
+def icon_flour() -> str:
+    b = '<path d="M9 9 C7 14 6 22 8 28 L24 28 C26 22 25 14 23 9 Z" fill="#e3d7bd" stroke="#8a7350" stroke-width="1.1"/>'
+    b += '<path d="M9 9 C12 6 20 6 23 9 C20 11 12 11 9 9 Z" fill="#cdbf9f" stroke="#8a7350" stroke-width="1"/>'
+    b += line((10, 11), (22, 11), PAL["clay_dark"], 1.6)
+    b += f'<path d="M13 17 L19 17 M16 14 L16 22" stroke="{PAL["oxblood"]}" stroke-width="1.6"/>'
+    return svg(32, 32, b)
+
+
+def icon_bread() -> str:
+    b = '<path d="M4 20 C4 11 12 8 16 8 C20 8 28 11 28 20 C28 24 24 25 16 25 C8 25 4 24 4 20 Z" fill="#b8742f" stroke="#5c331d" stroke-width="1.2"/>'
+    b += '<path d="M6 19 C8 13 13 11 16 11 C19 11 24 13 26 19" fill="none" stroke="#d99a4e" stroke-width="2" opacity="0.7"/>'
+    for x in (11, 16, 21):
+        b += line((x - 2, 13), (x + 2, 18), "#5c331d", 1.4)
+    return svg(32, 32, b)
+
+
+def icon_cheese() -> str:
+    b = '<path d="M3 21 L18 9 L29 15 L29 23 L14 27 L3 23 Z" fill="#e0b54e" stroke="#7d5b1b" stroke-width="1.1"/>'
+    b += '<path d="M3 21 L14 25 L29 15 L18 9 Z" fill="#efd27a" stroke="#7d5b1b" stroke-width="0.9"/>'
+    b += '<path d="M14 25 L14 27" stroke="#7d5b1b" stroke-width="1"/>'
+    for (x, y, r) in ((19, 21, 1.6), (24, 20, 1.2), (9, 22, 1.1), (20, 14, 1.2)):
+        b += ellipse(x, y, r, r * 0.7, "#b8892e")
+    return svg(32, 32, b)
+
+
 def bubble() -> str:
     """Escudo de hierro con borde dorado sobre el que se pinta el producto."""
     defs = lin_grad("b", PAL["iron_light"], PAL["iron"])
@@ -1065,6 +1234,14 @@ def main() -> None:
         "wild.svg": wild(),
         "boundary.svg": boundary_stone(),
         "tenant.svg": tenant(),
+        "site.svg": site_marker(),
+        "mill.svg": windmill(),
+        "bakery.svg": bakery(),
+        "cheesery.svg": cheesery(),
+        "villager_artisan.svg": villager_artisan(),
+        "icon_flour.svg": icon_flour(),
+        "icon_bread.svg": icon_bread(),
+        "icon_cheese.svg": icon_cheese(),
         "market.svg": market(),
         "well.svg": well(),
         "rocks.svg": rocks(),

@@ -15,20 +15,25 @@ import {
   PRODUCT_IDS,
   PROGRESSION,
   VILLAGERS,
+  WORKSHOPS,
+  WORKSHOP_IDS,
   type BuildingStats,
   type MaterialAmounts,
+  type RankDef,
   type UpgradeDef,
 } from '../sim/data';
 import { hasMaterials, materialsList, materialsPrice, missingMaterials } from '../sim/materials';
 import { eatingOrder, reserved, reserveTotal } from '../sim/pantry';
 import { cropUnlocked } from '../sim/progress';
 import { plantableCrops } from '../sim/rules';
+import { builtWorkshops } from '../sim/workshops';
+import { workshopProduct, workshopTreeSection } from './workshops';
 import { buildingStat, nextUpgrade, storageCapacity, storageUsed } from '../sim/buildings';
 import { beds, dailyFood, efficiency, farmerPlots, foodDays, freeBeds, hireCost, toolCost, toolMaterials } from '../sim/villagers';
 import { activeModifiers } from '../sim/modifiers';
-import { levelDef, meetsRank, unlocksAt } from '../sim/progress';
+import { branchRanks, hasRank, levelDef, mainRanks, unlocksAt, workshopCount } from '../sim/progress';
 import { buildingOf } from '../sim/rules';
-import type { AnimalId, BuildingId, CropId, JobId, Modifier, RankId, Villager } from '../sim/types';
+import type { AnimalId, BuildingId, CropId, JobId, Modifier, RankId, Villager, WorkshopId } from '../sim/types';
 import { t } from '../i18n/i18n';
 import { h, icon } from './dom';
 
@@ -42,6 +47,7 @@ export interface PanelCtx {
   openBuilding: (b: BuildingId, tab?: BuildingTab) => void;
   openProgress: (tab?: ProgressTab) => void;
   openMarket: (tab?: 'sell' | 'buy') => void;
+  openWorkshop: (id: WorkshopId) => void;
 }
 
 export const BUILDING_ICON: Record<BuildingId, string> = {
@@ -51,7 +57,7 @@ export const BUILDING_ICON: Record<BuildingId, string> = {
   pen: 'icon_milk',
 };
 
-const pct = (v: number) => Math.round(v * 100);
+export const pct = (v: number) => Math.round(v * 100);
 
 /** Texto de lo que aporta una mejora: "+1 camas · −10 % de comida". */
 export function statsLine(fx: BuildingStats): string {
@@ -64,7 +70,7 @@ export function statsLine(fx: BuildingStats): string {
   return parts.join(' · ');
 }
 
-function tabs<T extends string>(items: { id: T; label: string; icon?: string }[], current: T, onPick: (id: T) => void): HTMLElement {
+export function tabs<T extends string>(items: { id: T; label: string; icon?: string }[], current: T, onPick: (id: T) => void): HTMLElement {
   return h(
     'div',
     { class: 'tabs', role: 'tablist' },
@@ -120,7 +126,7 @@ export function materialChips(ctx: PanelCtx, need: MaterialAmounts = {}, check =
 }
 
 /** Boton para comprar de una vez lo que falta (o nada si no falta). */
-function buyMissingButton(ctx: PanelCtx, need: MaterialAmounts | undefined, onBuy: () => void): HTMLElement | null {
+export function buyMissingButton(ctx: PanelCtx, need: MaterialAmounts | undefined, onBuy: () => void): HTMLElement | null {
   const missing = missingMaterials(ctx.sim.state, need);
   if (Object.keys(missing).length === 0) return null;
   const cost = materialsPrice(missing);
@@ -253,6 +259,7 @@ function jobDesc(job: JobId): string {
   const j = VILLAGERS.jobs;
   if (job === 'farmer') return t('job.farmer.desc', { n: pct(j.farmer.growthBonus) });
   if (job === 'herder') return t('job.herder.desc', { n: pct(j.herder.animalBonus) });
+  if (job === 'artisan') return t('job.artisan.desc');
   return t('job.carter.desc', { days: j.carter.sellEvery, rate: pct(j.carter.priceRate) });
 }
 
@@ -332,7 +339,26 @@ function villagerCard(ctx: PanelCtx, v: Villager): HTMLElement {
     ),
     h('small', { class: 'job-desc' }, jobDesc(v.job)),
     v.job === 'farmer' && farmerCropPicker(ctx, v),
+    v.job === 'artisan' && artisanWorkshopPicker(ctx, v),
     h('div', { class: 'tool-row' }, toolBtn),
+  );
+}
+
+/** En que taller trabaja el artesano. */
+function artisanWorkshopPicker(ctx: PanelCtx, v: Villager): HTMLElement {
+  const built = builtWorkshops(ctx.sim.state);
+  if (built.length === 0) return h('small', { class: 'job-desc warn-text' }, t('artisan.noWorkshops'));
+  return h(
+    'div',
+    { class: 'crop-buttons', role: 'group', 'aria-label': t('artisan.where') },
+    ...built.map((id) =>
+      h(
+        'button',
+        { class: `job-btn ${v.workshop === id ? 'active' : ''}`, 'aria-pressed': String(v.workshop === id), onclick: () => v.workshop !== id && ctx.sim.assignArtisan(v.id, id) },
+        icon(PRODUCTS[workshopProduct(id)].icon, 'icon tiny'),
+        t(`workshop.${id}`),
+      ),
+    ),
   );
 }
 
@@ -481,10 +507,17 @@ function levelItems(level: number): TreeItem[] {
   }
   for (const tl of u.tools)
     items.push({ icon: 'icon_hammer', text: t('progress.unlock.tool', { tier: t(`tool.tier.${tl.tier}`), cost: tl.cost }), where: withMats(t('progress.where.tools'), toolMaterials(tl.tier)) });
+  for (const w of u.workshops)
+    items.push({ icon: PRODUCTS[workshopProduct(w.id)].icon, text: t('progress.unlock.workshop', { workshop: w.id, cost: w.cost }), where: withMats(t('progress.where.site'), WORKSHOPS[w.id].materials) });
+  for (const up of u.workshopUpgrades) {
+    const def = WORKSHOPS[up.workshop].upgrades.find((x) => x.id === up.id)!;
+    const where = withMats(t('progress.where.workshop', { workshop: up.workshop }), def.materials);
+    items.push({ icon: 'icon_hammer', text: t('progress.unlock.wsUpgrade', { workshop: up.workshop, wsUpgrade: `${up.workshop}.${up.id}`, cost: up.cost }), where: def.title ? `${where} · ${t('progress.needsTitle', { rank: def.title })}` : where });
+  }
   for (const m of MATERIAL_IDS.filter((x) => (MATERIALS[x].unlockLevel ?? 1) === level && level > 1))
     items.push({ icon: MATERIALS[m].icon, text: t('progress.unlock.material', { material: m }), where: t('progress.where.market') });
   // Rangos que piden algo mas que nivel: aparecen en su nivel minimo con la condicion.
-  for (const r of PROGRESSION.ranks.filter((rk) => rk.level === level && (rk.days || rk.baron)))
+  for (const r of PROGRESSION.ranks.filter((rk) => rk.level === level && (rk.days || rk.baron || rk.workshops)))
     items.push({ icon: 'icon_crown', text: t('levelup.rank', { rank: r.id }), where: rankReqText(r.id) });
   return items;
 }
@@ -494,6 +527,7 @@ function rankReqText(id: RankId): string {
   const parts = [t('progress.req.level', { n: r.level })];
   if (r.days) parts.push(t('progress.req.daysShort', { n: r.days }));
   if (r.baron) parts.push(t('progress.req.baronShort', { n: r.baron }));
+  if (r.workshops) parts.push(t('progress.req.workshopsShort', { n: r.workshops }));
   return parts.join(' · ');
 }
 
@@ -552,6 +586,9 @@ function buildingsTab(ctx: PanelCtx): HTMLElement {
         ...BUILDINGS[b].upgrades.map((up, i) => upgradeRow(ctx, b, up, i, false)),
       ),
     ),
+    h('h3', { class: 'market-section' }, t('progress.workshops')),
+    h('p', { class: 'hint left' }, t('progress.workshopsHint')),
+    ...WORKSHOP_IDS.map((id) => workshopTreeSection(ctx, id)),
   );
 }
 
@@ -613,29 +650,33 @@ function ranksTab(ctx: PanelCtx): HTMLElement {
   const s = ctx.sim.state;
   const tx = PROGRESSION.taxes;
   const mods = activeModifiers(s);
-  const currentIdx = PROGRESSION.ranks.findIndex((r) => r.id === s.rank);
+  const rankCard = (r: RankDef) => {
+    const got = hasRank(s, r.id);
+    const current = r.id === s.rank || (r.branch && got);
+    const reqs: [string, boolean][] = [[t('progress.req.level', { n: r.level }), s.level >= r.level]];
+    if (r.days) reqs.push([t('progress.req.days', { n: r.days, have: s.day }), s.day >= r.days]);
+    if (r.baron) reqs.push([t('progress.req.baron', { n: r.baron, have: s.rep.baron }), s.rep.baron >= r.baron]);
+    if (r.workshops) reqs.push([t('progress.req.workshops', { n: r.workshops, have: workshopCount(s) }), workshopCount(s) >= r.workshops]);
+    return h(
+      'section',
+      { class: `tree-rank ${got ? 'got' : ''} ${current ? 'current' : ''}` },
+      icon(r.branch ? 'icon_hammer' : 'icon_crown', 'icon big'),
+      h(
+        'div',
+        { class: 'up-info' },
+        h('b', {}, t(`rank.${r.id}`), current ? h('span', { class: 'pill' }, t(r.branch ? 'progress.titleNow' : 'progress.rankNow')) : null),
+        h('small', {}, t(`rank.${r.id}.desc`)),
+        !got && h('ul', { class: 'reqs' }, ...reqs.map(([txt, ok]) => h('li', { class: ok ? 'ok' : '' }, txt))),
+      ),
+    );
+  };
   return h(
     'div',
     { class: 'tree-ranks' },
-    ...PROGRESSION.ranks.map((r, i) => {
-      const got = i <= currentIdx;
-      const reqs: [string, boolean][] = [[t('progress.req.level', { n: r.level }), s.level >= r.level]];
-      if (r.days) reqs.push([t('progress.req.days', { n: r.days, have: s.day }), s.day >= r.days]);
-      if (r.baron) reqs.push([t('progress.req.baron', { n: r.baron, have: s.rep.baron }), s.rep.baron >= r.baron]);
-      return h(
-        'section',
-        { class: `tree-rank ${got ? 'got' : ''} ${i === currentIdx ? 'current' : ''}` },
-        icon('icon_crown', 'icon big'),
-        h(
-          'div',
-          { class: 'up-info' },
-          h('b', {}, t(`rank.${r.id}`), i === currentIdx ? h('span', { class: 'pill' }, t('progress.rankNow')) : null),
-          h('small', {}, t(`rank.${r.id}.desc`)),
-          !got && h('ul', { class: 'reqs' }, ...reqs.map(([txt, ok]) => h('li', { class: ok ? 'ok' : '' }, txt))),
-          got && !meetsRank(s, r) ? null : null,
-        ),
-      );
-    }),
+    ...mainRanks().map(rankCard),
+    h('h3', { class: 'market-section' }, t('progress.branches')),
+    h('p', { class: 'hint left' }, t('progress.branchesHint')),
+    ...branchRanks().map(rankCard),
     h('h3', { class: 'market-section' }, t('progress.reputation')),
     repBar(t('rep.baron'), s.rep.baron, t('rep.baron.desc', { low: tx.lowBaron })),
     repBar(t('rep.village'), s.rep.village, t('rep.village.desc', { high: PROGRESSION.reputation.highVillage })),

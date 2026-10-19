@@ -1,6 +1,7 @@
 // Mercado: vender con una barra para elegir la cantidad y comprar materiales y ganado.
 import type { Game } from '../sim/game';
-import { ANIMAL_IDS, CROPS, MATERIALS, MATERIAL_IDS, PRODUCTS, PRODUCT_IDS, PROGRESSION } from '../sim/data';
+import { ANIMAL_IDS, CROPS, MATERIALS, MATERIAL_IDS, PRODUCTS, PRODUCT_IDS, PROGRESSION, WORKSHOPS } from '../sim/data';
+import { builtWorkshops } from '../sim/workshops';
 import { boostActive, priceOf, priceTrend } from '../sim/market';
 import { dateFromDay } from '../sim/calendar';
 import { hasFeature } from '../sim/progress';
@@ -75,7 +76,12 @@ function slider(opts: {
 function sellTab(ctx: PanelCtx): HTMLElement[] {
   const s = ctx.sim.state;
   const res = reserved(s);
-  const products = PRODUCT_IDS.filter((p) => s.inventory[p] > 0 || !Object.values(CROPS).some((c) => c.product === p && s.level < c.unlockLevel));
+  const products = PRODUCT_IDS.filter(
+    (p) =>
+      s.inventory[p] > 0 ||
+      (!Object.values(CROPS).some((c) => c.product === p && s.level < c.unlockLevel) &&
+        (!PRODUCTS[p].artisan || builtWorkshops(s).some((id) => WORKSHOPS[id].recipe.out[p]))),
+  );
   return products.map((p) => {
     const have = s.inventory[p];
     const price = priceOf(s, p);
