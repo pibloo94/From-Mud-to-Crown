@@ -17,7 +17,7 @@ import { priceOf } from './market';
 import { addModifier } from './modifiers';
 import { buildingStat, store } from './buildings';
 import { addVillager, clampRep, freeBeds } from './villagers';
-import type { AnimalId, CommandResult, GameState, ProductId } from './types';
+import type { AnimalId, CommandResult, GameState, ProductId, WorkshopId } from './types';
 
 /**
  * Condiciones de eventos y opciones. Claves admitidas:
@@ -27,6 +27,7 @@ import type { AnimalId, CommandResult, GameState, ProductId } from './types';
  * - "villagers": tener al menos esos aldeanos; "freeBed": tener al menos esas camas libres
  * - "baron", "village": reputacion minima
  * - "flag:<nombre>": que haya pasado algo antes (1) o que no (0)
+ * - "workshop:<taller>": que el taller este construido (1) o no (0)
  * - "level": nivel minimo
  */
 export function meetsRequirements(state: GameState, req: Record<string, number> = {}): boolean {
@@ -52,6 +53,7 @@ function meets(state: GameState, key: string, value: number): boolean {
   if (key === 'village') return state.rep.village >= value;
   if (key === 'level') return state.level >= value;
   if (key.startsWith('flag:')) return state.flags.includes(key.slice(5)) === value > 0;
+  if (key.startsWith('workshop:')) return !!state.workshops[key.slice(9) as WorkshopId] === value > 0;
   throw new Error(`Requisito de evento desconocido: ${key}`);
 }
 

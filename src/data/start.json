@@ -22,17 +22,18 @@
       "W": "well",
       "K": "rocks",
       "B": "granary",
-      "X": "wild"
+      "X": "wild",
+      "Y": "site"
     },
     "rows": [
       "TTGGGGGGTTXXTXX",
-      "TGGGRGGGKTXXXXT",
+      "TGGGRGYGKTXXXXT",
       "GGHBRGGGGGTXXXX",
       "GWGGRGSSGGXXXTX",
       "GRRRRRSSGGXXXXX",
-      "GGGGRGGGGGXTXXX",
+      "GGYGRGGGGGXTXXX",
       "GCGGRGPPGGXXXXX",
-      "GGGGRGPPGGXXXTX",
+      "GGGGRGPPYGXXXTX",
       "TKGGRGGGGTTXXXX",
       "TTGGMGGGTTXXTXX"
     ]

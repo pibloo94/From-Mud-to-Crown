@@ -784,5 +784,91 @@
         }
       }
     ]
+  },
+  "bakerOrder": {
+    "category": "offer",
+    "weight": 3,
+    "cooldownDays": 25,
+    "icon": "icon_bread",
+    "minLevel": 10,
+    "requires": {
+      "bread": 6
+    },
+    "options": [
+      {
+        "id": "sell",
+        "effects": {
+          "sellAll": {
+            "product": "bread",
+            "mult": 1.8
+          },
+          "rep": {
+            "baron": 2
+          }
+        }
+      },
+      {
+        "id": "decline"
+      }
+    ]
+  },
+  "cheeseFair": {
+    "category": "offer",
+    "weight": 3,
+    "cooldownDays": 30,
+    "icon": "icon_cheese",
+    "minLevel": 11,
+    "requires": {
+      "cheese": 2
+    },
+    "options": [
+      {
+        "id": "sell",
+        "effects": {
+          "sellAll": {
+            "product": "cheese",
+            "mult": 1.7
+          }
+        }
+      },
+      {
+        "id": "decline"
+      }
+    ]
+  },
+  "rats": {
+    "category": "mishap",
+    "weight": 3,
+    "cooldownDays": 35,
+    "icon": "icon_flour",
+    "requires": {
+      "workshop:mill": 1
+    },
+    "options": [
+      {
+        "id": "cat",
+        "cost": {
+          "coins": 6
+        },
+        "effects": {
+          "xp": 3
+        }
+      },
+      {
+        "id": "risk",
+        "risk": {
+          "chance": 0.5,
+          "effects": {
+            "loseFraction": {
+              "products": [
+                "wheat",
+                "flour"
+              ],
+              "fraction": 0.3
+            }
+          }
+        }
+      }
+    ]
   }
 }

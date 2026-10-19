@@ -47,6 +47,8 @@ export function createNewGame(seed: number = newSeed()): GameState {
     xp: 0,
     level: 1,
     rank: 'peasant',
+    titles: [],
+    workshops: {},
     landBought: 0,
     leases: 0,
     buildings,

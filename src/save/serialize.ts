@@ -7,7 +7,7 @@ import { buildingStat, storageCapacity, storageUsed } from '../sim/buildings';
 import { addVillager, beds } from '../sim/villagers';
 
 export const SAVE_FORMAT = 'from-mud-to-crown-save';
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;
@@ -78,12 +78,52 @@ export function migrate(state: Record<string, unknown>, from: number): GameState
     s.pantry = defaultPantry();
     s.villagers = (s.villagers as Record<string, unknown>[]).map((v) => ({ ...v, crop: 'auto' }));
   }
+  if (from < 5) s = migrateV5(s);
   return s as GameState;
+}
+
+/** v4 -> v5 (fase 3a): talleres en solares, productos de taller y titulos de rama. */
+function migrateV5(old: Record<string, any>): Record<string, any> {
+  const s: Record<string, any> = { ...old, titles: old.titles ?? [], workshops: old.workshops ?? {} };
+  s.inventory = { ...s.inventory };
+  s.priceMult = { ...s.priceMult };
+  s.pantry = { ...s.pantry, eat: { ...s.pantry.eat } };
+  const fresh = defaultPantry();
+  for (const p of PRODUCT_IDS) {
+    s.inventory[p] ??= 0;
+    s.priceMult[p] ??= 1;
+    s.pantry.eat[p] ??= fresh.eat[p];
+  }
+  // Los solares del mapa inicial; si alli ya hay otra cosa, se busca hierba libre junto a un camino.
+  const tiles: GameState['map']['tiles'] = s.map.tiles.map((t: GameState['map']['tiles'][number]) => ({ ...t }));
+  const width: number = s.map.width;
+  const at = (x: number, y: number) => tiles[y * width + x];
+  START.map.rows.forEach((row, y) =>
+    [...row].forEach((ch, x) => {
+      if (START.map.legend[ch] !== 'site') return;
+      let tile = at(x, y);
+      if (!tile || tile.kind !== 'grass') {
+        tile = tiles.find(
+          (t) => t.kind === 'grass' && t.x < PROGRESSION.lands.eastFrom && tiles.some((p) => p.kind === 'path' && Math.abs(p.x - t.x) + Math.abs(p.y - t.y) === 1),
+        )!;
+      }
+      if (tile) tile.kind = 'site';
+    }),
+  );
+  s.map = { ...s.map, tiles };
+  return s;
 }
 
 /** v2 -> v3 (fase 2): aldeanos, edificios con mejoras, granero, reputacion, impuestos y tierras del este. */
 function migrateV3(old: Record<string, any>): Record<string, any> {
   const s: Record<string, any> = { ...old };
+  // Productos que aun no existian: a cero, para poder sumar lo que hay en el granero.
+  s.inventory = { ...s.inventory };
+  s.priceMult = { ...s.priceMult };
+  for (const p of PRODUCT_IDS) {
+    s.inventory[p] ??= 0;
+    s.priceMult[p] ??= 1;
+  }
   // El mapa crece hacia el este con las tierras cerradas del mapa inicial actual.
   const rows = START.map.rows;
   const oldW: number = s.map.width;

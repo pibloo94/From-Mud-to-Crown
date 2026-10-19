@@ -6,8 +6,9 @@ import { upgradeBuilding } from './buildings';
 import * as villagers from './villagers';
 import * as pantry from './pantry';
 import * as materials from './materials';
-import type { AnimalId, BuildingId, CommandResult, CropId, GameState, JobId, MaterialId, Notice, ProductId, Speed } from './types';
-import { BUILDINGS } from './data';
+import type { AnimalId, BuildingId, CommandResult, CropId, GameState, JobId, MaterialId, Notice, ProductId, Speed, WorkshopId } from './types';
+import { BUILDINGS, WORKSHOPS } from './data';
+import * as workshops from './workshops';
 
 export type GameEvent =
   | { type: 'change' }
@@ -18,6 +19,8 @@ export type GameEvent =
   | { type: 'offerLand'; x: number; y: number; cost: number }
   | { type: 'offerLease'; x: number; y: number; cost: number }
   | { type: 'building'; building: BuildingId }
+  | { type: 'site'; x: number; y: number; options: WorkshopId[] }
+  | { type: 'workshop'; workshop: WorkshopId }
   | { type: 'levelUp'; level: number }
   | { type: 'event'; id: string }
   | { type: 'mapChanged' }
@@ -95,6 +98,12 @@ export class Game {
       case 'building':
         this.emit({ type: 'building', building: r.building });
         break;
+      case 'site':
+        this.emit({ type: 'site', x: r.x, y: r.y, options: r.options });
+        break;
+      case 'workshop':
+        this.emit({ type: 'workshop', workshop: r.workshop });
+        break;
       default:
         this.report(r.outcome, x, y);
     }
@@ -132,7 +141,9 @@ export class Game {
   }
 
   setJob(id: number, job: JobId): void {
-    this.villagerCommand(villagers.setJob(this.state, id, job));
+    const result = villagers.setJob(this.state, id, job);
+    if (result.ok && job === 'artisan') workshops.autoAssign(this.state, id);
+    this.villagerCommand(result);
   }
 
   upgradeTool(id: number): void {
@@ -167,6 +178,32 @@ export class Game {
     const v = this.state.villagers.find((x) => x.id === id);
     if (!v) return;
     this.report({ result: materials.buyMissing(this.state, villagers.toolMaterials(v.tool + 1)), levelUps: [] });
+  }
+
+  buildWorkshop(id: WorkshopId, x: number, y: number): void {
+    const out = workshops.buildWorkshop(this.state, id, x, y);
+    if (out.result.ok) this.emit({ type: 'mapChanged' });
+    this.report(out, x, y);
+  }
+
+  upgradeWorkshop(id: WorkshopId): void {
+    const out = workshops.upgradeWorkshop(this.state, id);
+    if (out.result.ok) this.emit({ type: 'mapChanged' });
+    this.report(out);
+  }
+
+  openWorkshop(id: WorkshopId): void {
+    this.emit({ type: 'workshop', workshop: id });
+  }
+
+  assignArtisan(villagerId: number, id: WorkshopId | null): void {
+    this.villagerCommand(workshops.assignArtisan(this.state, villagerId, id));
+  }
+
+  /** Compra los materiales que faltan para levantar o mejorar un taller. */
+  buyMissingForWorkshop(id: WorkshopId): void {
+    const need = this.state.workshops[id] ? workshops.nextWorkshopUpgrade(this.state, id)?.materials : WORKSHOPS[id].materials;
+    this.report({ result: materials.buyMissing(this.state, need), levelUps: [] });
   }
 
   dismissVillager(id: number): void {

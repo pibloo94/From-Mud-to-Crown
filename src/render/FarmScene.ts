@@ -370,6 +370,10 @@ export class FarmScene extends Phaser.Scene {
       farmer: tiles.filter((tl) => tl.kind === 'soil'),
       herder: [...pen, ...coopArea],
       carter: tiles.filter((tl) => tl.kind === 'path' && tl.x < PROGRESSION.lands.eastFrom),
+      // Los artesanos rondan su taller.
+      artisan: tiles.filter(
+        (tl) => (tl.kind === 'grass' || tl.kind === 'path') && tiles.some((w) => w.kind === 'workshop' && Math.abs(w.x - tl.x) <= 1 && Math.abs(w.y - tl.y) <= 1),
+      ),
     };
     for (const v of this.sim.state.villagers) this.addAnimal(`villager_${v.job}`, areas[v.job], 0.95);
   }
