@@ -1,0 +1,25 @@
+{
+  "steps": [
+    { "id": "welcome", "done": "ack", "target": null },
+    { "id": "sow", "done": "planted", "target": "soil" },
+    { "id": "collect", "done": "collected", "target": "coop" },
+    { "id": "harvest", "done": "harvested", "target": "ripe" },
+    { "id": "sell", "done": "sold", "target": "market" },
+    { "id": "progress", "done": "progressOpened", "target": "progress" },
+    { "id": "end", "done": "ack", "target": null }
+  ],
+  "tips": [
+    { "id": "buildings", "days": 3 },
+    { "id": "land", "level": 2 },
+    { "id": "villagers", "beds": 1 },
+    { "id": "pantry", "villagers": 1 },
+    { "id": "animals", "level": 4 },
+    { "id": "events", "events": 1 },
+    { "id": "taxes", "days": 31 },
+    { "id": "landowner", "rank": "landowner" },
+    { "id": "workshops", "level": 9 },
+    { "id": "trade", "level": 13 },
+    { "id": "charter", "charter": 1 },
+    { "id": "fief", "rank": "lord" }
+  ]
+}

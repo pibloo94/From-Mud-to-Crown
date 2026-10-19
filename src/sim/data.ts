@@ -11,6 +11,7 @@ import materialsJson from '../data/materials.json';
 import workshopsJson from '../data/workshops.json';
 import tradeJson from '../data/trade.json';
 import nobilityJson from '../data/nobility.json';
+import tutorialJson from '../data/tutorial.json';
 import type { AnimalId, BuildingId, CropId, JobId, LiegeId, MaterialId, ModifierKind, ProductId, RankId, TileKind, WorkshopId } from './types';
 import type { Season } from './calendar';
 
@@ -179,6 +180,38 @@ export interface TradeDef {
 }
 
 export type MaterialAmounts = Partial<Record<MaterialId, number>>;
+
+/** Que completa un paso del tutorial: un acuse del jugador o algo que ya ha hecho. */
+export type TutorialDone = 'ack' | 'planted' | 'collected' | 'harvested' | 'sold' | 'progressOpened';
+/** Donde se senala el paso: baldosas del mapa o un boton de la interfaz. */
+export type TutorialTarget = 'soil' | 'coop' | 'ripe' | 'market' | 'progress' | null;
+
+export interface TutorialStepDef {
+  id: string;
+  done: TutorialDone;
+  target: TutorialTarget;
+}
+
+/** Consejo que aparece una vez cuando se cumple su condicion (todas las que tenga). */
+export interface TipDef {
+  id: string;
+  level?: number;
+  /** Dias de partida minimos. */
+  days?: number;
+  /** Camas en la casa. */
+  beds?: number;
+  villagers?: number;
+  /** Haber tenido ya algun evento. */
+  events?: number;
+  rank?: RankId;
+  /** Que el rey ya venda la carta de nobleza. */
+  charter?: number;
+}
+
+export interface TutorialDef {
+  steps: TutorialStepDef[];
+  tips: TipDef[];
+}
 
 /** Efectos de las mejoras de la casa solariega. */
 export interface ManorStats {
@@ -353,6 +386,7 @@ export const WORKSHOP_IDS = Object.keys(WORKSHOPS) as WorkshopId[];
 export const TRADE = tradeJson as unknown as TradeDef;
 export const TOWN_IDS = Object.keys(TRADE.towns);
 export const NOBILITY = nobilityJson as unknown as NobilityDef;
+export const TUTORIAL = tutorialJson as unknown as TutorialDef;
 export const HAMLET_IDS = Object.keys(NOBILITY.hamlets);
 export const PATRONAGE_IDS = Object.keys(NOBILITY.patronage);
 
