@@ -8,9 +8,11 @@ import {
   CROPS,
   CROP_IDS,
   JOB_IDS,
+  HAMLET_IDS,
   MATERIALS,
   MATERIAL_IDS,
   MAX_LEVEL,
+  NOBILITY,
   PRODUCTS,
   PRODUCT_IDS,
   PROGRESSION,
@@ -32,7 +34,8 @@ import { workshopProduct, workshopTreeSection } from './workshops';
 import { buildingStat, nextUpgrade, storageCapacity, storageUsed } from '../sim/buildings';
 import { beds, dailyFood, efficiency, farmerPlots, foodDays, freeBeds, hireCost, toolCost, toolMaterials } from '../sim/villagers';
 import { activeModifiers } from '../sim/modifiers';
-import { branchRanks, hasRank, levelDef, mainRanks, unlocksAt, workshopCount } from '../sim/progress';
+import { branchCount, branchRanks, hamletLevelSum, hamletsTaken, hasRank, levelDef, levelOnlyRank, mainRanks, rankDef, unlocksAt, workshopCount } from '../sim/progress';
+import { charterReady, liegeBefore, liegeOf } from '../sim/noble';
 import { buildingOf } from '../sim/rules';
 import type { AnimalId, BuildingId, CropId, JobId, Modifier, RankId, Villager, WorkshopId } from '../sim/types';
 import { t } from '../i18n/i18n';
@@ -521,8 +524,9 @@ function levelItems(level: number): TreeItem[] {
   for (const m of MATERIAL_IDS.filter((x) => (MATERIALS[x].unlockLevel ?? 1) === level && level > 1))
     items.push({ icon: MATERIALS[m].icon, text: t('progress.unlock.material', { material: m }), where: t('progress.where.market') });
   // Rangos que piden algo mas que nivel: aparecen en su nivel minimo con la condicion.
-  for (const r of PROGRESSION.ranks.filter((rk) => rk.level === level && (rk.days || rk.baron || rk.workshops || rk.trades || rk.stall)))
+  for (const r of PROGRESSION.ranks.filter((rk) => rk.level === level && !levelOnlyRank(rk)))
     items.push({ icon: 'icon_crown', text: t('levelup.rank', { rank: r.id }), where: rankReqText(r.id) });
+  if (level === rankDef('lord').level) items.push({ icon: 'icon_charter', text: t('progress.unlock.charter'), where: t('progress.where.charter') });
   return items;
 }
 
@@ -530,10 +534,18 @@ function rankReqText(id: RankId): string {
   const r = PROGRESSION.ranks.find((x) => x.id === id)!;
   const parts = [t('progress.req.level', { n: r.level })];
   if (r.days) parts.push(t('progress.req.daysShort', { n: r.days }));
-  if (r.baron) parts.push(t('progress.req.baronShort', { n: r.baron }));
+  if (r.baron) parts.push(t('progress.req.baronShort', { n: r.baron, liege: liegeBefore(r.id) }));
+  if (r.village) parts.push(t('progress.req.villageShort', { n: r.village }));
+  if (r.branches) parts.push(t('progress.req.branchesShort'));
   if (r.workshops) parts.push(t('progress.req.workshopsShort', { n: r.workshops }));
   if (r.trades) parts.push(t('progress.req.tradesShort', { n: r.trades }));
   if (r.stall) parts.push(t('progress.req.stall'));
+  if (r.charter) parts.push(t('progress.req.charter', { cost: NOBILITY.charter.cost }));
+  if (r.manor) parts.push(t('progress.req.manorShort', { n: r.manor }));
+  if (r.hamlets) parts.push(t('progress.req.hamletsShort', { n: r.hamlets }));
+  if (r.hamletLevels) parts.push(t('progress.req.hamletsShort', { n: HAMLET_IDS.length }));
+  if (r.soldiers) parts.push(t('progress.req.soldiersShort', { n: r.soldiers }));
+  if (r.prestige) parts.push(t('progress.req.prestigeShort', { n: r.prestige }));
   return parts.join(' · ');
 }
 
@@ -661,10 +673,31 @@ function ranksTab(ctx: PanelCtx): HTMLElement {
     const current = r.id === s.rank || (r.branch && got);
     const reqs: [string, boolean][] = [[t('progress.req.level', { n: r.level }), s.level >= r.level]];
     if (r.days) reqs.push([t('progress.req.days', { n: r.days, have: s.day }), s.day >= r.days]);
-    if (r.baron) reqs.push([t('progress.req.baron', { n: r.baron, have: s.rep.baron }), s.rep.baron >= r.baron]);
+    const liege = liegeBefore(r.id);
+    // El favor solo cuenta con el senor feudal de ahora: el del siguiente aun no te conoce.
+    const repOk = liege === liegeOf(s);
+    if (r.baron) reqs.push([t('progress.req.baron', { n: r.baron, have: repOk ? s.rep.baron : 0, liege, liegeTitle: liege }), repOk && s.rep.baron >= r.baron]);
+    if (r.village) reqs.push([t('progress.req.village', { n: r.village, have: s.rep.village }), s.rep.village >= r.village]);
+    if (r.branches) reqs.push([t('progress.req.branches'), branchCount(s) >= r.branches]);
     if (r.workshops) reqs.push([t('progress.req.workshops', { n: r.workshops, have: workshopCount(s) }), workshopCount(s) >= r.workshops]);
     if (r.trades) reqs.push([t('progress.req.trades', { n: r.trades, have: s.stats.trades }), s.stats.trades >= r.trades]);
     if (r.stall) reqs.push([t('progress.req.stall'), s.stall]);
+    if (r.charter) reqs.push([t('progress.req.charter', { cost: NOBILITY.charter.cost }), s.noble.charter]);
+    if (r.manor) reqs.push([t('progress.req.manor', { n: r.manor, have: s.noble.manor }), s.noble.manor >= r.manor]);
+    if (r.hamlets) reqs.push([t('progress.req.hamlets', { n: r.hamlets, have: hamletsTaken(s) }), hamletsTaken(s) >= r.hamlets]);
+    if (r.hamletLevels) reqs.push([t('progress.req.hamletLevels', { n: r.hamletLevels, have: hamletLevelSum(s) }), hamletLevelSum(s) >= r.hamletLevels]);
+    if (r.soldiers) reqs.push([t('progress.req.soldiers', { n: r.soldiers, have: s.noble.soldiers }), s.noble.soldiers >= r.soldiers]);
+    if (r.prestige) reqs.push([t('progress.req.prestige', { n: r.prestige, have: s.noble.prestige }), s.noble.prestige >= r.prestige]);
+    // Con todo lo demas cumplido, el rey vende la carta desde aqui.
+    const charter =
+      r.charter && charterReady(s)
+        ? h(
+            'div',
+            { class: 'charter-offer' },
+            h('p', { class: 'fair-banner' }, t('noble.charterReady')),
+            h('button', { class: 'btn primary', disabled: s.coins < NOBILITY.charter.cost, onclick: () => ctx.sim.buyCharter() }, t('noble.buyCharter', { cost: NOBILITY.charter.cost })),
+          )
+        : null;
     return h(
       'section',
       { class: `tree-rank ${got ? 'got' : ''} ${current ? 'current' : ''}` },
@@ -675,6 +708,7 @@ function ranksTab(ctx: PanelCtx): HTMLElement {
         h('b', {}, t(`rank.${r.id}`), current ? h('span', { class: 'pill' }, t(r.branch ? 'progress.titleNow' : 'progress.rankNow')) : null),
         h('small', {}, t(`rank.${r.id}.desc`)),
         !got && h('ul', { class: 'reqs' }, ...reqs.map(([txt, ok]) => h('li', { class: ok ? 'ok' : '' }, txt))),
+        !got && charter,
       ),
     );
   };
@@ -686,7 +720,7 @@ function ranksTab(ctx: PanelCtx): HTMLElement {
     h('p', { class: 'hint left' }, t('progress.branchesHint')),
     ...branchRanks().map(rankCard),
     h('h3', { class: 'market-section' }, t('progress.reputation')),
-    repBar(t('rep.baron'), s.rep.baron, t('rep.baron.desc', { low: tx.lowBaron })),
+    repBar(t(`liege.title.${liegeOf(s)}`), s.rep.baron, t('rep.baron.desc', { low: tx.lowBaron })),
     repBar(t('rep.village'), s.rep.village, t('rep.village.desc', { high: PROGRESSION.reputation.highVillage })),
     h('h3', { class: 'market-section' }, t('progress.modifiers')),
     mods.length === 0
@@ -700,7 +734,7 @@ function ranksTab(ctx: PanelCtx): HTMLElement {
           }),
         ),
     h('h3', { class: 'market-section' }, t('progress.taxes')),
-    h('p', { class: 'hint left' }, t('progress.taxesText', { tithe: pct(tx.titheRate), base: tx.tributeBase, perPlot: tx.tributePerPlot }), ' ', t('progress.taxesRank', { pct: pct(tx.rankTribute[s.rank] ?? 1) })),
+    h('p', { class: 'hint left' }, t('progress.taxesText', { tithe: pct(tx.titheRate), base: tx.tributeBase, perPlot: tx.tributePerPlot, liege: liegeOf(s) }), ' ', t('progress.taxesRank', { pct: pct(tx.rankTribute[s.rank] ?? 1) })),
   );
 }
 
@@ -739,7 +773,8 @@ export function seasonView(ctx: PanelCtx, params: Record<string, string | number
   const n = (k: string) => Number(params[k] ?? 0);
   const row = (label: string, value: string, cls = '') => h('div', { class: `acct-row ${cls}` }, h('span', {}, label), h('b', {}, value));
   const coins = (v: number, sign: string) => (v ? `${sign}${v}` : '0');
-  const balance = n('rent') - n('tithe') - n('tribute');
+  const balance = n('rent') + n('dues') - n('tithe') - n('tribute') - n('upkeep');
+  const liege = String(params.liege ?? 'baron');
   const mult = n('tributeMult');
   return h(
     'div',
@@ -751,13 +786,17 @@ export function seasonView(ctx: PanelCtx, params: Record<string, string | number
       { class: 'accounts' },
       row(t('seasonCard.earned'), String(n('earned')), 'muted'),
       row(t('seasonCard.tithe'), coins(n('tithe'), '−')),
-      row(`${t('seasonCard.tribute')}${mult !== 100 ? ` ${t('seasonCard.tributeMult', { pct: mult })}` : ''}`, coins(n('tribute'), '−'), mult > 100 ? 'warn-text' : ''),
+      row(`${t('seasonCard.tribute', { liege })}${mult !== 100 ? ` ${t('seasonCard.tributeMult', { pct: mult })}` : ''}`, coins(n('tribute'), '−'), mult > 100 ? 'warn-text' : ''),
       n('rent') > 0 && row(t('seasonCard.rent'), coins(n('rent'), '+')),
+      n('dues') > 0 && row(t('seasonCard.dues'), coins(n('dues'), '+')),
+      n('upkeep') > 0 && row(t('seasonCard.upkeep'), coins(n('upkeep'), '−')),
       row(t('seasonCard.balance'), `${balance > 0 ? '+' : ''}${balance}`, 'total'),
       n('food') > 0 && row(t('seasonCard.food'), t('seasonCard.foodUnits', { n: n('food') }), 'muted'),
+      params.duesMats ? row(t('seasonCard.duesMats'), t('progress.needs', { list: String(params.duesMats) }), 'muted') : null,
     ),
+    n('deserted') > 0 && h('p', { class: 'fair-banner' }, t('seasonCard.deserted', { n: n('deserted') })),
     n('grace') > 0 && h('p', { class: 'hint' }, t('seasonCard.grace')),
-    n('unpaid') > 0 && h('p', { class: 'fair-banner' }, t('seasonCard.unpaid', { n: n('unpaid') })),
+    n('unpaid') > 0 && h('p', { class: 'fair-banner' }, t('seasonCard.unpaid', { n: n('unpaid'), liege })),
     h('button', { class: 'btn primary', onclick: () => ctx.close() }, t('seasonCard.ok')),
   );
 }
