@@ -55,6 +55,8 @@ type Modal =
 const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'progress', 'levelup', 'season', 'rank', 'event'];
 /** Ventanas que se cierran con Escape o tocando fuera. */
 const DISMISSABLE: Modal['kind'][] = ['menu', 'market', 'plant', 'land', 'lease', 'building', 'progress'];
+/** Ventanas desde las que se puede ir a otra y volver con "Atras". */
+const NAVIGABLE: Modal['kind'][] = ['market', 'building', 'progress', 'levelup'];
 
 export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI {
   let lastSpeed: Speed = 1;
@@ -120,6 +122,8 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   const timeBox = h('div', { class: 'time-box panel' }, dateBox, h('div', { class: 'speed', role: 'group' }, ...speedButtons));
 
   const topbar = h('header', { class: 'topbar' }, timeBox, resources, statusRow);
+  // En escritorio el reloj baja a la esquina inferior izquierda y la fila de estado sube a la barra superior.
+  const timeDock = h('div', { class: 'time-dock' });
 
   // ---------------------------------------------------------------- barra inferior
   const marketBtn = h('button', { class: 'big-btn', onclick: () => openModal({ kind: 'market', tab: 'sell' }) }, icon('icon_coin'), h('span', {}));
@@ -130,7 +134,23 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   const toasts = h('div', { class: 'toasts', 'aria-live': 'polite' });
   const overlay = h('div', { class: 'overlay', hidden: true });
 
-  root.append(topbar, bottombar, toasts, overlay);
+  root.append(topbar, timeDock, bottombar, toasts, overlay);
+
+  const wide = window.matchMedia('(min-width: 761px)');
+  function placeHud(): void {
+    if (wide.matches) {
+      timeDock.append(timeBox);
+      resources.append(statusRow);
+    } else {
+      topbar.prepend(timeBox);
+      topbar.append(statusRow);
+    }
+  }
+  placeHud();
+  wide.addEventListener('change', () => {
+    placeHud();
+    onLayout();
+  });
 
   // ---------------------------------------------------------------- tiempo
   function setSpeed(sp: Speed): void {
@@ -141,7 +161,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   document.addEventListener('keydown', (e) => {
     if (e.target instanceof HTMLInputElement) return;
     if (e.key === 'Escape' && modal && DISMISSABLE.includes(modal.kind)) {
-      closeModal();
+      goBack();
       return;
     }
     if (modal) return;
@@ -296,8 +316,17 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   }
 
   // ---------------------------------------------------------------- ventanas y tarjetas
+  /** Ventanas anteriores, para volver atras (p. ej. Progreso -> Casa -> atras). */
+  const history: Modal[] = [];
+  const pageKey = (m: Modal) => (m.kind === 'building' ? `building:${m.building}` : m.kind);
+
   function openModal(next: Modal): void {
     if (modal?.kind === 'start') return;
+    // Cambiar de pestana no es navegar; abrir otra ventana desde una navegable si.
+    if (modal && pageKey(modal) === pageKey(next)) {
+      /* misma pagina: se conserva el historial */
+    } else if (modal && NAVIGABLE.includes(modal.kind)) history.push(modal);
+    else history.length = 0;
     const pausing = PAUSES.includes(next.kind);
     // Se recuerda la velocidad solo al pasar de "corriendo" a "en pausa".
     if (pausing && !(modal && PAUSES.includes(modal.kind))) speedBeforeModal = sim.state.speed;
@@ -312,7 +341,18 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     else openModal(card);
   }
 
+  function goBack(): void {
+    const prev = history.pop();
+    if (!prev) {
+      closeModal();
+      return;
+    }
+    modal = prev;
+    renderModal();
+  }
+
   function closeModal(): void {
+    history.length = 0;
     const was = modal;
     confirmingNew = false;
     modal = null;
@@ -353,7 +393,12 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     // Al repintar la misma ventana se conserva el desplazamiento (p. ej. al mejorar algo de la lista).
     const prevBody = overlay.querySelector<HTMLElement>('.progress-body');
     const keepScroll = overlay.dataset.view === viewKey(modal) ? { overlay: overlay.scrollTop, body: prevBody?.scrollTop ?? 0 } : null;
-    overlay.replaceChildren(views[modal.kind]());
+    const view = views[modal.kind]();
+    if (history.length > 0 && view.classList.contains('sheet')) {
+      view.classList.add('has-back');
+      view.prepend(h('button', { class: 'back-btn', 'aria-label': t('panel.back'), onclick: () => goBack() }, '‹ ', t('panel.back')));
+    }
+    overlay.replaceChildren(view);
     overlay.className = `overlay overlay-${modal.kind}`;
     overlay.dataset.view = viewKey(modal);
     if (keepScroll) {
