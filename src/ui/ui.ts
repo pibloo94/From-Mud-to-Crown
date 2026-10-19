@@ -27,7 +27,7 @@ import { autosave, forgetLinkedFile, hasLinkedFile, loadGameFromFile, readBackup
 import { SaveError } from '../save/serialize';
 import type { Insets } from '../render/FarmScene';
 import { h, icon } from './dom';
-import { marketView, type MarketTab } from './market';
+import { marketView, resetMarketChoices, type MarketTab } from './market';
 import { siteView, workshopView } from './workshops';
 import { music } from '../audio/music';
 
@@ -339,6 +339,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
 
   function openModal(next: Modal): void {
     if (modal?.kind === 'start') return;
+    if (next.kind === 'market' && modal?.kind !== 'market') resetMarketChoices();
     // Cambiar de pestana no es navegar; abrir otra ventana desde una navegable si.
     if (modal && pageKey(modal) === pageKey(next)) {
       /* misma pagina: se conserva el historial */
