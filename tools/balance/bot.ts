@@ -15,6 +15,8 @@ import { artisansOf, builtWorkshops, nextWorkshopUpgrade } from '../../src/sim/w
 import { dailyFood, surplus } from '../../src/sim/pantry';
 import * as T from '../../src/sim/trade';
 import * as N from '../../src/sim/noble';
+import { seasonBill } from '../../src/sim/taxes';
+import { upkeepBill } from '../../src/sim/upkeep';
 import type { CropId, GameState, JobId, MaterialId, ProductId } from '../../src/sim/types';
 
 /** Lo que mide una partida del bot. Los dias son dias de juego (10 s reales a velocidad x1). */
@@ -33,6 +35,12 @@ export interface BalanceReport {
   taxesUnpaid: number;
   hungryDays: number;
   villagersLeft: number;
+  /** Aldeanos que se van por no cobrar el salario. */
+  unpaidLeft: number;
+  /** Estaciones sin dinero para el mantenimiento. */
+  neglectedSeasons: number;
+  /** Salarios y mantenimiento pagados. */
+  fixedCosts: number;
   granaryFull: number;
   caravans: number;
   caravanEarnings: number;
@@ -62,6 +70,19 @@ const FRAME_MS = R.MAX_FRAME_MS;
 /** Monedas que el bot no gasta en nada que no sea imprescindible (comida, impuestos). */
 const CUSHION = 80;
 
+/**
+ * Lo que costaran las cuentas de la estacion: impuestos, soldada, salarios y mantenimiento. El bot
+ * lo guarda y solo gasta lo que sobra, como haria alguien que mira la tarjeta de cuentas.
+ */
+/** Monedas que se pueden gastar sin tocar lo guardado para las cuentas. */
+const spare = (s: GameState): number => s.coins - seasonReserve(s);
+
+function seasonReserve(s: GameState): number {
+  const bill = seasonBill(s);
+  const fixed = upkeepBill(s);
+  return bill.tribute + Math.round(bill.tithe * 1.2) + bill.upkeep + fixed.wages + fixed.maintenance;
+}
+
 export function simulate(seed: number, days: number): BalanceReport {
   const game = new Game(createNewGame(seed));
   const s = (): GameState => game.state;
@@ -76,6 +97,9 @@ export function simulate(seed: number, days: number): BalanceReport {
     taxesUnpaid: 0,
     hungryDays: 0,
     villagersLeft: 0,
+    unpaidLeft: 0,
+    neglectedSeasons: 0,
+    fixedCosts: 0,
     granaryFull: 0,
     caravans: 0,
     caravanEarnings: 0,
@@ -91,6 +115,9 @@ export function simulate(seed: number, days: number): BalanceReport {
     if (n.card === 'season') {
       report.taxesPaid += Number(n.params?.tithe ?? 0) + Number(n.params?.tribute ?? 0);
       report.taxesUnpaid += Number(n.params?.unpaid ?? 0);
+      report.unpaidLeft += Number(n.params?.wagesLeft ?? 0);
+      report.neglectedSeasons += Number(n.params?.neglected ?? 0);
+      report.fixedCosts += Number(n.params?.wages ?? 0) + Number(n.params?.maintenance ?? 0);
     }
     if (n.msg === 'msg.villagersHungry') report.hungryDays++;
     if (n.msg === 'msg.villagerLeftHunger') report.villagersLeft++;
@@ -188,7 +215,7 @@ function spend(game: Game): void {
   const s = game.state;
 
   // Aldeanos: uno por cama libre, repartidos entre labrador, pastor y carretero.
-  if (freeBeds(s) > 0 && s.coins > 25) {
+  if (freeBeds(s) > 0 && spare(s) > 25) {
     const before = s.villagers.length;
     game.hireVillager();
     if (s.villagers.length > before) {
@@ -200,21 +227,21 @@ function spend(game: Game): void {
   // Tierra junto al campo.
   for (let i = 0; i < 3; i++) {
     const t = s.map.tiles.find((tl) => R.landCheck(s, tl.x, tl.y).ok);
-    if (t && s.coins > R.landCost(s) + 30) game.buyLand(t.x, t.y);
+    if (t && spare(s) > R.landCost(s) + 30) game.buyLand(t.x, t.y);
   }
 
   // La mejora de edificio mas barata que ya este al alcance.
   const cheapest = BUILDING_IDS.map((b) => ({ b, up: nextUpgrade(s, b) }))
     .filter((x) => x.up && x.up.level <= s.level)
     .sort((a, b) => a.up!.cost - b.up!.cost)[0];
-  if (cheapest && s.coins > priceWith(s, cheapest.up!.cost, cheapest.up!.materials) + CUSHION) {
+  if (cheapest && spare(s) > priceWith(s, cheapest.up!.cost, cheapest.up!.materials) + CUSHION) {
     game.buyMissingFor(cheapest.b);
     game.upgradeBuilding(cheapest.b);
   }
 
   // Herramientas.
   for (const v of s.villagers) {
-    if (s.coins > priceWith(s, 0, toolMaterials(v.tool + 1)) + 160) {
+    if (spare(s) > priceWith(s, 0, toolMaterials(v.tool + 1)) + 160) {
       game.buyMissingForTool(v.id);
       game.upgradeTool(v.id);
     }
@@ -223,7 +250,7 @@ function spend(game: Game): void {
   // Talleres, con su artesano y sus mejoras.
   for (const id of WORKSHOP_IDS) {
     const site = s.map.tiles.find((t) => t.kind === 'site');
-    if (site && !s.workshops[id] && s.level >= WORKSHOPS[id].unlockLevel && s.coins > priceWith(s, WORKSHOPS[id].cost, WORKSHOPS[id].materials) + 300) {
+    if (site && !s.workshops[id] && s.level >= WORKSHOPS[id].unlockLevel && spare(s) > priceWith(s, WORKSHOPS[id].cost, WORKSHOPS[id].materials) + 300) {
       game.buyMissingForWorkshop(id);
       game.buildWorkshop(id, site.x, site.y);
     }
@@ -235,30 +262,30 @@ function spend(game: Game): void {
       if (s.villagers.length > before) game.assignArtisan(s.villagers[s.villagers.length - 1].id, id);
     }
     const up = nextWorkshopUpgrade(s, id);
-    if (up && s.coins > priceWith(s, up.cost, up.materials) + 300) {
+    if (up && spare(s) > priceWith(s, up.cost, up.materials) + 300) {
       game.buyMissingForWorkshop(id);
       game.upgradeWorkshop(id);
     }
   }
 
   // Comercio: carretas, puesto y la caravana que mas deja por dia.
-  if (s.coins > 600) {
+  if (spare(s) > 600) {
     game.buyMaterialsFor(TRADE.cart.materials);
     game.buyCart();
   }
-  if (s.coins > 2500 && !s.stall && s.level >= TRADE.stall.level) {
+  if (spare(s) > 2500 && !s.stall && s.level >= TRADE.stall.level) {
     game.buyMaterialsFor(TRADE.stall.materials);
     game.buyStall();
   }
   sendBestCaravan(game);
 
   // Nobleza.
-  if (N.charterReady(s) && s.coins > NOBILITY.charter.cost + 300) game.buyCharter();
+  if (N.charterReady(s) && spare(s) > NOBILITY.charter.cost + 300) game.buyCharter();
   if (N.isNoble(s)) spendAsNoble(game);
 
   // Animales.
-  if (s.coins > 80) game.buyAnimal('chicken');
-  if (s.coins > 150) game.buyAnimal('cow');
+  if (spare(s) > 80) game.buyAnimal('chicken');
+  if (spare(s) > 150) game.buyAnimal('cow');
 }
 
 function sendBestCaravan(game: Game): void {
@@ -284,7 +311,7 @@ function sendBestCaravan(game: Game): void {
 function spendAsNoble(game: Game): void {
   const s = game.state;
   const reserve = 800;
-  const affordable = (coins: number, materials?: Partial<Record<MaterialId, number>>) => s.coins > priceWith(s, coins, materials) + reserve;
+  const affordable = (coins: number, materials?: Partial<Record<MaterialId, number>>) => spare(s) > priceWith(s, coins, materials) + reserve;
   const manor = () => {
     const up = N.nextManorUpgrade(s);
     if (up && affordable(up.cost, up.materials)) {
@@ -301,7 +328,7 @@ function spendAsNoble(game: Game): void {
       game.upgradeHamlet(id);
     }
   }
-  while (s.noble.soldiers < N.maxSoldiers(s) && s.coins > NOBILITY.soldiers.hire + reserve) {
+  while (s.noble.soldiers < N.maxSoldiers(s) && spare(s) > NOBILITY.soldiers.hire + reserve) {
     const before = s.noble.soldiers;
     game.buyMaterialsFor(NOBILITY.soldiers.materials);
     game.hireSoldier();
@@ -315,5 +342,8 @@ function spendAsNoble(game: Game): void {
       game.upgradeHamlet(id);
     }
   }
-  for (const id of PATRONAGE_IDS) if (s.coins > 3000 && !N.patronageProblem(s, id)) game.doPatronage(id);
+  // Mecenazgo solo con lo que sobre despues de guardar para la siguiente obra de la casa solariega.
+  const nextWork = N.nextManorUpgrade(s);
+  const saving = nextWork ? priceWith(s, nextWork.cost, nextWork.materials) : 0;
+  for (const id of PATRONAGE_IDS) if (spare(s) > saving + 3000 && !N.patronageProblem(s, id)) game.doPatronage(id);
 }

@@ -21,6 +21,12 @@
       "perWorkshop": 1
     }
   },
+  "wages": {
+    "farmer": 20,
+    "herder": 20,
+    "carter": 25,
+    "artisan": 40
+  },
   "tools": {
     "efficiency": [
       1,

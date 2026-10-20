@@ -64,7 +64,8 @@ export class Game {
       else if (notice.tile) this.emit({ type: 'result', result: notice, x: notice.tile.x, y: notice.tile.y });
       else this.emit({ type: 'notice', notice });
     }
-    if (notices.some((n) => n.card === 'rank' || n.card === 'caravan' || n.msg === 'msg.villagerLeftHunger')) this.emit({ type: 'mapChanged' });
+    // Rangos, caravanas y cuentas de la estacion (pueden irse aldeanos o soldados) cambian el mapa.
+    if (notices.some((n) => n.card === 'rank' || n.card === 'caravan' || n.card === 'season' || n.msg === 'msg.villagerLeftHunger')) this.emit({ type: 'mapChanged' });
     const tutorialMoved = tutorial.advanceTutorial(this.state);
     if (days > 0 || tutorialMoved || before !== this.state.dayProgress) this.emit({ type: 'change' });
     this.announcePendingEvent();

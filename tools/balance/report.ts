@@ -41,7 +41,10 @@ export function formatReport(reports: BalanceReport[]): string {
   add('Impuestos pagados', (r) => r.taxesPaid);
   add('Impuestos sin pagar', (r) => r.taxesUnpaid);
   add('Días con hambre', (r) => r.hungryDays);
-  add('Aldeanos que se marchan', (r) => r.villagersLeft);
+  add('Aldeanos que se marchan (hambre)', (r) => r.villagersLeft);
+  add('Aldeanos que se van sin cobrar', (r) => r.unpaidLeft);
+  add('Estaciones sin mantenimiento', (r) => r.neglectedSeasons);
+  add('Salarios y mantenimiento pagados', (r) => r.fixedCosts);
   add('Cosechas con el granero lleno', (r) => r.granaryFull);
   add('Caravanas', (r) => r.caravans);
   add('Ganado con caravanas', (r) => r.caravanEarnings);

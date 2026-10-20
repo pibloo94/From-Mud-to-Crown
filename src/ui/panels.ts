@@ -35,6 +35,7 @@ import { workshopProduct, workshopTreeSection } from './workshops';
 import { buildingStat, nextUpgrade, storageCapacity, storageUsed } from '../sim/buildings';
 import { beds, dailyFood, efficiency, farmerPlots, foodDays, freeBeds, hireCost, toolCost, toolMaterials } from '../sim/villagers';
 import { activeModifiers } from '../sim/modifiers';
+import { buildingUpkeep, upkeepBill } from '../sim/upkeep';
 import { branchCount, branchRanks, hamletLevelSum, hamletsTaken, hasRank, levelDef, levelOnlyRank, mainRanks, rankDef, unlocksAt, workshopCount } from '../sim/progress';
 import { charterReady, liegeBefore, liegeOf } from '../sim/noble';
 import { buildingOf } from '../sim/rules';
@@ -181,6 +182,7 @@ export function buildingView(ctx: PanelCtx, b: BuildingId, tab: BuildingTab): HT
     h('h2', {}, t(`building.${b}`)),
     h('p', { class: 'tagline' }, t(`building.${b}.desc`)),
     h('p', { class: 'panel-stats' }, buildingStatsText(ctx.sim, b)),
+    buildingUpkeep(s, b) > 0 && h('p', { class: 'panel-stats muted' }, t('panel.upkeep', { n: buildingUpkeep(s, b) })),
   ];
   const extra: (HTMLElement | null)[] = [];
   if (b === 'coop' || b === 'pen') {
@@ -461,6 +463,7 @@ function villagersList(ctx: PanelCtx): HTMLElement {
     'div',
     { class: 'villager-list' },
     h('p', { class: 'panel-stats' }, t('villagers.beds', { n: s.villagers.length, beds: beds(s) })),
+    s.villagers.length > 0 && h('p', { class: 'panel-stats muted' }, t('villagers.wages', { n: upkeepBill(s).wages })),
     s.villagers.length > 0 &&
       h(
         'p',
@@ -779,7 +782,7 @@ export function seasonView(ctx: PanelCtx, params: Record<string, string | number
   const n = (k: string) => Number(params[k] ?? 0);
   const row = (label: string, value: string, cls = '') => h('div', { class: `acct-row ${cls}` }, h('span', {}, label), h('b', {}, value));
   const coins = (v: number, sign: string) => (v ? `${sign}${v}` : '0');
-  const balance = n('rent') + n('dues') - n('tithe') - n('tribute') - n('upkeep');
+  const balance = n('rent') + n('dues') - n('tithe') - n('tribute') - n('upkeep') - n('wages') - n('maintenance');
   const liege = String(params.liege ?? 'baron');
   const mult = n('tributeMult');
   return h(
@@ -796,6 +799,8 @@ export function seasonView(ctx: PanelCtx, params: Record<string, string | number
       n('rent') > 0 && row(t('seasonCard.rent'), coins(n('rent'), '+')),
       n('dues') > 0 && row(t('seasonCard.dues'), coins(n('dues'), '+')),
       n('upkeep') > 0 && row(t('seasonCard.upkeep'), coins(n('upkeep'), '−')),
+      n('wages') > 0 && row(t('seasonCard.wages'), coins(n('wages'), '−')),
+      n('maintenance') > 0 && row(t('seasonCard.maintenance'), coins(n('maintenance'), '−')),
       n('renown') > 0 && row(t('seasonCard.renown', { n: n('renown') }), '', 'muted'),
       row(t('seasonCard.balance'), `${balance > 0 ? '+' : ''}${balance}`, 'total'),
       n('food') > 0 && row(t('seasonCard.food'), t('seasonCard.foodUnits', { n: n('food') }), 'muted'),
@@ -804,6 +809,8 @@ export function seasonView(ctx: PanelCtx, params: Record<string, string | number
     n('deserted') > 0 && h('p', { class: 'fair-banner' }, t('seasonCard.deserted', { n: n('deserted') })),
     n('grace') > 0 && h('p', { class: 'hint' }, t('seasonCard.grace')),
     n('unpaid') > 0 && h('p', { class: 'fair-banner' }, t('seasonCard.unpaid', { n: n('unpaid'), liege })),
+    n('wagesLeft') > 0 && h('p', { class: 'fair-banner' }, t('seasonCard.wagesLeft', { n: n('wagesLeft'), names: String(params.wagesLeftNames ?? '') })),
+    n('neglected') > 0 && h('p', { class: 'fair-banner' }, t('seasonCard.neglected', { pct: Math.round(PROGRESSION.upkeep.neglect.growth * 100) })),
     h('button', { class: 'btn primary', onclick: () => ctx.close() }, t('seasonCard.ok')),
   );
 }

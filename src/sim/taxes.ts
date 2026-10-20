@@ -4,6 +4,7 @@ import { multiplier } from './modifiers';
 import { DAYS_PER_SEASON } from './calendar';
 import { clampRep } from './villagers';
 import { claimRenown } from './progress';
+import { payUpkeep } from './upkeep';
 import { manorStat, nobleSeasonBill, nobleSeasonEffects, amountsList, liegeOf } from './noble';
 import type { GameState, Notice } from './types';
 
@@ -68,6 +69,8 @@ export function settleSeason(state: GameState, endedSeason: string): Notice {
   const perSoldier = bill.upkeep / Math.max(1, state.noble.soldiers);
   const deserted = bill.upkeep > wage ? Math.min(state.noble.soldiers, Math.ceil((bill.upkeep - wage) / perSoldier)) : 0;
   state.noble.soldiers -= deserted;
+  // Gastos fijos: salarios y mantenimiento (ver upkeep.ts).
+  const fixed = payUpkeep(state, bill.grace);
   state.stats.seasonEarned = 0;
   state.stats.seasonFood = 0;
   const renown = claimRenown(state);
@@ -91,6 +94,11 @@ export function settleSeason(state: GameState, endedSeason: string): Notice {
       unpaid,
       grace: bill.grace ? 1 : 0,
       renown,
+      wages: fixed.wages,
+      maintenance: fixed.maintenance,
+      wagesLeft: fixed.left.length,
+      wagesLeftNames: fixed.left.join(', '),
+      neglected: fixed.neglected ? 1 : 0,
     },
   };
 }
