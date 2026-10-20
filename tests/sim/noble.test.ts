@@ -79,7 +79,8 @@ describe('carta de nobleza', () => {
     expect(s.noble.prestige).toBe(NOBILITY.charter.prestige);
     expect(s.map.height).toBe(height + NOBILITY.fief.rows.length);
     expect(s.map.tiles).toHaveLength(s.map.width * s.map.height);
-    expect(s.map.tiles.filter((t) => t.kind === 'manor')).toHaveLength(1);
+    // La casa solariega ocupa un bloque de 2x2 casillas.
+    expect(s.map.tiles.filter((t) => t.kind === 'manor')).toHaveLength(4);
     for (const id of HAMLET_IDS) expect(tileAt(s, NOBILITY.hamlets[id].x, NOBILITY.hamlets[id].y)?.kind).toBe('hamlet');
     expect(buyCharter(s).ok).toBe(false);
   });

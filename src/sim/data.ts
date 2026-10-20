@@ -12,6 +12,7 @@ import workshopsJson from '../data/workshops.json';
 import tradeJson from '../data/trade.json';
 import nobilityJson from '../data/nobility.json';
 import tutorialJson from '../data/tutorial.json';
+import layoutJson from '../data/layout.json';
 import type { AnimalId, BuildingId, CropId, JobId, LiegeId, MaterialId, ModifierKind, ProductId, RankId, TileKind, WorkshopId } from './types';
 import type { Season } from './calendar';
 
@@ -213,6 +214,18 @@ export interface TutorialDef {
   tips: TipDef[];
 }
 
+/**
+ * Que ocupa cada cosa del mapa, para que nada se dibuje encima de otra:
+ * - size: lado (en casillas) de los objetos que ocupan un bloque cuadrado; por defecto, 1.
+ * - annexes: casillas reservadas junto a un objeto (desplazamiento [dx, dy]), p. ej. el puesto y la carreta.
+ * - keepClear: objetos junto a los que no se puede roturar tierra (para que no queden enterrados entre cultivos).
+ */
+export interface LayoutDef {
+  size: Partial<Record<TileKind, number>>;
+  annexes: Partial<Record<TileKind, Record<string, [number, number]>>>;
+  keepClear: TileKind[];
+}
+
 /** Efectos de las mejoras de la casa solariega. */
 export interface ManorStats {
   /** Plazas para soldados de la mesnada. */
@@ -387,6 +400,7 @@ export const TRADE = tradeJson as unknown as TradeDef;
 export const TOWN_IDS = Object.keys(TRADE.towns);
 export const NOBILITY = nobilityJson as unknown as NobilityDef;
 export const TUTORIAL = tutorialJson as unknown as TutorialDef;
+export const LAYOUT = layoutJson as unknown as LayoutDef;
 export const HAMLET_IDS = Object.keys(NOBILITY.hamlets);
 export const PATRONAGE_IDS = Object.keys(NOBILITY.patronage);
 

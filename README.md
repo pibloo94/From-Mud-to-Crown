@@ -89,6 +89,7 @@ tests/       tests de la simulación, el guardado y el contenido
 - **Un paso o un consejo del tutorial:** en `src/data/tutorial.json` (los consejos llevan su condición: nivel, días, rango, camas...) y sus textos `tutorial.<id>.*` o `tip.<id>.*` en los dos idiomas.
 - **Ajustar el ritmo:** experiencia por nivel, rangos, precio de la tierra, impuestos, reputación, arriendos y frecuencia de eventos están en `src/data/progression.json`; aldeanos, oficios y herramientas, en `src/data/villagers.json`; la carta, el feudo, la casa solariega, las aldeas, la mesnada y el mecenazgo, en `src/data/nobility.json`.
 - **Un texto nuevo:** misma clave en `src/i18n/es.json` y `en.json`. Un test comprueba que no falte ninguna.
+- **Que nada se pise en el mapa:** `src/data/layout.json` dice cuántas casillas ocupa cada objeto (la casa solariega, 2×2), qué casillas se reservan junto a otro (el puesto y la carreta junto al mercado) y junto a qué no se rotura. Un dibujo nunca se pinta más ancho que sus casillas, y un test lo comprueba con `public/assets/sprites/manifest.json`, que genera `tools/gen_sprites.py`.
 - **Cambiar el arte:** `python3 tools/gen_sprites.py` regenera los SVG. Para usar otro arte (p. ej. Kenney), sustituye los archivos de `public/assets/sprites/` respetando nombres y anclajes.
 
 ### Flujo de trabajo

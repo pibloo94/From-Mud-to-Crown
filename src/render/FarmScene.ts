@@ -10,11 +10,12 @@ import { idleCarts } from '../sim/trade';
 import { hasFeature, hasRank, levelDef } from '../sim/progress';
 import { hamletAt, hamletLevel, manorStage } from '../sim/noble';
 import { tutorialTiles } from '../sim/tutorial';
+import { annexAt, isBlockOrigin, objectSize } from '../sim/layout';
 import { dateFromDay, type Season } from '../sim/calendar';
-import { plotKey } from '../sim/state';
+import { plotKey, tileAt } from '../sim/state';
 import type { AnimalId, BuildingId, JobId, Tile } from '../sim/types';
 import { t } from '../i18n/i18n';
-import { depthOf, TILE_H, TILE_W, tileCenter, toScreen, toTile } from './iso';
+import { blockBase, depthOf, fitScale, TILE_H, TILE_W, tileCenter, toScreen, toTile } from './iso';
 
 /** Los SVG se rasterizan al doble de tamano para que se vean nitidos en pantallas de alta densidad. */
 const RES = 2;
@@ -190,10 +191,34 @@ export class FarmScene extends Phaser.Scene {
 
     const { tiles } = this.sim.state.map;
     for (const tile of tiles) this.addGround(tile);
+    this.landmarks = [];
+    this.occluders = [];
     for (const tile of tiles) this.addObject(tile);
     this.addPenFence();
     this.addAnimals();
+    this.fadeOccluders();
     this.refresh();
+  }
+
+  /** Edificios que no deben quedar tapados, y lo alto que puede taparlos (arboles). */
+  private landmarks: Phaser.GameObjects.Image[] = [];
+  private occluders: Phaser.GameObjects.Image[] = [];
+
+  /**
+   * Un arbol delante de un edificio puede taparlo casi entero: se vuelve translucido para que el
+   * edificio se vea (lo de detras sigue detras; solo cambia la opacidad).
+   */
+  private fadeOccluders(): void {
+    for (const tree of this.occluders) {
+      const tb = tree.getBounds();
+      const hides = this.landmarks.some((b) => {
+        if (b.depth >= tree.depth) return false;
+        const bb = b.getBounds();
+        const inter = Phaser.Geom.Rectangle.Intersection(tb, bb);
+        return inter.width * inter.height > 0.15 * bb.width * bb.height;
+      });
+      if (hides) tree.setAlpha(0.55);
+    }
   }
 
   private img(key: string, x: number, y: number, ox: number, oy: number, depth: number): Phaser.GameObjects.Image {
@@ -216,37 +241,46 @@ export class FarmScene extends Phaser.Scene {
     this.seasonal.push(this.img(key, sx, sy, 0.5, 0, 1));
   }
 
+  /**
+   * Coloca el dibujo de un objeto sobre la base de las casillas que ocupa, ordenado por su esquina
+   * delantera y sin pasar de su ancho (para no invadir la casilla de al lado).
+   */
+  private place(key: string, tile: { x: number; y: number }, layer: number, n = 1, dy = 0): Phaser.GameObjects.Image {
+    const { sx, sy } = blockBase(tile.x, tile.y, n);
+    const im = this.img(key, sx, sy + dy, 0.5, 1, depthOf(tile.x + n - 1, tile.y + n - 1, layer));
+    return im.setScale((1 / RES) * fitScale(im.width / RES, n));
+  }
+
   private addObject(tile: Tile): void {
     const { sx, sy } = toScreen(tile.x, tile.y);
-    const bottom = sy + TILE_H;
+    const st = this.sim.state;
     switch (tile.kind) {
       case 'house':
-        this.img(this.stageKey('house'), sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 5));
-        break;
       case 'granary':
-        this.img(this.stageKey('granary'), sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 5));
+        this.landmarks.push(this.place(this.stageKey(tile.kind), tile, 5));
         break;
       case 'coop':
-        this.img(this.stageKey('coop'), sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 5));
+        this.landmarks.push(this.place(this.stageKey('coop'), tile, 5));
         this.addBubble('chicken', tile, sx + 18, sy - 44, 'icon_egg');
         break;
       case 'tenant':
-        this.img('tenant', sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 1));
+        this.place('tenant', tile, 1);
         break;
       case 'site':
-        this.img('site', sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 1));
+        this.place('site', tile, 1);
         break;
       case 'workshop': {
-        const id = workshopAt(this.sim.state, tile.x, tile.y);
-        if (id) this.img(id, sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 5));
+        const id = workshopAt(st, tile.x, tile.y);
+        if (id) this.landmarks.push(this.place(id, tile, 5));
         break;
       }
       case 'manor':
-        this.img(`manor_${manorStage(this.sim.state)}`, sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 5));
+        // Ocupa un bloque: se dibuja una vez, desde su casilla de origen.
+        if (isBlockOrigin(st, tile)) this.landmarks.push(this.place(`manor_${manorStage(st)}`, tile, 5, objectSize('manor')));
         break;
       case 'hamlet': {
         const id = hamletAt(tile.x, tile.y);
-        if (id) this.img(`hamlet_${NOBILITY.hamlets[id].material}_${hamletLevel(this.sim.state, id)}`, sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 5));
+        if (id) this.landmarks.push(this.place(`hamlet_${NOBILITY.hamlets[id].material}_${hamletLevel(st, id)}`, tile, 5));
         break;
       }
       case 'wild':
@@ -254,30 +288,33 @@ export class FarmScene extends Phaser.Scene {
         if (tile.x === PROGRESSION.lands.eastFrom && tile.y % 2 === 0) this.img('boundary', sx - TILE_W / 4, sy + TILE_H * 0.75, 0.5, 1, depthOf(tile.x, tile.y, 3));
         break;
       case 'market': {
-        this.img('market', sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 5));
-        const st = this.sim.state;
-        // Puesto propio a un lado del mercado y carreta lista para salir al otro.
-        if (st.stall) {
-          const p = toScreen(tile.x - 1, tile.y);
-          this.img('stall', p.sx, p.sy + TILE_H, 0.5, 1, depthOf(tile.x - 1, tile.y, 5));
-        }
-        if (idleCarts(st) > 0) {
-          const p = toScreen(tile.x + 1, tile.y);
-          this.img('cart', p.sx, p.sy + TILE_H - 6, 0.5, 1, depthOf(tile.x + 1, tile.y, 4));
-        }
+        this.landmarks.push(this.place('market', tile, 5));
+        // Puesto propio y carreta lista para salir, cada uno en su casilla reservada junto al mercado.
+        const free = (a: { x: number; y: number } | null) => {
+          const k = a && tileAt(st, a.x, a.y)?.kind;
+          return a && (k === 'grass' || k === 'path') ? a : null;
+        };
+        const stall = free(annexAt(st, 'stall'));
+        if (st.stall && stall) this.place('stall', stall, 5);
+        const cart = free(annexAt(st, 'cart'));
+        if (idleCarts(st) > 0 && cart) this.place('cart', cart, 4, 1, -6);
         break;
       }
       case 'well':
-        this.img('well', sx, bottom - 4, 0.5, 1, depthOf(tile.x, tile.y, 5));
+        this.place('well', tile, 5, 1, -4);
         break;
       case 'rocks':
-        this.img('rocks', sx, bottom - 6, 0.5, 1, depthOf(tile.x, tile.y, 4));
+        this.place('rocks', tile, 4, 1, -6);
         break;
       case 'tree':
-        this.seasonal.push(this.img((tile.x + tile.y) % 2 ? 'tree_a' : 'tree_b', sx, bottom + 6, 0.5, 1, depthOf(tile.x, tile.y, 5)));
+      {
+        const tree = this.place((tile.x + tile.y) % 2 ? 'tree_a' : 'tree_b', tile, 5, 1, 6);
+        this.seasonal.push(tree);
+        this.occluders.push(tree);
+      }
         break;
       case 'soil': {
-        const crop = this.img('wheat_0', sx, bottom, 0.5, 1, depthOf(tile.x, tile.y, 1)).setVisible(false);
+        const crop = this.place('wheat_0', tile, 1).setVisible(false);
         this.crops.set(plotKey(tile.x, tile.y), crop);
         break;
       }
@@ -404,7 +441,12 @@ export class FarmScene extends Phaser.Scene {
         .map((tl) => ({ x: tl.x, y: tl.y }));
       for (let i = 0; i < this.sim.state.herds.chicken.count; i++) this.addAnimal('chicken', area, 0.5);
     }
-    const pen = this.penTiles().map((tl) => ({ x: tl.x, y: tl.y }));
+    // Con el establo, su casilla (la del fondo) queda para el cobertizo: las vacas pastan en las demas.
+    const penAll = this.penTiles().map((tl) => ({ x: tl.x, y: tl.y }));
+    const shed = visualStage(this.sim.state, 'pen') >= 2 && penAll.length > 1;
+    const x0 = Math.min(...penAll.map((p) => p.x));
+    const y0 = Math.min(...penAll.map((p) => p.y));
+    const pen = shed ? penAll.filter((p) => p.x !== x0 || p.y !== y0) : penAll;
     for (let i = 0; i < this.sim.state.herds.cow.count; i++) this.addAnimal('cow', pen, 0.9);
     // Aldeanos: cada oficio pasea por donde trabaja.
     const tiles = this.sim.state.map.tiles;
@@ -422,7 +464,9 @@ export class FarmScene extends Phaser.Scene {
     // La mesnada ronda la casa solariega (como mucho seis, para no llenar el mapa).
     const manor = tiles.find((tl) => tl.kind === 'manor');
     if (manor) {
-      const yard = tiles.filter((tl) => (tl.kind === 'grass' || tl.kind === 'path') && Math.abs(tl.x - manor.x) <= 2 && Math.abs(tl.y - manor.y) <= 1 && !(tl.x === manor.x && tl.y === manor.y));
+      // Patio: casillas libres alrededor del bloque de la casa (nunca dentro).
+      const n = objectSize('manor');
+      const yard = tiles.filter((tl) => (tl.kind === 'grass' || tl.kind === 'path') && tl.x >= manor.x - 1 && tl.x <= manor.x + n && tl.y >= manor.y - 1 && tl.y <= manor.y + n);
       for (let i = 0; i < Math.min(6, this.sim.state.noble.soldiers); i++) this.addAnimal('villager_soldier', yard, 0.95);
     }
   }
