@@ -8,7 +8,8 @@ import { hasFeature } from '../sim/progress';
 import { animalCapacity } from '../sim/rules';
 import { materialUnlocked } from '../sim/materials';
 import { reserved, surplus } from '../sim/pantry';
-import type { AnimalId, MaterialId, ProductId } from '../sim/types';
+import { isProtected, protectionCost } from '../sim/risk';
+import type { AnimalId, MaterialId, ProductId, ProtectionId } from '../sim/types';
 import { t } from '../i18n/i18n';
 import { h, icon } from './dom';
 import type { PanelCtx } from './panels';
@@ -191,10 +192,30 @@ function buyTab(ctx: PanelCtx): HTMLElement[] {
       ),
     );
   });
+  const protections = (['crops', 'animals'] as ProtectionId[]).map((kind) => {
+    const active = isProtected(s, kind);
+    const cost = protectionCost(s, kind);
+    return h(
+      'div',
+      { class: 'trade-row' },
+      h(
+        'div',
+        { class: 'trade-head' },
+        icon(kind === 'crops' ? 'icon_wheat' : 'icon_egg', 'icon big'),
+        h('div', { class: 'market-info' }, h('b', {}, t(`protection.${kind}`)), h('small', {}, t(`protection.${kind}.desc`))),
+        active
+          ? h('span', { class: 'up-req' }, icon('icon_check', 'icon tiny'), t('protection.active'))
+          : h('button', { class: 'btn small', disabled: s.coins < cost, onclick: () => ctx.sim.buyProtection(kind) }, t('market.buy', { price: cost })),
+      ),
+    );
+  });
   return [
     h('h3', { class: 'market-section' }, t('market.materials')),
     h('p', { class: 'hint left' }, t('market.materialsHint')),
     ...materials,
+    h('h3', { class: 'market-section' }, t('market.protection')),
+    h('p', { class: 'hint left' }, t('market.protectionHint')),
+    ...protections,
     h('h3', { class: 'market-section' }, t('market.livestock')),
     ...livestock,
   ];

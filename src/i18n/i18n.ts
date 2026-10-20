@@ -59,6 +59,10 @@ const TRANSLATED: Record<string, (v: string, all: Record<string, string | number
   liegeTitle: (v) => t(`liege.title.${v}`),
   manorUp: (v) => t(`manorUp.${v}`),
   hamlet: (v) => t(`hamlet.${v}`),
+  protection: (v) => t(`protection.${v}`),
+  eventTitle: (v) => t(`event.${v}.title`),
+  weather: (v) => t(`weather.${v}`),
+  lost: (v) => t(`rank.${v}`),
   // "wood:4,stone:2" -> "4 madera, 2 piedra" (tambien productos y monedas)
   list: (v) =>
     v

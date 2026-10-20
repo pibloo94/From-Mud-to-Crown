@@ -135,7 +135,10 @@ export interface Pantry {
   reserveDays: number;
 }
 
-export type ModifierKind = 'tribute' | 'growth' | 'animal' | 'toolDiscount' | 'idle' | 'priceAll';
+export type ModifierKind = 'tribute' | 'growth' | 'animal' | 'toolDiscount' | 'idle' | 'priceAll' | 'food';
+
+/** Prevencion que se compra en el mercado contra los percances. */
+export type ProtectionId = 'crops' | 'animals';
 
 /** Efecto temporal (bueno o malo) que termina en `untilDay`. */
 export interface Modifier {
@@ -191,6 +194,14 @@ export interface GameState {
   leases: number;
   /** Puntos de renombre ya cobrados (experiencia por encima del nivel maximo, ver progress.ts). */
   renown: number;
+  /** Lo que se debe al senor por impuestos sin pagar (crece cada estacion, ver risk.ts). */
+  debt: number;
+  /** Prevencion comprada: dia hasta el que dura (0 = ninguna). */
+  protections: Record<ProtectionId, number>;
+  /** Tiempo de la estacion en curso (id de PROGRESSION.weather). */
+  weather: string;
+  /** En las ultimas cuentas no se cumplia lo que pide el rango: si se repite, se pierde. */
+  rankWarning: boolean;
   /** Mejoras compradas de cada edificio (se compran en orden). */
   buildings: Record<BuildingId, number>;
   villagers: Villager[];

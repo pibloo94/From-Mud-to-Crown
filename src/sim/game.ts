@@ -6,12 +6,13 @@ import { upgradeBuilding } from './buildings';
 import * as villagers from './villagers';
 import * as pantry from './pantry';
 import * as materials from './materials';
-import type { AnimalId, BuildingId, CommandResult, CropId, GameState, JobId, MaterialId, Notice, ProductId, Speed, WorkshopId } from './types';
+import type { AnimalId, BuildingId, CommandResult, CropId, GameState, JobId, MaterialId, Notice, ProductId, ProtectionId, Speed, WorkshopId } from './types';
 import { BUILDINGS, WORKSHOPS } from './data';
 import * as workshops from './workshops';
 import * as trade from './trade';
 import * as noble from './noble';
 import * as tutorial from './tutorial';
+import * as risk from './risk';
 
 export type GameEvent =
   | { type: 'change' }
@@ -170,6 +171,11 @@ export class Game {
 
   setReserveDays(days: number): void {
     this.report({ result: pantry.setReserveDays(this.state, days), levelUps: [] });
+  }
+
+  /** Compra prevencion contra percances hasta las cuentas de la estacion. */
+  buyProtection(kind: ProtectionId): void {
+    this.report({ result: risk.buyProtection(this.state, kind), levelUps: [] });
   }
 
   buyMaterial(m: MaterialId, qty: number): void {

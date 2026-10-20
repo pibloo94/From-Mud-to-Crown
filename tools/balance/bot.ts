@@ -17,6 +17,7 @@ import * as T from '../../src/sim/trade';
 import * as N from '../../src/sim/noble';
 import { seasonBill } from '../../src/sim/taxes';
 import { upkeepBill } from '../../src/sim/upkeep';
+import { isProtected, protectionCost } from '../../src/sim/risk';
 import type { CropId, GameState, JobId, MaterialId, ProductId } from '../../src/sim/types';
 
 /** Lo que mide una partida del bot. Los dias son dias de juego (10 s reales a velocidad x1). */
@@ -41,6 +42,17 @@ export interface BalanceReport {
   neglectedSeasons: number;
   /** Salarios y mantenimiento pagados. */
   fixedCosts: number;
+  /** Mayor deuda con el senor. */
+  maxDebt: number;
+  /** Tierras embargadas por deudas. */
+  seizures: number;
+  /** Avisos de perder el rango y rangos perdidos. */
+  rankWarnings: number;
+  ranksLost: number;
+  /** Percances evitados con la prevencion. */
+  prevented: number;
+  /** Estaciones con mal tiempo (cultivos, animales o comida por debajo de lo normal). */
+  badWeather: number;
   granaryFull: number;
   caravans: number;
   caravanEarnings: number;
@@ -100,6 +112,12 @@ export function simulate(seed: number, days: number): BalanceReport {
     unpaidLeft: 0,
     neglectedSeasons: 0,
     fixedCosts: 0,
+    maxDebt: 0,
+    seizures: 0,
+    rankWarnings: 0,
+    ranksLost: 0,
+    prevented: 0,
+    badWeather: 0,
     granaryFull: 0,
     caravans: 0,
     caravanEarnings: 0,
@@ -118,8 +136,14 @@ export function simulate(seed: number, days: number): BalanceReport {
       report.unpaidLeft += Number(n.params?.wagesLeft ?? 0);
       report.neglectedSeasons += Number(n.params?.neglected ?? 0);
       report.fixedCosts += Number(n.params?.wages ?? 0) + Number(n.params?.maintenance ?? 0);
+      report.maxDebt = Math.max(report.maxDebt, Number(n.params?.debt ?? 0));
+      if (n.params?.seized) report.seizures++;
+      report.rankWarnings += Number(n.params?.rankWarning ?? 0);
+      if (n.params?.rankLost) report.ranksLost++;
+      if (['wet', 'dry', 'blight', 'harsh'].some((w) => String(n.params?.weather ?? '').endsWith(`.${w}`))) report.badWeather++;
     }
     if (n.msg === 'msg.villagersHungry') report.hungryDays++;
+    if (n.msg === 'msg.prevented') report.prevented++;
     if (n.msg === 'msg.villagerLeftHunger') report.villagersLeft++;
   });
 
@@ -282,6 +306,11 @@ function spend(game: Game): void {
   // Nobleza.
   if (N.charterReady(s) && spare(s) > NOBILITY.charter.cost + 300) game.buyCharter();
   if (N.isNoble(s)) spendAsNoble(game);
+
+  // Prevencion contra percances, si sobra para pagarla.
+  for (const kind of ['crops', 'animals'] as const) {
+    if (!isProtected(s, kind) && spare(s) > protectionCost(s, kind) + 200) game.buyProtection(kind);
+  }
 
   // Animales.
   if (spare(s) > 80) game.buyAnimal('chicken');
