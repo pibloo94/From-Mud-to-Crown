@@ -1,5 +1,6 @@
 // Experiencia, niveles, rangos y lo que desbloquea cada nivel (tambien para el arbol de progreso).
 import { BUILDINGS, BUILDING_IDS, CROPS, CROP_IDS, JOB_IDS, MAX_LEVEL, PROGRESSION, TOWN_IDS, TRADE, VILLAGERS, WORKSHOPS, WORKSHOP_IDS, type Feature, type RankDef } from './data';
+import { ESTATE_IDS } from './estates';
 import type { BuildingId, CropId, GameState, JobId, RankId, WorkshopId } from './types';
 
 export function levelDef(level: number) {
@@ -78,8 +79,7 @@ export function meetsRank(state: GameState, r: RankDef): boolean {
   return (
     state.level >= r.level &&
     state.day >= (r.days ?? 0) &&
-    state.rep.baron >= (r.baron ?? 0) &&
-    state.rep.village >= (r.village ?? 0) &&
+    ESTATE_IDS.every((e) => state.rep[e] >= (r[e] ?? 0)) &&
     branchCount(state) >= (r.branches ?? 0) &&
     workshopCount(state) >= (r.workshops ?? 0) &&
     state.stats.trades >= (r.trades ?? 0) &&

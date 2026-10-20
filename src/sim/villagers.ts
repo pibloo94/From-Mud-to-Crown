@@ -1,11 +1,12 @@
 // Aldeanos: necesitan cama y comida, trabajan en un oficio y rinden mas con mejores herramientas.
-import { PROGRESSION, PRODUCT_IDS, VILLAGERS } from './data';
+import { PRODUCT_IDS, VILLAGERS } from './data';
 import { buildingStat, storageFree } from './buildings';
 import { isIdle, multiplier } from './modifiers';
 import { random } from './random';
 import { priceOf } from './market';
 import { dailyFood, eatingOrder, surplus } from './pantry';
 import { hasMaterials, materialsList, missingMaterials, payMaterials } from './materials';
+import { changeRep, estateMult } from './estates';
 import type { CommandResult, CropId, GameState, JobId, Notice, ProductId, Villager } from './types';
 
 export { dailyFood, foodDays } from './pantry';
@@ -23,7 +24,8 @@ export function freeBeds(state: GameState): number {
 
 export function hireCost(state: GameState): number {
   const base = VILLAGERS.hireCost;
-  return state.rep.village >= PROGRESSION.reputation.highVillage ? Math.ceil(base / 2) : base;
+  // Con el pueblo favorable o devoto, contratar sale mas barato (estates.json).
+  return Math.ceil(base * estateMult(state, 'hire'));
 }
 
 export function addVillager(state: GameState, job: JobId = 'farmer'): Villager | null {
@@ -158,7 +160,7 @@ export function feedVillagers(state: GameState): Notice[] {
     const starving = state.villagers.find((v) => v.hungry > VILLAGERS.hungerDays);
     if (starving) {
       state.villagers = state.villagers.filter((v) => v !== starving);
-      state.rep.village = clampRep(state.rep.village - 5);
+      changeRep(state, 'commoners', -5);
       notices.push({ ok: false, msg: 'msg.villagerLeftHunger', params: { name: starving.name } });
     } else {
       notices.push({ ok: false, msg: 'msg.villagersHungry' });
@@ -193,9 +195,8 @@ export function carterSells(state: GameState): Notice | null {
   return { ok: true, msg: 'msg.carterSold', params: { amount: units, coins } };
 }
 
-export function clampRep(v: number): number {
-  return Math.max(0, Math.min(100, Math.round(v)));
-}
+/** Se mantiene aqui por compatibilidad: la regla vive en estates.ts. */
+export { clampRep } from './estates';
 
 /** Para que el pastor no recoja mas de lo que cabe. */
 export const canStoreAny = (state: GameState): boolean => storageFree(state) > 0;

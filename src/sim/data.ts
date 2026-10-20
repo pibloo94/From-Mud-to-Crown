@@ -12,8 +12,9 @@ import workshopsJson from '../data/workshops.json';
 import tradeJson from '../data/trade.json';
 import nobilityJson from '../data/nobility.json';
 import tutorialJson from '../data/tutorial.json';
+import estatesJson from '../data/estates.json';
 import layoutJson from '../data/layout.json';
-import type { AnimalId, BuildingId, CropId, Difficulty, JobId, LiegeId, MaterialId, ModifierKind, ProductId, ProtectionId, RankId, TileKind, WorkshopId } from './types';
+import type { AnimalId, BuildingId, CropId, Difficulty, EstateEffect, EstateId, JobId, LiegeId, MaterialId, ModifierKind, ProductId, ProtectionId, RankId, TileKind, WorkshopId } from './types';
 import type { Season } from './calendar';
 
 export interface ProductDef {
@@ -78,17 +79,19 @@ export interface RankDef {
   stall?: boolean;
   /** Dias de juego minimos (opcional). */
   days?: number;
-  /** Reputacion minima ante el senor feudal (opcional). */
-  baron?: number;
-  /** Reputacion minima ante la aldea (opcional). */
-  village?: number;
+  /** Relacion minima con cada estamento (opcional): "nobles": 60, "commoners": 60... */
+  king?: number;
+  nobles?: number;
+  artisans?: number;
+  commoners?: number;
+  church?: number;
   /** Titulos de rama que pide (Artesano o Burgues). */
   branches?: number;
   /**
    * Lo que hay que mantener para conservar el rango (favor minimo). Si falla en unas cuentas llega
    * un aviso; si sigue fallando en las siguientes, se baja al rango anterior.
    */
-  keep?: { baron?: number; village?: number };
+  keep?: Partial<Record<EstateId, number>>;
   /** Pide haber comprado la carta de nobleza. */
   charter?: boolean;
   /** Mejoras de la casa solariega que pide. */
@@ -116,8 +119,6 @@ export interface ProgressionDef {
     tributeBase: number;
     tributePerPlot: number;
     /** Con la reputacion del baron por debajo de esto, el tributo sube. */
-    lowBaron: number;
-    lowBaronMult: number;
     /** Reputacion que se pierde si no se puede pagar. */
     unpaidBaron: number;
     /** Estaciones del principio sin impuestos, para que el campesino arranque. */
@@ -129,7 +130,7 @@ export interface ProgressionDef {
     /** Con esta deuda o mas, el baron embarga tierra para cobrarse. */
     seizeDebt: number;
   };
-  reputation: { start: number; highVillage: number };
+  reputation: { start: number };
   lands: { eastFrom: number; leaseBaseCost: number; leaseGrowth: number; rentPerSeason: number };
   /** Experiencia por encima del nivel maximo: cada `xpPerPoint` es un punto de renombre que da prestigio. */
   renown: { xpPerPoint: number; prestigePerPoint: number };
@@ -155,6 +156,20 @@ export interface ProgressionDef {
     perManorLevel: number;
     neglect: { days: number; growth: number; animal: number };
   };
+}
+
+/** Estamentos: relaciones, tramos, rivalidades y lo que mueve cada cosa (ver estates.ts). */
+export interface EstatesDef {
+  ids: EstateId[];
+  start: number;
+  /** Puntos que vuelve cada relacion hacia `start` en cada cuentas de estacion. */
+  drift: number;
+  rivals: [EstateId, EstateId][];
+  /** Parte de lo que sube un estamento que pierde su rival. */
+  rivalShare: number;
+  tiers: { id: string; below: number }[];
+  effects: Partial<Record<EstateId, Record<string, Partial<Record<EstateEffect, number>>>>>;
+  sources: Record<'workshopBuilt' | 'workshopUpgraded' | 'manorWork' | 'charter' | 'titheProblem' | 'tithePaid' | 'tributePaid' | 'wagesPaid', Partial<Record<EstateId, number>>>;
 }
 
 export interface DifficultyDef {
@@ -225,7 +240,7 @@ export interface TownDef {
   demand: Partial<Record<ProductId, number>>;
   /** Materiales que vende, con su precio. */
   sells?: Partial<Record<MaterialId, number>>;
-  rep?: { baron?: number; village?: number };
+  rep?: Partial<Record<EstateId, number>>;
 }
 
 export interface TradeDef {
@@ -292,7 +307,8 @@ export interface ManorStats {
   /** Multiplicador del diezmo (capilla propia). */
   titheMult?: number;
   /** Reputacion ante la aldea que se gana cada estacion. */
-  villageRep?: number;
+  /** Relacion con la Iglesia que se gana cada estacion (la capilla). */
+  churchRep?: number;
   /** Prestigio que se gana cada estacion. */
   prestigeSeason?: number;
 }
@@ -328,7 +344,7 @@ export interface PatronageDef {
   /** Soldados necesarios (el torneo). */
   soldiers?: number;
   prestige: number;
-  rep?: { baron?: number; village?: number };
+  rep?: Partial<Record<EstateId, number>>;
 }
 
 export interface NobilityDef {
@@ -343,8 +359,6 @@ export interface NobilityDef {
   patronage: Record<string, PatronageDef>;
   /** Senor feudal de cada rango noble (por defecto, el baron). */
   lieges: Partial<Record<RankId, LiegeId>>;
-  /** Favor con el que empieza un nuevo senor feudal. */
-  newLiegeRep: number;
 }
 
 export interface MaterialDef {
@@ -401,7 +415,7 @@ export interface EventEffects {
   herds?: Partial<Record<AnimalId, number>>;
   /** Aldeanos que llegan (necesitan cama libre). */
   villagers?: number;
-  rep?: { baron?: number; village?: number };
+  rep?: Partial<Record<EstateId, number>>;
   /** Efecto temporal: dura `days` dias o hasta las cuentas de `seasons` estaciones. */
   modifier?: { kind: ModifierKind; value: number; days?: number; seasons?: number };
   flags?: { set?: string[]; clear?: string[] };
@@ -462,6 +476,7 @@ export const TRADE = tradeJson as unknown as TradeDef;
 export const TOWN_IDS = Object.keys(TRADE.towns);
 export const NOBILITY = nobilityJson as unknown as NobilityDef;
 export const TUTORIAL = tutorialJson as unknown as TutorialDef;
+export const ESTATES = estatesJson as unknown as EstatesDef;
 export const LAYOUT = layoutJson as unknown as LayoutDef;
 export const HAMLET_IDS = Object.keys(NOBILITY.hamlets);
 export const PATRONAGE_IDS = Object.keys(NOBILITY.patronage);

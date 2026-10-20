@@ -16,7 +16,7 @@ function lordWithFief(): GameState {
   s.rank = 'landowner';
   openEastLands(s);
   s.titles = ['artisan'];
-  s.rep = { baron: 80, village: 70 };
+  s.rep = { ...s.rep, nobles: 80, commoners: 70 };
   s.coins = 99999;
   buyCharter(s);
   checkRank(s);

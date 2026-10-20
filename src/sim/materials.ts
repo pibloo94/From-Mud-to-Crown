@@ -1,5 +1,6 @@
 // Materiales de construccion (madera, piedra, hierro): se compran en el mercado y los gastan las obras.
 import { MATERIALS, MATERIAL_IDS, type MaterialAmounts } from './data';
+import { estateMult } from './estates';
 import type { CommandResult, GameState, MaterialId } from './types';
 
 export function materialUnlocked(state: GameState, m: MaterialId): boolean {
@@ -24,16 +25,21 @@ export function payMaterials(state: GameState, need: MaterialAmounts = {}): void
   for (const m of MATERIAL_IDS) state.materials[m] -= need[m] ?? 0;
 }
 
+/** Precio de un material en el mercado: depende de como te lleves con los artesanos. */
+export function materialPrice(state: GameState, m: MaterialId): number {
+  return Math.max(1, Math.round(MATERIALS[m].price * estateMult(state, 'materials')));
+}
+
 /** Precio en monedas de un lote de materiales al precio del mercado. */
-export function materialsPrice(amounts: MaterialAmounts): number {
-  return MATERIAL_IDS.reduce((sum, m) => sum + (amounts[m] ?? 0) * MATERIALS[m].price, 0);
+export function materialsPrice(state: GameState, amounts: MaterialAmounts): number {
+  return MATERIAL_IDS.reduce((sum, m) => sum + (amounts[m] ?? 0) * materialPrice(state, m), 0);
 }
 
 export function buyMaterial(state: GameState, m: MaterialId, qty: number): CommandResult {
   const n = Math.max(0, Math.floor(qty));
   if (n <= 0) return { ok: false, msg: 'msg.nothing' };
   if (!materialUnlocked(state, m)) return { ok: false, msg: 'msg.upgradeLocked', params: { level: MATERIALS[m].unlockLevel ?? 1 } };
-  const cost = n * MATERIALS[m].price;
+  const cost = n * materialPrice(state, m);
   if (state.coins < cost) return { ok: false, msg: 'msg.notEnoughCoins', params: { cost } };
   state.coins -= cost;
   state.materials[m] += n;
@@ -47,7 +53,7 @@ export function buyMissing(state: GameState, need: MaterialAmounts = {}): Comman
   if (ids.length === 0) return { ok: false, msg: 'msg.nothing' };
   const locked = ids.find((m) => !materialUnlocked(state, m));
   if (locked) return { ok: false, msg: 'msg.upgradeLocked', params: { level: MATERIALS[locked].unlockLevel ?? 1 } };
-  const cost = materialsPrice(missing);
+  const cost = materialsPrice(state, missing);
   if (state.coins < cost) return { ok: false, msg: 'msg.notEnoughCoins', params: { cost } };
   state.coins -= cost;
   for (const m of ids) state.materials[m] += missing[m]!;

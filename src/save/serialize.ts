@@ -1,6 +1,6 @@
 // Formato del archivo de partida. Puro (sin DOM) para poder probarlo.
 import type { GameState } from '../sim/types';
-import { BUILDING_IDS, MATERIAL_IDS, PRODUCT_IDS, PROGRESSION, START } from '../sim/data';
+import { BUILDING_IDS, ESTATES, MATERIAL_IDS, PRODUCT_IDS, PROGRESSION, START } from '../sim/data';
 import { defaultPantry } from '../sim/pantry';
 import { rollPrices } from '../sim/market';
 import { buildingStat, storageCapacity, storageUsed } from '../sim/buildings';
@@ -9,9 +9,10 @@ import { defaultNoble } from '../sim/noble';
 import { finishedTutorial } from '../sim/tutorial';
 import { relayFief } from '../sim/layout';
 import { renownProgress } from '../sim/progress';
+import { startReps } from '../sim/estates';
 
 export const SAVE_FORMAT = 'from-mud-to-crown-save';
-export const SAVE_VERSION = 13;
+export const SAVE_VERSION = 14;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;
@@ -105,6 +106,12 @@ export function migrate(state: Record<string, unknown>, from: number): GameState
   if (from < 12) s = { ...s, debt: 0, protections: { crops: 0, animals: 0 }, weather: 'normal', rankWarning: false };
   // v12 -> v13: dificultad. Las partidas de antes se jugaban en Normal.
   if (from < 13) s = { ...s, difficulty: 'normal' };
+  // v13 -> v14: estamentos. El favor del baron pasa a la Nobleza y el de la aldea al Pueblo llano;
+  // Rey, Artesanos e Iglesia empiezan en el punto medio.
+  if (from < 14) {
+    const old = (s.rep ?? {}) as { baron?: number; village?: number };
+    s = { ...s, rep: { ...startReps(), nobles: old.baron ?? ESTATES.start, commoners: old.village ?? ESTATES.start } };
+  }
   return s as GameState;
 }
 

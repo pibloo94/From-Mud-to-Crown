@@ -69,7 +69,7 @@ describe('materiales', () => {
     const need = { stone: 30, wood: 10, iron: 4 };
     expect(missingMaterials(s, need)).toEqual({ stone: 20, wood: 10, iron: 4 });
     s.level = 8;
-    const cost = materialsPrice({ stone: 20, wood: 10, iron: 4 });
+    const cost = materialsPrice(s, { stone: 20, wood: 10, iron: 4 });
     expect(buyMissing(s, need)).toMatchObject({ ok: true, params: { cost } });
     expect(s.materials).toEqual({ wood: 10, stone: 30, iron: 4 });
     expect(s.coins).toBe(1000 - cost);

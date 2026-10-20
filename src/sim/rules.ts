@@ -1,5 +1,5 @@
 // Reglas del juego: funciones que modifican el estado. Sin dependencias de Phaser ni del DOM.
-import { ANIMALS, ANIMAL_IDS, CROPS, CROP_IDS, NOBILITY, PRODUCTS, PROGRESSION } from './data';
+import { ANIMALS, ANIMAL_IDS, CROPS, CROP_IDS, PRODUCTS, PROGRESSION } from './data';
 import { DAY_MS, dateFromDay } from './calendar';
 import { plotKey, tileAt } from './state';
 import { addXp, cropUnlocked, hasFeature, hasRank, levelDef, levelOnlyRank, rankDef, updateRank } from './progress';
@@ -154,8 +154,6 @@ export function checkRank(state: GameState): Notice[] {
     if (gained === 'landowner') openEastLands(state);
     // Los rangos que solo piden nivel ya se anuncian en la tarjeta de subida de nivel.
     if (gained === 'lord') expandFief(state);
-    // Un nuevo senor feudal no conoce al jugador: su favor empieza de nuevo.
-    if (NOBILITY.lieges[gained]) state.rep.baron = NOBILITY.newLiegeRep;
     if (levelOnlyRank(rankDef(gained))) continue;
     notices.push({ ok: true, msg: 'report.rank', card: 'rank', params: { rank: gained } });
   }

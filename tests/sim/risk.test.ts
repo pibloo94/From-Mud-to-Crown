@@ -126,7 +126,7 @@ describe('conservar el rango', () => {
   it('sin el favor que pide el rango: aviso en unas cuentas y, si sigue igual, se pierde', () => {
     const s = game();
     s.rank = 'landowner';
-    s.rep.baron = 30;
+    s.rep.nobles = 30;
     expect(checkRankKeep(s)).toEqual({ warning: true, lost: null });
     expect(s.rank).toBe('landowner');
     expect(checkRankKeep(s)).toEqual({ warning: false, lost: 'landowner' });
@@ -136,11 +136,11 @@ describe('conservar el rango', () => {
   it('si se recupera el favor a tiempo, el aviso se olvida', () => {
     const s = game();
     s.rank = 'landowner';
-    s.rep.baron = 30;
+    s.rep.nobles = 30;
     checkRankKeep(s);
-    s.rep.baron = 60;
+    s.rep.nobles = 60;
     expect(checkRankKeep(s)).toEqual({ warning: false, lost: null });
-    s.rep.baron = 30;
+    s.rep.nobles = 30;
     expect(checkRankKeep(s).warning).toBe(true);
     expect(s.rank).toBe('landowner');
   });

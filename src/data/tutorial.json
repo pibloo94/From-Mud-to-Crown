@@ -16,6 +16,7 @@
     { "id": "animals", "level": 4 },
     { "id": "events", "events": 1 },
     { "id": "taxes", "days": 31 },
+    { "id": "estates", "days": 61 },
     { "id": "landowner", "rank": "landowner" },
     { "id": "workshops", "level": 9 },
     { "id": "trade", "level": 13 },

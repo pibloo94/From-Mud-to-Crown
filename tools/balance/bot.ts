@@ -15,10 +15,11 @@ import { artisansOf, builtWorkshops, nextWorkshopUpgrade } from '../../src/sim/w
 import { dailyFood, surplus } from '../../src/sim/pantry';
 import * as T from '../../src/sim/trade';
 import * as N from '../../src/sim/noble';
+import { mainRanks, rankDef } from '../../src/sim/progress';
 import { seasonBill } from '../../src/sim/taxes';
 import { upkeepBill } from '../../src/sim/upkeep';
 import { isProtected, protectionCost } from '../../src/sim/risk';
-import type { CropId, Difficulty, GameState, JobId, MaterialId, ProductId } from '../../src/sim/types';
+import type { CropId, Difficulty, EstateId, GameState, JobId, MaterialId, ProductId } from '../../src/sim/types';
 
 /** Lo que mide una partida del bot. Los dias son dias de juego (10 s reales a velocidad x1). */
 export interface BalanceReport {
@@ -66,8 +67,7 @@ export interface BalanceReport {
     coins: number;
     plots: number;
     villagers: number;
-    baron: number;
-    village: number;
+    rep: Record<EstateId, number>;
     prestige: number;
     manor: number;
     hamlets: Record<string, number>;
@@ -182,8 +182,7 @@ export function simulate(seed: number, days: number, level: Difficulty = 'normal
     coins: st.coins,
     plots: Object.keys(st.plots).length,
     villagers: st.villagers.length,
-    baron: st.rep.baron,
-    village: st.rep.village,
+    rep: { ...st.rep },
     prestige: st.noble.prestige,
     manor: st.noble.manor,
     hamlets: { ...st.noble.hamlets },
@@ -192,12 +191,27 @@ export function simulate(seed: number, days: number, level: Difficulty = 'normal
   return report;
 }
 
-/** Acepta lo que pida el evento si puede (ni negarse ni arriesgarse); si no, la primera opcion valida. */
+/**
+ * Contesta el evento como alguien que va a por el siguiente rango: elige la opcion que mas le acerca
+ * a las relaciones que ese rango pide (y no deja caer las que hay que mantener). A igualdad, acepta
+ * lo que se pide antes que negarse o arriesgarse.
+ */
 function answerEvent(game: Game): void {
-  const pending = game.state.events.pending;
+  const s = game.state;
+  const pending = s.events.pending;
   if (!pending) return;
-  const options = EVENTS[pending.id].options.filter((o) => optionAvailable(game.state, o));
-  const pick = options.find((o) => !['refuse', 'decline', 'risk'].includes(o.id)) ?? options[0];
+  const options = EVENTS[pending.id].options.filter((o) => optionAvailable(s, o));
+  const next = mainRanks()[mainRanks().findIndex((r) => r.id === s.rank) + 1];
+  const keep = rankDef(s.rank)?.keep ?? {};
+  const need = (e: EstateId) => Math.max(0, (next?.[e] ?? 0) - s.rep[e], (keep[e] ?? 0) + 10 - s.rep[e]);
+  const score = (o: (typeof options)[number]) => {
+    const rep = { ...(o.effects?.rep ?? {}) };
+    let v = 0;
+    for (const [e, n] of Object.entries(rep)) v += (n ?? 0) * (1 + need(e as EstateId) / 5);
+    if (['refuse', 'decline', 'risk'].includes(o.id)) v -= 0.5;
+    return v;
+  };
+  const pick = options.slice().sort((a, b) => score(b) - score(a))[0];
   if (pick) game.chooseEventOption(pick.id);
 }
 
@@ -235,7 +249,7 @@ function sell(game: Game): void {
 
 /** Precio de lo que hay que pagar: monedas mas los materiales que falten comprados al mercado. */
 const priceWith = (s: GameState, coins: number, materials?: Partial<Record<MaterialId, number>>): number =>
-  coins + materialsPrice(missingMaterials(s, materials));
+  coins + materialsPrice(s, missingMaterials(s, materials));
 
 function spend(game: Game): void {
   const s = game.state;

@@ -78,12 +78,12 @@ describe('experiencia y niveles', () => {
     const s = createNewGame(1);
     s.level = 8;
     s.day = 239;
-    s.rep.baron = 60;
+    s.rep.nobles = 60;
     expect(updateRank(s)).toEqual(['freeFarmer']);
     s.day = 240;
-    s.rep.baron = 59;
+    s.rep.nobles = 59;
     expect(updateRank(s)).toEqual([]);
-    s.rep.baron = 60;
+    s.rep.nobles = 60;
     expect(updateRank(s)).toEqual(['landowner']);
     // no aparece en el arbol de niveles porque no depende solo del nivel
     expect(unlocksAt(8).rank).toBeNull();
@@ -196,7 +196,7 @@ describe('eventos', () => {
     const bill = seasonBill(s).tribute;
     startEvent(s, 'levy');
     resolveEvent(s, 'refuse');
-    expect(s.rep.baron).toBe(40);
+    expect(s.rep.nobles).toBe(40);
     expect(s.flags).toContain('levyRefused');
     expect(seasonBill(s).tribute).toBe(Math.round(bill * 1.5));
     // sigue activo el dia de las cuentas y desaparece despues

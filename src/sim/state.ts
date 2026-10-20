@@ -4,6 +4,7 @@ import { rollPrices } from './market';
 import { newSeed } from './random';
 import { addVillager } from './villagers';
 import { defaultNoble } from './noble';
+import { startReps } from './estates';
 import type { AnimalId, BuildingId, Difficulty, GameState, Herd, Plot, ProductId, Tile } from './types';
 
 export const plotKey = (x: number, y: number): string => `${x},${y}`;
@@ -69,7 +70,7 @@ export function createNewGame(seed: number = newSeed(), difficulty: Difficulty =
     villagers: [],
     nextVillagerId: 1,
     foodDebt: 0,
-    rep: { baron: rep, village: rep },
+    rep: startReps(rep),
     modifiers: [],
     flags: [],
     seedVouchers: 0,

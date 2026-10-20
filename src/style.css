@@ -2637,3 +2637,25 @@ img[src^='assets/pixel/'] {
   color: var(--ink-soft);
   opacity: 1;
 }
+
+/* ------------------------------------------------------------ estamentos */
+
+.rep small {
+  display: block;
+}
+
+.rep .rep-effect {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.rep .rep-rivals {
+  color: var(--ink-soft);
+  font-style: normal;
+}
+
+.rep.tier-hostile .rep-head span,
+.rep.tier-cold .rep-head span {
+  color: var(--blood);
+}
+
