@@ -17,7 +17,7 @@ import { settleSeason } from './taxes';
 import type { AnimalId, BuildingId, CommandResult, CropId, GameState, Notice, Plot, ProductId, Speed, WorkshopId } from './types';
 
 /** Avance maximo por fotograma, para que una pausa del navegador no salte muchos dias de golpe. */
-const MAX_FRAME_MS = 250;
+export const MAX_FRAME_MS = 250;
 
 /** Resultado de una orden que ademas puede subir de nivel. */
 export interface Outcome {

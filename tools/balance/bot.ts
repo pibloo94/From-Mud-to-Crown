@@ -1,0 +1,319 @@
+// Bot de equilibrio: juega una partida entera a traves de `Game` (como la interfaz) y anota cuando
+// llega cada hito. No piensa: cosecha, recoge, vende lo que sobra, compra la mejora mas barata,
+// acepta los eventos y gasta en cuanto puede. Sirve para medir con numeros cada cambio de equilibrio:
+// si un jugador asi no tiene ningun problema, el juego es facil; si se atasca, algo falla.
+import { Game } from '../../src/sim/game';
+import { createNewGame } from '../../src/sim/state';
+import * as R from '../../src/sim/rules';
+import { optionAvailable } from '../../src/sim/events';
+import { BUILDING_IDS, CROPS, EVENTS, HAMLET_IDS, NOBILITY, PATRONAGE_IDS, PRODUCT_IDS, PROGRESSION, TOWN_IDS, TRADE, WORKSHOPS, WORKSHOP_IDS } from '../../src/sim/data';
+import { priceOf } from '../../src/sim/market';
+import { nextUpgrade } from '../../src/sim/buildings';
+import { materialsPrice, missingMaterials } from '../../src/sim/materials';
+import { freeBeds, toolMaterials } from '../../src/sim/villagers';
+import { artisansOf, builtWorkshops, nextWorkshopUpgrade } from '../../src/sim/workshops';
+import { dailyFood, surplus } from '../../src/sim/pantry';
+import * as T from '../../src/sim/trade';
+import * as N from '../../src/sim/noble';
+import type { CropId, GameState, JobId, MaterialId, ProductId } from '../../src/sim/types';
+
+/** Lo que mide una partida del bot. Los dias son dias de juego (10 s reales a velocidad x1). */
+export interface BalanceReport {
+  seed: number;
+  days: number;
+  /** Dia en que se llega a cada nivel (2..20). */
+  levelDay: Record<number, number>;
+  /** Dia en que se consigue cada rango o titulo de rama. */
+  rankDay: Record<string, number>;
+  /** Monedas cada 200 dias (dia -> monedas). */
+  coinsAt: Record<number, number>;
+  /** Mayor cantidad de monedas sin gastar en toda la partida. */
+  maxCoins: number;
+  taxesPaid: number;
+  taxesUnpaid: number;
+  hungryDays: number;
+  villagersLeft: number;
+  granaryFull: number;
+  caravans: number;
+  caravanEarnings: number;
+  /** Experiencia por encima del nivel maximo (no sirve para nada). */
+  spareXp: number;
+  final: {
+    level: number;
+    rank: string;
+    titles: string[];
+    coins: number;
+    plots: number;
+    villagers: number;
+    baron: number;
+    village: number;
+    prestige: number;
+    manor: number;
+    hamlets: Record<string, number>;
+    soldiers: number;
+  };
+}
+
+const JOBS: JobId[] = ['farmer', 'herder', 'carter'];
+
+/** Paso de reloj: lo maximo que la simulacion acepta en un fotograma. */
+const FRAME_MS = R.MAX_FRAME_MS;
+
+/** Monedas que el bot no gasta en nada que no sea imprescindible (comida, impuestos). */
+const CUSHION = 80;
+
+export function simulate(seed: number, days: number): BalanceReport {
+  const game = new Game(createNewGame(seed));
+  const s = (): GameState => game.state;
+  const report: BalanceReport = {
+    seed,
+    days,
+    levelDay: {},
+    rankDay: {},
+    coinsAt: {},
+    maxCoins: 0,
+    taxesPaid: 0,
+    taxesUnpaid: 0,
+    hungryDays: 0,
+    villagersLeft: 0,
+    granaryFull: 0,
+    caravans: 0,
+    caravanEarnings: 0,
+    spareXp: 0,
+    final: undefined as unknown as BalanceReport['final'],
+  };
+
+  game.on((e) => {
+    if (e.type === 'levelUp') report.levelDay[e.level] ??= s().day;
+    if (e.type === 'result' && e.result.msg === 'msg.granaryFull') report.granaryFull++;
+    if (e.type !== 'notice') return;
+    const n = e.notice;
+    if (n.card === 'season') {
+      report.taxesPaid += Number(n.params?.tithe ?? 0) + Number(n.params?.tribute ?? 0);
+      report.taxesUnpaid += Number(n.params?.unpaid ?? 0);
+    }
+    if (n.msg === 'msg.villagersHungry') report.hungryDays++;
+    if (n.msg === 'msg.villagerLeftHunger') report.villagersLeft++;
+  });
+
+  game.skipTutorial();
+
+  for (let d = 0; d < days; d++) {
+    if (d % 200 === 0) report.coinsAt[d] = s().coins;
+    answerEvent(game);
+    farm(game);
+    sell(game);
+    spend(game);
+    // Un dia de juego, en pasos de un fotograma largo (la simulacion no deja saltar mas de golpe).
+    // Si a mitad de dia llega un evento, el reloj se para hasta contestarlo, como en el juego.
+    game.setSpeed(3);
+    const today = s().day;
+    for (let guard = 0; s().day === today && guard < 1000; guard++) {
+      answerEvent(game);
+      game.update(FRAME_MS);
+    }
+    report.maxCoins = Math.max(report.maxCoins, s().coins);
+    // Rango y titulos se leen del estado: no todos llegan con su propio aviso (Granjero libre va con el nivel).
+    for (const id of [s().rank, ...s().titles]) report.rankDay[id] ??= s().day;
+  }
+
+  const st = s();
+  const maxXp = PROGRESSION.levels[PROGRESSION.levels.length - 1].xp;
+  report.spareXp = Math.max(0, Math.round(st.xp - maxXp));
+  report.caravans = st.stats.trades;
+  report.caravanEarnings = st.stats.tradeEarned;
+  report.final = {
+    level: st.level,
+    rank: st.rank,
+    titles: [...st.titles],
+    coins: st.coins,
+    plots: Object.keys(st.plots).length,
+    villagers: st.villagers.length,
+    baron: st.rep.baron,
+    village: st.rep.village,
+    prestige: st.noble.prestige,
+    manor: st.noble.manor,
+    hamlets: { ...st.noble.hamlets },
+    soldiers: st.noble.soldiers,
+  };
+  return report;
+}
+
+/** Acepta lo que pida el evento si puede (ni negarse ni arriesgarse); si no, la primera opcion valida. */
+function answerEvent(game: Game): void {
+  const pending = game.state.events.pending;
+  if (!pending) return;
+  const options = EVENTS[pending.id].options.filter((o) => optionAvailable(game.state, o));
+  const pick = options.find((o) => !['refuse', 'decline', 'risk'].includes(o.id)) ?? options[0];
+  if (pick) game.chooseEventOption(pick.id);
+}
+
+/** Cosecha lo maduro, siembra lo que mas deja por dia y recoge huevos y leche. */
+function farm(game: Game): void {
+  const s = game.state;
+  for (const [key, plot] of Object.entries(s.plots)) {
+    const [x, y] = key.split(',').map(Number);
+    if (plot.crop && R.isRipe(plot)) game.interact(x, y);
+    if (!s.plots[key].crop) {
+      const best = R.plantableCrops(s).sort((a, b) => cropValue(s, b) - cropValue(s, a))[0];
+      if (best) game.plant(x, y, best);
+    }
+  }
+  for (const kind of ['coop', 'pen'] as const) {
+    const tile = s.map.tiles.find((t) => t.kind === kind);
+    const animal = kind === 'coop' ? 'chicken' : 'cow';
+    if (tile && s.herds[animal].stored >= 1) game.interact(tile.x, tile.y);
+  }
+}
+
+const cropValue = (s: GameState, c: CropId): number => (CROPS[c].yield * priceOf(s, CROPS[c].product)) / CROPS[c].growDays;
+
+/** Vende todo menos 10 dias de comida para los aldeanos. */
+function sell(game: Game): void {
+  const s = game.state;
+  let reserve = Math.ceil(dailyFood(s) * 10);
+  for (const p of PRODUCT_IDS) {
+    const keep = Math.min(s.inventory[p], reserve);
+    reserve -= keep;
+    const qty = s.inventory[p] - keep;
+    if (qty > 0) game.sell(p, qty);
+  }
+}
+
+/** Precio de lo que hay que pagar: monedas mas los materiales que falten comprados al mercado. */
+const priceWith = (s: GameState, coins: number, materials?: Partial<Record<MaterialId, number>>): number =>
+  coins + materialsPrice(missingMaterials(s, materials));
+
+function spend(game: Game): void {
+  const s = game.state;
+
+  // Aldeanos: uno por cama libre, repartidos entre labrador, pastor y carretero.
+  if (freeBeds(s) > 0 && s.coins > 25) {
+    const before = s.villagers.length;
+    game.hireVillager();
+    if (s.villagers.length > before) {
+      const v = s.villagers[s.villagers.length - 1];
+      game.setJob(v.id, JOBS[(s.villagers.length - 1) % JOBS.length]);
+    }
+  }
+
+  // Tierra junto al campo.
+  for (let i = 0; i < 3; i++) {
+    const t = s.map.tiles.find((tl) => R.landCheck(s, tl.x, tl.y).ok);
+    if (t && s.coins > R.landCost(s) + 30) game.buyLand(t.x, t.y);
+  }
+
+  // La mejora de edificio mas barata que ya este al alcance.
+  const cheapest = BUILDING_IDS.map((b) => ({ b, up: nextUpgrade(s, b) }))
+    .filter((x) => x.up && x.up.level <= s.level)
+    .sort((a, b) => a.up!.cost - b.up!.cost)[0];
+  if (cheapest && s.coins > priceWith(s, cheapest.up!.cost, cheapest.up!.materials) + CUSHION) {
+    game.buyMissingFor(cheapest.b);
+    game.upgradeBuilding(cheapest.b);
+  }
+
+  // Herramientas.
+  for (const v of s.villagers) {
+    if (s.coins > priceWith(s, 0, toolMaterials(v.tool + 1)) + 160) {
+      game.buyMissingForTool(v.id);
+      game.upgradeTool(v.id);
+    }
+  }
+
+  // Talleres, con su artesano y sus mejoras.
+  for (const id of WORKSHOP_IDS) {
+    const site = s.map.tiles.find((t) => t.kind === 'site');
+    if (site && !s.workshops[id] && s.level >= WORKSHOPS[id].unlockLevel && s.coins > priceWith(s, WORKSHOPS[id].cost, WORKSHOPS[id].materials) + 300) {
+      game.buyMissingForWorkshop(id);
+      game.buildWorkshop(id, site.x, site.y);
+    }
+  }
+  for (const id of builtWorkshops(s)) {
+    if (artisansOf(s, id).length === 0 && freeBeds(s) > 0) {
+      const before = s.villagers.length;
+      game.hireVillager();
+      if (s.villagers.length > before) game.assignArtisan(s.villagers[s.villagers.length - 1].id, id);
+    }
+    const up = nextWorkshopUpgrade(s, id);
+    if (up && s.coins > priceWith(s, up.cost, up.materials) + 300) {
+      game.buyMissingForWorkshop(id);
+      game.upgradeWorkshop(id);
+    }
+  }
+
+  // Comercio: carretas, puesto y la caravana que mas deja por dia.
+  if (s.coins > 600) {
+    game.buyMaterialsFor(TRADE.cart.materials);
+    game.buyCart();
+  }
+  if (s.coins > 2500 && !s.stall && s.level >= TRADE.stall.level) {
+    game.buyMaterialsFor(TRADE.stall.materials);
+    game.buyStall();
+  }
+  sendBestCaravan(game);
+
+  // Nobleza.
+  if (N.charterReady(s) && s.coins > NOBILITY.charter.cost + 300) game.buyCharter();
+  if (N.isNoble(s)) spendAsNoble(game);
+
+  // Animales.
+  if (s.coins > 80) game.buyAnimal('chicken');
+  if (s.coins > 150) game.buyAnimal('cow');
+}
+
+function sendBestCaravan(game: Game): void {
+  const s = game.state;
+  if (T.idleCarts(s) === 0) return;
+  let best: { town: string; cargo: Partial<Record<ProductId, number>>; perDay: number } | null = null;
+  for (const town of TOWN_IDS.filter((t) => T.townUnlocked(s, t))) {
+    const cargo: Partial<Record<ProductId, number>> = {};
+    let room = T.cartCapacity(s);
+    for (const p of PRODUCT_IDS.slice().sort((a, b) => T.townPrice(s, town, b) - T.townPrice(s, town, a))) {
+      const n = Math.min(room, surplus(s, p));
+      if (n > 0) {
+        cargo[p] = n;
+        room -= n;
+      }
+    }
+    const q = T.quoteCaravan(s, town, cargo, {}, true);
+    if (!q.problem && (!best || q.value / q.days > best.perDay)) best = { town, cargo, perDay: q.value / q.days };
+  }
+  if (best && best.perDay > 20) game.sendCaravan(best.town, best.cargo, {}, true);
+}
+
+function spendAsNoble(game: Game): void {
+  const s = game.state;
+  const reserve = 800;
+  const affordable = (coins: number, materials?: Partial<Record<MaterialId, number>>) => s.coins > priceWith(s, coins, materials) + reserve;
+  const manor = () => {
+    const up = N.nextManorUpgrade(s);
+    if (up && affordable(up.cost, up.materials)) {
+      game.buyMaterialsFor(up.materials);
+      game.upgradeManor();
+    }
+  };
+  // Primero la casa y tomar las tres aldeas; luego soldados; luego el resto de obras.
+  if (s.noble.manor === 0) manor();
+  for (const id of HAMLET_IDS) {
+    const next = N.nextHamletLevel(s, id);
+    if (next && N.hamletLevel(s, id) === 0 && affordable(next.cost, next.materials)) {
+      game.buyMaterialsFor(next.materials);
+      game.upgradeHamlet(id);
+    }
+  }
+  while (s.noble.soldiers < N.maxSoldiers(s) && s.coins > NOBILITY.soldiers.hire + reserve) {
+    const before = s.noble.soldiers;
+    game.buyMaterialsFor(NOBILITY.soldiers.materials);
+    game.hireSoldier();
+    if (s.noble.soldiers === before) break;
+  }
+  if (s.noble.manor > 0) manor();
+  for (const id of HAMLET_IDS) {
+    const next = N.nextHamletLevel(s, id);
+    if (next && affordable(next.cost, next.materials)) {
+      game.buyMaterialsFor(next.materials);
+      game.upgradeHamlet(id);
+    }
+  }
+  for (const id of PATRONAGE_IDS) if (s.coins > 3000 && !N.patronageProblem(s, id)) game.doPatronage(id);
+}

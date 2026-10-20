@@ -59,10 +59,26 @@ Requisitos: Node.js 22.12 o superior.
 npm install
 npm run dev        # abre el juego en http://localhost:5173 (también accesible desde el móvil en la misma red)
 npm test           # tests de la simulación
+npm run balance    # bot de equilibrio: juega varias partidas y resume cuándo llega cada hito
 npm run build      # versión publicable en dist/
 ```
 
 Con `?debug` en la URL, la partida queda accesible desde la consola del navegador como `fmtc` (por ejemplo, `fmtc.sim.state`).
+
+### Bot de equilibrio
+
+`npm run balance` juega cuatro partidas de 1600 días (algo más de una hora a x3 cada una) a través de `Game`, igual que la interfaz, y saca una tabla con una columna por semilla y la mediana:
+
+- día en que llega cada nivel y cada rango, y cuánto tiempo real supone;
+- monedas cada 200 días y máximo sin gastar;
+- impuestos pagados y sin pagar;
+- hambre, aldeanos que se marchan, granero lleno;
+- caravanas, experiencia sobrante, favor y prestigio al final.
+
+El bot no piensa: cosecha, recoge, vende lo que sobra guardando 10 días de comida, compra la mejora más barata, acepta los eventos y gasta en cuanto puede. Si un jugador así no tiene problemas, el juego es fácil; si se atasca, algo falla. Está en `tools/balance/`.
+
+- Partidas más cortas u otras semillas: `BALANCE_DAYS=800 BALANCE_SEEDS=1,2 npm run balance` (en Windows, con `set` antes de cada variable).
+- Para comparar un cambio, guarda la salida antes y después: `npm run balance > antes.txt`.
 
 ### Estructura
 
@@ -78,6 +94,7 @@ src/
 public/assets/pixel/     arte del mapa en pixel art (PNG, generado con tools/gen_pixel.py)
 public/assets/ui/        marcos, botones, sellos e iconos de la interfaz en pixel art (tools/gen_pixel.py)
 tests/       tests de la simulación, el guardado y el contenido
+tools/       generador del pixel art (gen_pixel.py) y bot de equilibrio (balance/)
 ```
 
 **Regla principal:** la simulación no sabe nada del dibujo. La interfaz y la escena llaman a `Game` (`src/sim/game.ts`), que aplica las reglas y avisa de los cambios.
