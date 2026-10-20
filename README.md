@@ -14,6 +14,7 @@ El roadmap completo está en el documento de diseño del proyecto.
 
 ## Cómo jugar
 
+- **Dificultad:** al empezar una partida nueva eliges Fácil, Normal o Difícil. Cambia los precios de venta, impuestos, salarios y mantenimiento, la comida, cuántos percances y estaciones de mal tiempo salen y a partir de qué deuda embarga tu señor. No se puede cambiar después; el menú dice cuál es. Las cifras están en `src/data/progression.json` (`difficulty`).
 - **Tutorial:** una partida nueva empieza con unos pasos guiados (sembrar, recoger, cosechar, vender y mirar el progreso) que avanzan solos al hacerlos; se puede saltar. Después, cada vez que llega algo nuevo aparece un consejo breve. Desde el menú se repite el tutorial o se apagan los consejos.
 - **Siembra** tocando una parcela de tierra arada. Si tienes varios cultivos disponibles, eliges cuál. Cuando esté maduro, tócala otra vez para cosechar.
 - **Recoge** huevos y leche tocando el gallinero o el corral cuando aparezca el escudo con un número.
@@ -83,7 +84,7 @@ Con `?debug` en la URL, la partida queda accesible desde la consola del navegado
 
 El bot no piensa: cosecha, recoge, vende lo que sobra guardando 10 días de comida, guarda lo que costarán las cuentas de la estación, compra la mejora más barata, acepta los eventos y gasta el resto en cuanto puede (en el feudo, primero las obras y después el mecenazgo). Si un jugador así no tiene problemas, el juego es fácil; si se atasca, algo falla. Está en `tools/balance/`.
 
-- Partidas más cortas u otras semillas: `BALANCE_DAYS=800 BALANCE_SEEDS=1,2 npm run balance` (en Windows, con `set` antes de cada variable).
+- Partidas más cortas, otras semillas u otra dificultad: `BALANCE_DAYS=800 BALANCE_SEEDS=1,2 BALANCE_DIFFICULTY=hard npm run balance` (en Windows, con `set` antes de cada variable).
 - Para comparar un cambio, guarda la salida antes y después: `npm run balance > antes.txt`.
 
 ### Estructura

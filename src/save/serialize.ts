@@ -11,7 +11,7 @@ import { relayFief } from '../sim/layout';
 import { renownProgress } from '../sim/progress';
 
 export const SAVE_FORMAT = 'from-mud-to-crown-save';
-export const SAVE_VERSION = 12;
+export const SAVE_VERSION = 13;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;
@@ -103,6 +103,8 @@ export function migrate(state: Record<string, unknown>, from: number): GameState
   if (from < 11) s = { ...s, renown: renownProgress(s as GameState).points };
   // v11 -> v12: riesgo. Sin deuda, sin prevencion comprada, tiempo normal y sin aviso de rango.
   if (from < 12) s = { ...s, debt: 0, protections: { crops: 0, animals: 0 }, weather: 'normal', rankWarning: false };
+  // v12 -> v13: dificultad. Las partidas de antes se jugaban en Normal.
+  if (from < 13) s = { ...s, difficulty: 'normal' };
   return s as GameState;
 }
 

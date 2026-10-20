@@ -18,6 +18,7 @@ import { addModifier } from './modifiers';
 import { buildingStat, store } from './buildings';
 import { addVillager, clampRep, freeBeds } from './villagers';
 import { preventedBy } from './risk';
+import { difficulty } from './difficulty';
 import type { AnimalId, CommandResult, GameState, MaterialId, Notice, ProductId, RankId, WorkshopId } from './types';
 import { delayCaravans } from './trade';
 import { hasRank, mainRanks } from './progress';
@@ -102,7 +103,9 @@ export function maybeTriggerEvent(state: GameState, notices?: Notice[]): string 
   const ev = state.events;
   if (ev.pending || state.day < cfg.firstDay || state.day - ev.lastDay < cfg.minGap) return null;
   if (random(state) >= cfg.dailyChance) return null;
-  const id = weightedPick(state, eligibleEvents(state).map((e) => ({ id: e, weight: EVENTS[e].weight })));
+  // La dificultad cambia cuanto pesan los percances frente a ofertas y obligaciones.
+  const mishaps = difficulty(state).mishaps;
+  const id = weightedPick(state, eligibleEvents(state).map((e) => ({ id: e, weight: EVENTS[e].weight * (EVENTS[e].category === 'mishap' ? mishaps : 1) })));
   if (!id) return null;
   // Con la prevencion comprada, el percance no llega: cuenta como pasado y se avisa.
   const kind = preventedBy(state, id);

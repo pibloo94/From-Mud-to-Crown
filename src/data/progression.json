@@ -95,6 +95,11 @@
     "xpPerPoint": 1000,
     "prestigePerPoint": 10
   },
+  "difficulty": {
+    "easy": { "prices": 1.15, "taxes": 0.7, "upkeep": 0.6, "mishaps": 0.5, "food": 0.85, "badWeather": 0.5, "seizeDebt": 1.5 },
+    "normal": { "prices": 1, "taxes": 1, "upkeep": 1, "mishaps": 1, "food": 1, "badWeather": 1, "seizeDebt": 1 },
+    "hard": { "prices": 0.92, "taxes": 1.2, "upkeep": 1.3, "mishaps": 1.5, "food": 1.15, "badWeather": 1.5, "seizeDebt": 0.75 }
+  },
   "weather": {
     "spring": [
       { "id": "fair", "weight": 2, "growth": 1.15 },

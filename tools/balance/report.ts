@@ -66,7 +66,7 @@ export function formatReport(reports: BalanceReport[]): string {
   const line = (row: string[]) => row.map((c, i) => (i === 0 ? c.padEnd(widths[i]) : c.padStart(widths[i]))).join('  ');
 
   const out = [
-    `Bot de equilibrio · ${reports.length} partidas de ${reports[0].days} días (${realTime(reports[0].days)})`,
+    `Bot de equilibrio · dificultad ${reports[0].difficulty} · ${reports.length} partidas de ${reports[0].days} días (${realTime(reports[0].days)})`,
     '',
     line(head),
     line(widths.map((w) => '-'.repeat(w))),

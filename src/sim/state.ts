@@ -4,11 +4,11 @@ import { rollPrices } from './market';
 import { newSeed } from './random';
 import { addVillager } from './villagers';
 import { defaultNoble } from './noble';
-import type { AnimalId, BuildingId, GameState, Herd, Plot, ProductId, Tile } from './types';
+import type { AnimalId, BuildingId, Difficulty, GameState, Herd, Plot, ProductId, Tile } from './types';
 
 export const plotKey = (x: number, y: number): string => `${x},${y}`;
 
-export function createNewGame(seed: number = newSeed()): GameState {
+export function createNewGame(seed: number = newSeed(), difficulty: Difficulty = 'normal'): GameState {
   const rows = START.map.rows;
   const tiles: Tile[] = [];
   const plots: Record<string, Plot> = {};
@@ -64,6 +64,7 @@ export function createNewGame(seed: number = newSeed()): GameState {
     protections: { crops: 0, animals: 0 },
     weather: 'normal',
     rankWarning: false,
+    difficulty,
     buildings,
     villagers: [],
     nextVillagerId: 1,

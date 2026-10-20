@@ -13,7 +13,7 @@ import tradeJson from '../data/trade.json';
 import nobilityJson from '../data/nobility.json';
 import tutorialJson from '../data/tutorial.json';
 import layoutJson from '../data/layout.json';
-import type { AnimalId, BuildingId, CropId, JobId, LiegeId, MaterialId, ModifierKind, ProductId, ProtectionId, RankId, TileKind, WorkshopId } from './types';
+import type { AnimalId, BuildingId, CropId, Difficulty, JobId, LiegeId, MaterialId, ModifierKind, ProductId, ProtectionId, RankId, TileKind, WorkshopId } from './types';
 import type { Season } from './calendar';
 
 export interface ProductDef {
@@ -133,6 +133,8 @@ export interface ProgressionDef {
   lands: { eastFrom: number; leaseBaseCost: number; leaseGrowth: number; rentPerSeason: number };
   /** Experiencia por encima del nivel maximo: cada `xpPerPoint` es un punto de renombre que da prestigio. */
   renown: { xpPerPoint: number; prestigePerPoint: number };
+  /** Multiplicadores de cada dificultad (se elige al crear la partida). */
+  difficulty: Record<Difficulty, DifficultyDef>;
   /** Tiempo de cada estacion: se sortea al empezarla y dura hasta las cuentas siguientes. */
   weather: Record<Season, WeatherDef[]>;
   /**
@@ -153,6 +155,23 @@ export interface ProgressionDef {
     perManorLevel: number;
     neglect: { days: number; growth: number; animal: number };
   };
+}
+
+export interface DifficultyDef {
+  /** Precio de venta en el mercado. */
+  prices: number;
+  /** Diezmo y tributo. */
+  taxes: number;
+  /** Salarios y mantenimiento. */
+  upkeep: number;
+  /** Peso de los percances al sortear eventos. */
+  mishaps: number;
+  /** Comida que comen los aldeanos. */
+  food: number;
+  /** Peso de las estaciones de mal tiempo. */
+  badWeather: number;
+  /** Deuda a partir de la que se embarga. */
+  seizeDebt: number;
 }
 
 export interface WeatherDef {
