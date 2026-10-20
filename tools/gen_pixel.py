@@ -1022,6 +1022,387 @@ def chicken() -> Spr:
     return finish(s)
 
 
+# ================================================================== interfaz (mismo estilo que el mapa)
+#
+# Marcos para border-image (se amplian x3 en CSS), iconos de 12x12 (x2) y sellos. Todo con la
+# paleta del mapa y contorno oscuro, para que barras y ventanas casen con el pixel art.
+
+OUT_UI = os.path.join(os.path.dirname(__file__), "..", "public", "assets", "ui")
+
+
+def ring(s: Spr, k: int, c):
+    """Anillo rectangular a k pixeles del borde."""
+    s.rect(k, k, s.w - 1 - k, k, c)
+    s.rect(k, s.h - 1 - k, s.w - 1 - k, s.h - 1 - k, c)
+    s.rect(k, k, k, s.h - 1 - k, c)
+    s.rect(s.w - 1 - k, k, s.w - 1 - k, s.h - 1 - k, c)
+
+
+def frame_wood() -> Spr:
+    """Madera oscura con filete de oro y remaches (barras de la interfaz). Corte: 4 px."""
+    s = Spr(12, 12)
+    s.rect(0, 0, 11, 11, "w1")
+    for y in (5, 8):
+        s.rect(4, y, 7, y, "w0")
+    s.rect(4, 6, 7, 6, "w2")
+    ring(s, 0, "out")
+    ring(s, 1, "#8d6c2c")
+    ring(s, 2, "w0")
+    for (x, y) in ((1, 1), (10, 1), (1, 10), (10, 10)):
+        s.px(x, y, "gold")
+    return s
+
+
+def frame_parch() -> Spr:
+    """Pergamino con marco de madera, filete de oro y tachuelas (ventanas). Corte: 6 px."""
+    rnd = random.Random(90)
+    s = Spr(18, 18)
+    s.rect(0, 0, 17, 17, "cream")
+    # trama muy suave: el centro se repite a tamano de pixel por toda la ventana
+    for _ in range(4):
+        s.px(rnd.randint(6, 11), rnd.randint(6, 11), "#c9b991")
+    ring(s, 0, "out")
+    ring(s, 1, "w2")
+    ring(s, 2, "w1")
+    ring(s, 3, "#8d6c2c")
+    ring(s, 4, "out")
+    ring(s, 5, "#b9a77f")
+    for (x, y) in ((1, 1), (15, 1), (1, 15), (15, 15)):
+        s.rect(x, y, x + 1, y + 1, "gold")
+        s.px(x, y, "glow")
+    return s
+
+
+def bevel_button(face, light, dark, rimc) -> Spr:
+    """Boton con relieve: luz arriba a la izquierda y sombra abajo a la derecha. Corte: 4 px."""
+    s = Spr(12, 12)
+    s.rect(0, 0, 11, 11, face)
+    ring(s, 0, "out")
+    ring(s, 1, rimc)
+    s.rect(2, 2, 9, 2, light)
+    s.rect(2, 2, 2, 9, light)
+    s.rect(2, 9, 9, 9, dark)
+    s.rect(9, 2, 9, 9, dark)
+    return s
+
+
+def frame_inset(face="#14110d", rimc="#5a4228") -> Spr:
+    """Hueco oscuro hundido (fichas de recursos, barras de progreso). Corte: 3 px."""
+    s = Spr(8, 8)
+    s.rect(0, 0, 7, 7, face)
+    ring(s, 0, rimc)
+    s.rect(1, 1, 6, 1, "#000000")
+    s.rect(1, 1, 1, 6, "#000000")
+    return s
+
+
+def frame_bar() -> Spr:
+    """Tira del pergamino para separar secciones (cabeceras). Corte: 2 px."""
+    s = Spr(6, 6)
+    s.rect(0, 0, 5, 5, "#b9a77f")
+    s.rect(0, 2, 5, 3, "#8d6c2c")
+    return s
+
+
+def seal(big=False) -> Spr:
+    """Sello de lacre con borde irregular (cabecera de ventanas y tarjetas)."""
+    n = 22
+    s = Spr(n, n)
+    c = (n - 1) / 2
+    for y in range(n):
+        for x in range(n):
+            ang = math.atan2(y - c, x - c)
+            r = 9.6 + 0.9 * math.sin(ang * 7)
+            d = math.hypot(x - c, y - c)
+            if d <= r:
+                s.px(x, y, "red1" if d < 7 else "red0")
+    s.ellipse(c, c, 6, 6, "red1")
+    s.ellipse(c - 1, c - 1, 4, 4, "red2")
+    ring_pts = [(round(c + 7.2 * math.cos(a / 20 * 2 * math.pi)), round(c + 7.2 * math.sin(a / 20 * 2 * math.pi))) for a in range(20)]
+    for (x, y) in ring_pts:
+        s.px(x, y, "red0")
+    return finish(s)
+
+
+def level_shield() -> Spr:
+    """Escudo del nivel: madera con filete de oro (el numero lo pone la interfaz encima)."""
+    s = Spr(18, 21)
+    for y in range(21):
+        if y < 13:
+            x0, x1 = 1, 16
+        else:
+            k = y - 12
+            x0, x1 = 1 + k, 16 - k
+        if x0 <= x1:
+            s.rect(x0, y, x1, y, "#8d6c2c")
+            if 1 <= y <= 19 and x1 - x0 >= 2:
+                s.rect(x0 + 1, y, x1 - 1, y, "w1")
+    s.rect(2, 1, 15, 1, "gold")
+    s.rect(3, 2, 14, 2, "w2")
+    return finish(s)
+
+
+def thumb() -> Spr:
+    """Tirador de las barras deslizantes."""
+    s = Spr(8, 12)
+    s.rect(1, 1, 6, 10, "#8d6c2c")
+    s.rect(2, 2, 5, 9, "gold")
+    s.rect(2, 2, 5, 2, "glow")
+    s.rect(3, 4, 4, 7, "#8d6c2c")
+    return finish(s)
+
+
+# ------------------------------------------------------------------ iconos 12x12
+
+def icon(draw) -> Spr:
+    s = Spr(12, 12)
+    draw(s)
+    return finish(s)
+
+
+def _coin(s):
+    s.ellipse(5.5, 5.5, 4.5, 4.5, "gold")
+    s.ellipse(5.5, 5.5, 3, 3, "#8d6c2c")
+    s.ellipse(5.5, 5.5, 2, 2, "gold")
+    s.px(3, 2, "glow")
+    s.px(2, 3, "glow")
+
+
+def _wheat(s):
+    for x, top in ((3, 2), (6, 1), (9, 2)):
+        s.rect(x, top + 4, x, 10, "st1")
+        for k in range(3):
+            s.px(x - 1, top + k * 1 + 1, "st3")
+            s.px(x + 1, top + k * 1 + 1, "st3")
+        s.px(x, top, "st4")
+
+
+def _carrot(s):
+    s.poly([(2, 4), (8, 4), (5, 11)], "carrot")
+    s.px(3, 5, "st4")
+    s.rect(4, 1, 4, 3, "l3")
+    s.rect(6, 0, 6, 3, "l4")
+    s.px(5, 2, "l3")
+
+
+def _cabbage(s):
+    s.ellipse(5.5, 6, 4.5, 4, "cab0")
+    s.ellipse(5, 5.5, 3, 3, "cab")
+    s.ellipse(4.5, 5, 1.5, 1.5, "cab1")
+    s.px(5, 9, "cab1")
+
+
+def _egg(s):
+    s.ellipse(5.5, 6, 3.5, 4.5, "cream")
+    s.rect(3, 3, 3, 4, "#f2e8d0")
+    s.px(7, 8, "cream0")
+
+
+def _milk(s):
+    s.rect(3, 4, 8, 10, "clay" if "clay" in P else "#8f5534")
+    s.rect(2, 3, 9, 3, "#5c331d")
+    s.rect(3, 4, 8, 4, "milk")
+    s.rect(9, 5, 10, 8, "#5c331d")
+    s.px(4, 6, "#b06a40")
+
+
+def _flour(s):
+    s.poly([(2, 3), (9, 3), (10, 10), (1, 10)], "cream")
+    s.rect(3, 2, 8, 2, "cream0")
+    s.rect(5, 5, 6, 8, "red1")
+    s.rect(4, 6, 7, 7, "red1")
+
+
+def _bread(s):
+    s.ellipse(5.5, 7, 5, 3.5, "st1")
+    s.ellipse(5, 6, 4, 2.5, "st2")
+    for x in (3, 6, 9):
+        s.px(x, 6, "w2")
+        s.px(x - 1, 7, "w2")
+
+
+def _cheese(s):
+    s.poly([(1, 8), (10, 4), (10, 10), (1, 10)], "gold")
+    s.poly([(1, 8), (6, 3), (10, 4)], "glow")
+    s.px(6, 8, "#8d6c2c")
+    s.px(8, 6, "#8d6c2c")
+    s.px(3, 9, "#8d6c2c")
+
+
+def _wood(s):
+    for (x, y) in ((3, 7), (8, 7), (5, 3)):
+        s.ellipse(x, y, 2.5, 2.5, "w3")
+        s.ellipse(x, y, 1.5, 1.5, "w4")
+        s.px(x, y, "w2")
+
+
+def _stone(s):
+    s.rect(1, 6, 5, 10, "r2")
+    s.rect(6, 6, 10, 10, "r3")
+    s.rect(3, 2, 8, 5, "r3")
+    s.rect(3, 2, 8, 2, "r4")
+    s.rect(1, 6, 5, 6, "r3")
+
+
+def _iron(s):
+    s.poly([(1, 9), (3, 5), (10, 5), (10, 9)], "iron1")
+    s.rect(3, 5, 9, 5, "#7c7a72")
+    s.rect(1, 9, 10, 10, "iron")
+
+
+def _worker(s):
+    s.rect(4, 1, 7, 4, "skin")
+    s.rect(3, 0, 8, 1, "st2")
+    s.rect(2, 5, 9, 10, "w3")
+    s.rect(7, 5, 9, 10, "w2")
+
+
+def _banner(s):
+    s.rect(2, 0, 2, 11, "w2")
+    s.poly([(3, 1), (10, 1), (8, 4), (10, 7), (3, 7)], "red1")
+    s.rect(4, 3, 7, 3, "gold")
+
+
+def _hammer(s):
+    s.line((2, 10), (7, 5), "w3")
+    s.line((3, 10), (8, 5), "w2")
+    s.poly([(5, 3), (8, 0), (11, 3), (8, 6)], "iron1")
+
+
+def _granary(s):
+    s.rect(2, 5, 9, 10, "w3")
+    s.rect(6, 5, 9, 10, "w2")
+    s.poly([(1, 5), (5, 1), (6, 1), (10, 5)], "sh2")
+    s.rect(5, 7, 6, 10, "w1")
+
+
+def _house(s):
+    s.rect(2, 5, 9, 10, "pl2")
+    s.rect(6, 5, 9, 10, "pl0")
+    s.poly([(1, 5), (5, 1), (6, 1), (10, 5)], "st2")
+    s.rect(4, 7, 5, 10, "w1")
+    s.px(8, 7, "glow")
+
+
+def _scroll(s):
+    s.rect(2, 2, 9, 9, "cream")
+    s.rect(1, 1, 10, 1, "cream0")
+    s.rect(1, 10, 10, 10, "cream0")
+    for y in (4, 6):
+        s.rect(3, y, 8, y, "w2")
+    s.px(7, 8, "red1")
+
+
+def _crown(s):
+    s.poly([(1, 9), (1, 3), (3, 6), (5.5, 2), (8, 6), (10, 3), (10, 9)], "gold")
+    s.rect(1, 9, 10, 10, "#8d6c2c")
+    s.px(5, 7, "red1")
+    s.px(3, 8, "#3b5a7a")
+    s.px(8, 8, "#3b5a7a")
+
+
+def _cart(s):
+    s.rect(1, 3, 8, 6, "w3")
+    s.rect(1, 3, 8, 3, "w4")
+    s.line((8, 6), (11, 5), "w1")
+    s.ellipse(4, 8, 2.5, 2.5, "w1")
+    s.px(4, 8, "w4")
+
+
+def _charter(s):
+    _scroll(s)
+    s.ellipse(7, 8, 2, 2, "red1")
+    s.px(7, 8, "gold")
+
+
+def _prestige(s):
+    s.poly([(1, 1), (10, 1), (10, 6), (5.5, 11), (1, 6)], "red1")
+    s.line((2, 2), (9, 8), "gold")
+    s.px(5, 4, "glow")
+
+
+def _soldier(s):
+    s.ellipse(5.5, 6, 5, 1.5, "iron1")
+    s.ellipse(5.5, 4, 3.5, 3, "iron1")
+    s.rect(5, 1, 6, 6, "#7c7a72")
+    s.line((9, 1), (2, 11), "w2")
+
+
+def _manor(s):
+    s.rect(3, 3, 8, 10, "r3")
+    s.rect(6, 3, 8, 10, "r1")
+    for x in (3, 5, 7):
+        s.px(x, 2, "r3")
+    s.rect(5, 7, 6, 10, "w0")
+    s.rect(5, 0, 5, 2, "w1")
+    s.rect(6, 0, 7, 1, "red1")
+
+
+def _check(s):
+    for (x, y) in ((2, 6), (3, 7), (4, 8), (5, 7), (6, 6), (7, 5), (8, 4), (9, 3)):
+        s.rect(x, y, x, y + 1, "l4")
+
+
+def _up(s):
+    s.poly([(5.5, 2), (10, 9), (1, 9)], "l4")
+
+
+def _down(s):
+    s.poly([(1, 2), (10, 2), (5.5, 9)], "red2")
+
+
+def _pause(s):
+    s.rect(3, 2, 4, 9, "cream")
+    s.rect(7, 2, 8, 9, "cream")
+
+
+def _play(s):
+    s.poly([(3, 1), (9, 5.5), (3, 10)], "cream")
+
+
+def _menu(s):
+    for y in (2, 5, 8):
+        s.rect(2, y, 9, y + 1, "cream")
+
+
+ICONS = {
+    "icon_coin": _coin, "icon_wheat": _wheat, "icon_carrot": _carrot, "icon_cabbage": _cabbage,
+    "icon_egg": _egg, "icon_milk": _milk, "icon_flour": _flour, "icon_bread": _bread, "icon_cheese": _cheese,
+    "icon_wood": _wood, "icon_stone": _stone, "icon_iron": _iron, "icon_worker": _worker, "icon_banner": _banner,
+    "icon_hammer": _hammer, "icon_granary": _granary, "icon_house": _house, "icon_scroll": _scroll,
+    "icon_crown": _crown, "icon_cart": _cart, "icon_charter": _charter, "icon_prestige": _prestige,
+    "icon_soldier": _soldier, "icon_manor": _manor, "icon_pause": _pause, "icon_play": _play, "icon_menu": _menu,
+    "icon_check": _check, "icon_up": _up, "icon_down": _down,
+}
+
+
+def bubble() -> Spr:
+    """Placa que flota sobre gallinero y corral con lo que hay para recoger (icono y numero encima)."""
+    s = Spr(30, 20)
+    s.rect(1, 1, 28, 16, "w1")
+    s.rect(2, 2, 27, 15, "w0")
+    s.rect(1, 1, 28, 1, "#8d6c2c")
+    s.rect(1, 16, 28, 16, "#8d6c2c")
+    s.poly([(12, 17), (15, 19), (18, 17)], "#8d6c2c")
+    return finish(s)
+
+
+def generate_ui() -> dict:
+    return {
+        "frame_wood": frame_wood(), "frame_parch": frame_parch(),
+        "btn": bevel_button("#2c2822", "#46403a", "#16130f", "#8d6c2c"),
+        "btn_hover": bevel_button("#332e27", "#504940", "#16130f", "gold"),
+        "btn_down": bevel_button("#211e19", "#16130f", "#3a352d", "#8d6c2c"),
+        "btn_red": bevel_button("red1", "red2", "red0", "#8d6c2c"),
+        "btn_red_hover": bevel_button("red1", "#b04a36", "red0", "gold"),
+        "btn_red_down": bevel_button("red0", "#3a120c", "red1", "#8d6c2c"),
+        "btn_ghost": bevel_button("#c4b48e", "#ddd0ac", "#9a8762", "w2"),
+        "inset": frame_inset(), "inset_parch": frame_inset("#bba981", "w2"), "rule": frame_bar(),
+        "seal": seal(), "shield": level_shield(), "thumb": thumb(), "bubble": bubble(),
+        **{name: icon(fn) for name, fn in ICONS.items()},
+    }
+
+
 # ================================================================== salida
 
 def generate() -> dict:
@@ -1056,6 +1437,11 @@ def main() -> None:
         json.dump(dict(sorted(manifest.items())), fh, indent=1)
         fh.write("\n")
     print(f"{len(sprites)} sprites en {os.path.normpath(OUT)}")
+    os.makedirs(OUT_UI, exist_ok=True)
+    ui = generate_ui()
+    for name, spr in ui.items():
+        spr.im.save(os.path.join(OUT_UI, f"{name}.png"))
+    print(f"{len(ui)} piezas de interfaz en {os.path.normpath(OUT_UI)}")
 
 
 if __name__ == "__main__":

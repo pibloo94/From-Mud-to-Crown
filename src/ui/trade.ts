@@ -85,7 +85,7 @@ function stallSection(ctx: PanelCtx): HTMLElement {
       icon('icon_coin', 'icon big'),
       h('div', { class: 'market-info' }, h('b', {}, t('trade.stall')), h('small', {}, t(s.stall ? 'trade.stallOwned' : 'trade.stallInfo', { n: pct(def.priceBonus - 1) }))),
       s.stall
-        ? h('span', { class: 'up-check' }, '✓')
+        ? h('span', { class: 'up-check' }, icon('icon_check', 'icon tiny'))
         : s.level < def.level
           ? h('span', { class: 'up-req' }, h('span', { class: 'req-missing' }, t('panel.lockedAt', { level: def.level })))
           : h(

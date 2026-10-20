@@ -86,7 +86,7 @@ function upgradeRow(ctx: PanelCtx, id: WorkshopId, up: WorkshopUpgradeDef, index
   const levelOk = s.level >= up.level && titleOk;
   const state = bought ? 'done' : isNext ? (levelOk ? 'next' : 'locked') : 'later';
   let action: HTMLElement;
-  if (bought) action = h('span', { class: 'up-check', 'aria-label': t('panel.bought') }, '✓');
+  if (bought) action = h('span', { class: 'up-check', 'aria-label': t('panel.bought') }, icon('icon_check', 'icon tiny'));
   else if (isNext && interactive && levelOk)
     action = h(
       'div',

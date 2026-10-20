@@ -50,7 +50,7 @@ function houseTab(ctx: PanelCtx): (HTMLElement | null)[] {
         const bought = i < s.noble.manor;
         const isNext = i === s.noble.manor;
         const action = bought
-          ? h('span', { class: 'up-check', 'aria-label': t('panel.bought') }, '✓')
+          ? h('span', { class: 'up-check', 'aria-label': t('panel.bought') }, icon('icon_check', 'icon tiny'))
           : isNext
             ? h(
                 'div',
@@ -118,7 +118,7 @@ function fiefTab(ctx: PanelCtx, focus: string | null): HTMLElement[] {
               ),
               buyMissingButton(ctx, next.materials, () => ctx.sim.buyMaterialsFor(next.materials)),
             )
-          : h('span', { class: 'up-check', 'aria-label': t('noble.hamlet.maxed') }, '✓'),
+          : h('span', { class: 'up-check', 'aria-label': t('noble.hamlet.maxed') }, icon('icon_check', 'icon tiny')),
       );
     }),
   ];
@@ -198,7 +198,7 @@ function patronageTab(ctx: PanelCtx): HTMLElement[] {
           costChips(ctx, def),
         ),
         done
-          ? h('span', { class: 'up-check', 'aria-label': t('noble.patronage.done') }, '✓')
+          ? h('span', { class: 'up-check', 'aria-label': t('noble.patronage.done') }, icon('icon_check', 'icon tiny'))
           : h(
               'div',
               { class: 'up-actions' },

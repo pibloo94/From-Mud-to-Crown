@@ -18,9 +18,9 @@ import { t } from '../i18n/i18n';
 import pixelManifest from '../../public/assets/pixel/manifest.json';
 import { blockBase, depthOf, fitScale, TILE_H, TILE_W, tileCenter, toScreen, toTile } from './iso';
 
-/** Iconos de la interfaz que tambien salen en el mapa (escudos de los animales): SVG al doble de tamano. */
-const RES = 2;
-const SVG_SPRITES = ['bubble', 'icon_egg', 'icon_milk', 'icon_wheat', 'icon_coin'];
+/** Piezas de la interfaz que tambien salen en el mapa (la placa de los animales y sus iconos), a x3. */
+const UI_SCALE = 3;
+const UI_SPRITES = ['bubble', 'icon_egg', 'icon_milk', 'icon_wheat', 'icon_coin'];
 /** Arte del mapa en pixel art: PNG a resolucion nativa que se dibujan a x4 con filtrado nitido. */
 const ART = 4;
 const PIXEL_SPRITES = Object.keys(pixelManifest);
@@ -39,7 +39,7 @@ const SEASON_TINT: Record<Season, { color: number; mode: 'multiply' | 'screen' }
   autumn: { color: 0xf2bf7a, mode: 'multiply' },
   winter: { color: 0x7d8a96, mode: 'screen' },
 };
-const FONT = 'Cinzel, "Times New Roman", serif';
+const FONT = '"Pixelify Sans", monospace';
 const TAP_SLOP = 12;
 
 /** Margenes (en pixeles CSS) que ocupa la interfaz HTML encima del lienzo. */
@@ -83,13 +83,13 @@ export class FarmScene extends Phaser.Scene {
   }
 
   preload(): void {
-    for (const key of SVG_SPRITES) this.load.svg(key, `assets/sprites/${key}.svg`, { scale: RES });
+    for (const key of UI_SPRITES) this.load.image(key, `assets/ui/${key}.png`);
     for (const key of PIXEL_SPRITES) this.load.image(key, `assets/pixel/${key}.png`);
   }
 
   create(): void {
     // Pixeles nitidos: sin suavizado al ampliar el arte.
-    for (const key of PIXEL_SPRITES) this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+    for (const key of [...PIXEL_SPRITES, ...UI_SPRITES]) this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
     this.hover = this.add.graphics().setDepth(60);
     this.landHints = this.add.graphics().setDepth(55);
     // Por encima de edificios y cultivos (que si no lo tapan), por debajo de los escudos de los animales.
@@ -218,7 +218,7 @@ export class FarmScene extends Phaser.Scene {
   }
 
   private img(key: string, x: number, y: number, ox: number, oy: number, depth: number): Phaser.GameObjects.Image {
-    const im = this.add.image(x, y, key).setOrigin(ox, oy).setScale(isPixel.has(key) ? ART : 1 / RES).setDepth(depth);
+    const im = this.add.image(x, y, key).setOrigin(ox, oy).setScale(isPixel.has(key) ? ART : UI_SCALE).setDepth(depth);
     this.built.push(im);
     return im;
   }
@@ -248,7 +248,7 @@ export class FarmScene extends Phaser.Scene {
   private place(key: string, tile: { x: number; y: number }, layer: number, n = 1, dy = 0): Phaser.GameObjects.Image {
     const { sx, sy } = blockBase(tile.x, tile.y, n);
     const im = this.img(key, sx, sy + dy, 0.5, 1, depthOf(tile.x + n - 1, tile.y + n - 1, layer));
-    const k = isPixel.has(key) ? ART : 1 / RES;
+    const k = isPixel.has(key) ? ART : UI_SCALE;
     return im.setScale(k * fitScale(im.width * k, n));
   }
 
@@ -402,10 +402,11 @@ export class FarmScene extends Phaser.Scene {
   }
 
   private addBubble(animal: AnimalId, tile: { x: number; y: number }, x: number, y: number, icon: string): void {
-    const bg = this.add.image(0, 0, 'bubble').setScale(1.15 / RES);
-    const ic = this.add.image(-8, -7, icon).setScale(0.62 / RES);
+    // Placa de madera en pixel art con el icono y el numero (todo a x3).
+    const bg = this.add.image(0, 0, 'bubble').setScale(UI_SCALE);
+    const ic = this.add.image(-18, -3, icon).setScale(UI_SCALE);
     const label = this.add
-      .text(10, -8, '0', { fontFamily: FONT, fontSize: '18px', color: '#ecd08a', fontStyle: 'bold' })
+      .text(18, -4, '0', { fontFamily: FONT, fontSize: '30px', color: '#ecd08a', fontStyle: 'bold', stroke: '#1b1611', strokeThickness: 6 })
       .setOrigin(0.5);
     const box = this.add.container(x, y, [bg, ic, label]).setDepth(10_000).setVisible(false);
     this.built.push(box);
