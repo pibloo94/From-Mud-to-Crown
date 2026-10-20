@@ -40,7 +40,8 @@ const SEASON_TINT: Record<Season, number | null> = {
   winter: null,
 };
 const SNOW = '_snow';
-const FONT = '"Pixelify Sans", monospace';
+// Las cifras salen de la fuente propia del juego (ver style.css); las letras, de Pixelify.
+const FONT = '"FMTC Cifras", "Pixelify Sans", monospace';
 const TAP_SLOP = 12;
 
 /** Margenes (en pixeles CSS) que ocupa la interfaz HTML encima del lienzo. */

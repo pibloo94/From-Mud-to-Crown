@@ -5,6 +5,25 @@
  * Jacquard 24 (gotica en pixel) para titulos; Pixelify Sans para todo lo demas.
  * Sin degradados ni esquinas redondeadas; sombras duras, sin difuminar.
  */
+
+/* Cifras propias (tools/gen_digits.py): las de Pixelify se confunden (5 y S, 2 y S, 8 y B).
+   Solo cubren 0-9, asi que las letras siguen saliendo de Pixelify. */
+@font-face {
+  font-family: 'FMTC Cifras';
+  src: url('../public/assets/fonts/cifras-regular.ttf') format('truetype');
+  font-weight: 100 550;
+  font-display: block;
+  unicode-range: U+0030-0039;
+}
+
+@font-face {
+  font-family: 'FMTC Cifras';
+  src: url('../public/assets/fonts/cifras-bold.ttf') format('truetype');
+  font-weight: 551 1000;
+  font-display: block;
+  unicode-range: U+0030-0039;
+}
+
 :root {
   color-scheme: dark;
   --night: #0f0d0a;
@@ -27,8 +46,8 @@
   --bone-dim: #b7a888;
 
   --font-title: 'Jacquard 24', 'Pixelify Sans', serif;
-  --font-caps: 'Pixelify Sans', 'Courier New', monospace;
-  --font-body: 'Pixelify Sans', 'Courier New', monospace;
+  --font-caps: 'FMTC Cifras', 'Pixelify Sans', 'Courier New', monospace;
+  --font-body: 'FMTC Cifras', 'Pixelify Sans', 'Courier New', monospace;
 
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -53,6 +72,11 @@
 
 * {
   box-sizing: border-box;
+}
+
+/* <small> encoge el texto a ~12 px y en pixel art no se lee: nunca por debajo de 14 px. */
+small {
+  font-size: max(14px, 0.88em);
 }
 
 html,
@@ -153,8 +177,8 @@ button:focus-visible {
   align-items: center;
   gap: 8px;
   font-family: var(--font-caps);
-  font-weight: 700;
-  font-size: 14px;
+  font-weight: 600;
+  font-size: 15px;
   letter-spacing: 0.04em;
   white-space: nowrap;
   color: var(--gold-3);
@@ -163,8 +187,8 @@ button:focus-visible {
 
 .paused-pill {
   font-family: var(--font-caps);
-  font-size: 11px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--bone);
@@ -372,6 +396,11 @@ button:focus-visible {
 
 .sheet {
   position: relative;
+  /* Ninguna ventana pasa del alto de pantalla: lo que no cabe se desplaza dentro (.sheet-body). */
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 56px);
+  overflow-y: auto;
   width: min(100%, 460px);
   color: var(--ink);
   background: none;
@@ -468,7 +497,7 @@ button:focus-visible {
   font-weight: 500;
   text-transform: none;
   letter-spacing: 0;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--bone-dim);
 }
 
@@ -505,14 +534,15 @@ button:focus-visible {
 }
 
 .btn:disabled {
-  opacity: 0.45;
+  /* Apagado pero legible: se tiene que poder leer que falta para poder usarlo. */
+  opacity: 0.6;
   filter: grayscale(0.6);
   cursor: default;
 }
 
 .btn.small {
   min-height: 44px;
-  font-size: 13px;
+  font-size: 14px;
   padding: 0 8px;
 }
 
@@ -534,7 +564,7 @@ button:focus-visible {
 }
 
 .hint {
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .lang {
@@ -547,7 +577,7 @@ button:focus-visible {
 }
 
 .lang-btn {
-  font: 600 14px var(--font-caps);
+  font: 600 15px var(--font-caps);
   letter-spacing: 0.08em;
   min-width: 52px;
   min-height: 38px;
@@ -622,7 +652,7 @@ button:focus-visible {
     padding: 7px 12px 8px;
   }
   .date-line {
-    font-size: 12px;
+    font-size: 13px;
   }
   .speed {
     margin-left: 0;
@@ -632,7 +662,7 @@ button:focus-visible {
   .speed-btn {
     min-width: 38px;
     min-height: 38px;
-    font-size: 11px;
+    font-size: 13px;
   }
   .resources {
     order: 3;
@@ -734,7 +764,7 @@ button:focus-visible {
 }
 
 .rank-text {
-  font: 700 12px var(--font-caps);
+  font: 600 13px var(--font-caps);
   letter-spacing: 0.06em;
   color: var(--gold-3);
   white-space: nowrap;
@@ -759,7 +789,7 @@ button:focus-visible {
 }
 
 .xp-text {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--bone-dim);
   font-variant-numeric: lining-nums tabular-nums;
   white-space: nowrap;
@@ -772,7 +802,7 @@ button:focus-visible {
 /* ------------------------------------------------------------ mercado */
 
 .trend {
-  font-size: 13px;
+  font-size: 14px;
   vertical-align: 0;
 }
 
@@ -785,7 +815,7 @@ button:focus-visible {
 }
 
 .price {
-  font-weight: 700;
+  font-weight: 600;
   color: var(--ink);
 }
 
@@ -794,13 +824,13 @@ button:focus-visible {
   padding: 8px 12px;
   background: var(--blood);
   color: var(--gold-3);
-  font: 700 13px var(--font-caps);
+  font: 600 14px var(--font-caps);
   letter-spacing: 0.05em;
   box-shadow: inset 0 0 0 1px var(--gold-2);
 }
 
 .market-section {
-  font: 900 14px var(--font-caps);
+  font: 700 15px var(--font-caps);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--blood-2);
@@ -853,7 +883,7 @@ button:focus-visible {
 }
 
 .choice:disabled {
-  opacity: 0.45;
+  opacity: 0.6;
   cursor: default;
 }
 
@@ -864,13 +894,13 @@ button:focus-visible {
 }
 
 .choice-text b {
-  font: 700 16px var(--font-caps);
+  font: 600 16px var(--font-caps);
   letter-spacing: 0.04em;
 }
 
 .choice-text small {
   color: var(--ink-soft);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .choice-cost {
@@ -986,7 +1016,7 @@ button:focus-visible {
 
 .btn.option small {
   font-style: normal;
-  font-size: 13px;
+  font-size: 15px;
   color: var(--gold-3);
   opacity: 0.85;
 }
@@ -1162,7 +1192,7 @@ button.level-box:hover .rank-text {
 }
 
 .status-pill.mod .status-inner {
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 0.02em;
   border-image: url('../public/assets/ui/btn_red_down.png') 4 fill / 6px / 0 round;
 }
@@ -1191,7 +1221,7 @@ button.level-box:hover .rank-text {
   justify-content: center;
   gap: 6px;
   padding: 2px 4px;
-  font: 600 13px var(--font-caps);
+  font: 600 14px var(--font-caps);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   border: 6px solid transparent;
@@ -1210,6 +1240,13 @@ button.level-box:hover .rank-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Cuatro pestanas no caben en una fila sin cortar el texto ("Herramientas", "Mecenazgo"):
+   van de dos en dos. */
+.tabs:has(> .tab:nth-child(4)) {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
 }
 
 .tab.active {
@@ -1236,7 +1273,7 @@ button.level-box:hover .rank-text {
 
 .panel-stats {
   margin: -6px 0 10px;
-  font: 700 14px var(--font-caps);
+  font: 600 15px var(--font-caps);
   letter-spacing: 0.03em;
   color: var(--ink);
 }
@@ -1281,18 +1318,18 @@ button.level-box:hover .rank-text {
 }
 
 .up-info b {
-  font: 700 15px var(--font-caps);
+  font: 600 15px var(--font-caps);
   letter-spacing: 0.03em;
   color: var(--ink);
 }
 
 .up-info small {
   color: var(--ink-soft);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .up-check {
-  font: 900 20px var(--font-caps);
+  font: 700 20px var(--font-caps);
   color: #3f6b2a;
   width: 44px;
   text-align: center;
@@ -1302,7 +1339,7 @@ button.level-box:hover .rank-text {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  font: 700 13px var(--font-caps);
+  font: 600 15px var(--font-caps);
   color: var(--ink-soft);
 }
 
@@ -1369,13 +1406,13 @@ button.level-box:hover .rank-text {
 }
 
 .villager-name b {
-  font: 700 16px var(--font-caps);
+  font: 600 16px var(--font-caps);
   color: var(--ink);
 }
 
 .villager-name small {
   color: var(--ink-soft);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .icon-btn {
@@ -1384,14 +1421,14 @@ button.level-box:hover .rank-text {
   border: 1px solid var(--parch-3);
   background: transparent;
   color: var(--ink-soft);
-  font: 700 16px var(--font-caps);
+  font: 600 16px var(--font-caps);
   cursor: pointer;
 }
 
 .icon-btn.confirm {
   background: var(--blood);
   color: var(--gold-3);
-  font-size: 12px;
+  font-size: 13px;
   padding: 0 8px;
 }
 
@@ -1418,7 +1455,7 @@ button.level-box:hover .rank-text {
   justify-content: center;
   gap: 4px;
   padding: 0 2px;
-  font: 600 13px var(--font-caps);
+  font: 600 14px var(--font-caps);
   letter-spacing: 0.02em;
   border: 6px solid transparent;
   border-image: url('../public/assets/ui/btn_ghost.png') 4 fill / 6px / 0 round;
@@ -1441,7 +1478,7 @@ button.level-box:hover .rank-text {
 .job-desc {
   display: block;
   color: var(--ink-soft);
-  font-size: 14px;
+  font-size: 15px;
   margin-bottom: 6px;
 }
 
@@ -1456,7 +1493,7 @@ button.level-box:hover .rank-text {
 .tool-max {
   display: block;
   text-align: center;
-  font: 700 13px var(--font-caps);
+  font: 600 14px var(--font-caps);
   color: #3f6b2a;
 }
 
@@ -1464,7 +1501,7 @@ button.level-box:hover .rank-text {
   display: inline-block;
   margin-left: 6px;
   padding: 1px 7px;
-  font: 700 11px var(--font-caps);
+  font: 600 13px var(--font-caps);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--gold-3);
@@ -1478,6 +1515,27 @@ button.level-box:hover .rank-text {
 
 .warn-text {
   color: var(--blood) !important;
+}
+
+/* Cuerpo desplazable que ui.ts pone a toda ventana que no trae el suyo. Si ni los 96 px caben
+   (movil en horizontal con muchos botones), se desplaza la ventana entera. */
+.sheet-body {
+  flex: 1 1 auto;
+  min-height: 96px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0 -8px;
+  padding: 0 8px;
+}
+
+/* Movil en horizontal: no queda alto para fijar cabecera y botones, se desplaza la ventana entera. */
+@media (max-height: 500px) {
+  .sheet-body {
+    flex: none;
+    min-height: auto;
+    overflow: visible;
+  }
 }
 
 /* ------------------------------------------------------------ arbol de progreso */
@@ -1567,7 +1625,7 @@ button.level-box:hover .rank-text {
 }
 
 .tree-head b {
-  font: 900 15px var(--font-caps);
+  font: 700 15px var(--font-caps);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--blood-2);
@@ -1575,7 +1633,7 @@ button.level-box:hover .rank-text {
 
 .tree-head small {
   color: var(--ink-soft);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .tree-future .tree-items {
@@ -1613,7 +1671,7 @@ button.level-box:hover .rank-text {
 
 .tree-items li small {
   color: var(--ink-soft);
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .tree-current .tree-items li {
@@ -1662,7 +1720,7 @@ button.level-box:hover .rank-text {
   list-style: none;
   margin: 4px 0 0;
   padding: 0;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .reqs li::before {
@@ -1682,7 +1740,7 @@ button.level-box:hover .rank-text {
 .rep-head {
   display: flex;
   justify-content: space-between;
-  font: 700 14px var(--font-caps);
+  font: 600 15px var(--font-caps);
 }
 
 .rep-bar {
@@ -1702,7 +1760,7 @@ button.level-box:hover .rank-text {
 
 .rep small {
   color: var(--ink-soft);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .mod-list {
@@ -1713,7 +1771,7 @@ button.level-box:hover .rank-text {
 
 .mod-list .pill {
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   padding: 4px 8px;
 }
 
@@ -1739,7 +1797,7 @@ button.level-box:hover .rank-text {
 }
 
 .acct-row b {
-  font: 700 16px var(--font-caps);
+  font: 600 16px var(--font-caps);
   font-variant-numeric: lining-nums tabular-nums;
   white-space: nowrap;
 }
@@ -1750,7 +1808,7 @@ button.level-box:hover .rank-text {
 
 .acct-row.total {
   border-top: 2px solid rgba(110, 80, 40, 0.6);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* ------------------------------------------------------------ categoria de evento */
@@ -1759,7 +1817,7 @@ button.level-box:hover .rank-text {
   display: inline-block;
   margin-bottom: 6px;
   padding: 2px 10px;
-  font: 700 11px var(--font-caps);
+  font: 600 13px var(--font-caps);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--gold-3);
@@ -1792,16 +1850,16 @@ button.level-box:hover .rank-text {
   }
   .big-btn {
     padding: 0 12px;
-    font-size: 14px;
+    font-size: 15px;
     letter-spacing: 0.05em;
   }
   .status-inner {
-    font-size: 13px;
+    font-size: 14px;
     padding: 2px 8px;
     min-height: 30px;
   }
   .tab span {
-    font-size: 11px;
+    font-size: 13px;
   }
   .tab .icon {
     display: none;
@@ -1911,7 +1969,7 @@ button.level-box:hover .rank-text {
 .qty-note {
   grid-column: 1;
   min-width: 0;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--blood);
 }
 
@@ -1989,7 +2047,7 @@ button.level-box:hover .rank-text {
   align-items: center;
   gap: 2px;
   padding: 1px 6px;
-  font: 700 12px var(--font-caps);
+  font: 600 14px var(--font-caps);
   font-variant-numeric: lining-nums tabular-nums;
   color: var(--ink);
   background: rgba(60, 40, 20, 0.12);
@@ -2065,7 +2123,7 @@ button.level-box:hover .rank-text {
     min-width: 0;
   }
   .qty .btn {
-    font-size: 12px;
+    font-size: 13px;
     padding: 4px 10px;
   }
 }
@@ -2123,7 +2181,7 @@ button.level-box:hover .rank-text {
 
 .resources > .status-row .status-pill.warn .status-inner,
 .resources > .status-row .status-pill.mod .status-inner {
-  font-size: 13px;
+  font-size: 14px;
   background: var(--blood);
 }
 
@@ -2144,7 +2202,7 @@ button.level-box:hover .rank-text {
   min-width: 44px;
   min-height: 44px;
   padding: 0 14px 0 10px;
-  font: 700 13px var(--font-caps);
+  font: 600 14px var(--font-caps);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--gold-3);
@@ -2193,14 +2251,14 @@ button.level-box:hover .rank-text {
   align-items: center;
   gap: 2px 4px;
   margin: 2px 0;
-  font: 700 14px var(--font-caps);
+  font: 600 15px var(--font-caps);
   color: var(--ink);
 }
 
 .ws-status {
   margin: 0 0 8px;
   padding: 6px 10px;
-  font: 700 13px var(--font-caps);
+  font: 600 14px var(--font-caps);
   letter-spacing: 0.04em;
   color: var(--gold-3);
   background: var(--blood);
@@ -2216,7 +2274,7 @@ button.level-box:hover .rank-text {
   justify-content: center;
   gap: 8px;
   margin: 4px 0 8px;
-  font: 700 16px var(--font-caps);
+  font: 600 16px var(--font-caps);
   color: var(--ink);
 }
 
@@ -2285,12 +2343,12 @@ button.level-box:hover .rank-text {
 }
 
 .town b {
-  font: 700 15px var(--font-caps);
+  font: 600 15px var(--font-caps);
 }
 
 .town small {
   color: var(--ink-soft);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .town.active {
@@ -2313,7 +2371,7 @@ button.level-box:hover .rank-text {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  font: 700 12px var(--font-caps);
+  font: 600 14px var(--font-caps);
   color: var(--ink-soft);
 }
 
@@ -2327,7 +2385,7 @@ button.level-box:hover .rank-text {
   align-items: center;
   gap: 10px;
   margin: 4px 0 8px;
-  font: 700 14px var(--font-caps);
+  font: 600 15px var(--font-caps);
 }
 
 .mini-bar.load {
@@ -2353,7 +2411,7 @@ button.level-box:hover .rank-text {
   align-items: center;
   gap: 6px;
   min-width: 0;
-  font: 700 14px var(--font-caps);
+  font: 600 15px var(--font-caps);
   color: var(--ink);
 }
 
@@ -2378,7 +2436,7 @@ button.level-box:hover .rank-text {
 
 .escort-line small {
   color: var(--ink-soft);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .escort-line .job-btn {
@@ -2436,7 +2494,7 @@ button.level-box:hover .rank-text {
 
 .up-fx {
   color: #3d4a2a;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .site-option.hamlet.focus {
@@ -2507,7 +2565,7 @@ button.level-box:hover .rank-text {
 }
 
 .coach-body b {
-  font: 700 16px var(--font-caps);
+  font: 600 16px var(--font-caps);
   color: var(--blood-2);
 }
 
@@ -2518,7 +2576,7 @@ button.level-box:hover .rank-text {
 }
 
 .coach-count {
-  font: 700 11px var(--font-caps);
+  font: 600 13px var(--font-caps);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -2562,7 +2620,7 @@ button.level-box:hover .rank-text {
   display: grid;
   gap: 4px;
   margin: 6px 0;
-  font: 700 14px var(--font-caps);
+  font: 600 15px var(--font-caps);
   color: var(--ink);
   text-align: left;
 }
@@ -2626,7 +2684,7 @@ img[src^='assets/pixel/'] {
 }
 
 .difficulty-option small {
-  font: 400 12px var(--font-body);
+  font: 400 15px var(--font-body);
   letter-spacing: 0;
   opacity: 0.85;
 }
@@ -2645,7 +2703,7 @@ img[src^='assets/pixel/'] {
 }
 
 .rep .rep-effect {
-  font-weight: 700;
+  font-weight: 600;
   color: var(--ink);
 }
 

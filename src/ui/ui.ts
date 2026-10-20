@@ -398,6 +398,10 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   // ---------------------------------------------------------------- ventanas y tarjetas
   /** Ventanas anteriores, para volver atras (p. ej. Progreso -> Casa -> atras). */
   const history: Modal[] = [];
+  /** Cuerpos desplazables de las ventanas (se conserva su scroll al repintar). */
+  const SCROLL_BODY = '.progress-body, .scroll-body, .sheet-body';
+  /** Lo que queda fijo arriba de una ventana mientras el resto se desplaza. */
+  const SHEET_HEAD = '.back-btn, h1, h2, .tagline, .tabs';
   const pageKey = (m: Modal) => (m.kind === 'building' ? `building:${m.building}` : m.kind === 'workshop' ? `workshop:${m.workshop}` : m.kind);
 
   function openModal(next: Modal): void {
@@ -496,25 +500,45 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       tip: () => tipView(sim, (modal as Extract<Modal, { kind: 'tip' }>).id, () => closeModal()),
     };
     // Al repintar la misma ventana se conserva el desplazamiento (p. ej. al mejorar algo de la lista).
-    const prevBody = overlay.querySelector<HTMLElement>('.progress-body, .scroll-body');
+    const prevBody = overlay.querySelector<HTMLElement>(SCROLL_BODY);
     const keepScroll = overlay.dataset.view === viewKey(modal) ? { overlay: overlay.scrollTop, body: prevBody?.scrollTop ?? 0 } : null;
     const view = views[modal.kind]();
     if (history.length > 0 && view.classList.contains('sheet')) {
       view.classList.add('has-back');
       view.prepend(h('button', { class: 'back-btn', 'aria-label': t('panel.back'), onclick: () => goBack() }, '‹ ', t('panel.back')));
     }
+    scrollableSheet(view);
     overlay.replaceChildren(view);
     overlay.className = `overlay overlay-${modal.kind}`;
     overlay.dataset.view = viewKey(modal);
     if (keepScroll) {
       overlay.scrollTop = keepScroll.overlay;
-      const body = overlay.querySelector<HTMLElement>('.progress-body, .scroll-body');
+      const body = overlay.querySelector<HTMLElement>(SCROLL_BODY);
       if (body) body.scrollTop = keepScroll.body;
     } else if (modal.kind === 'progress' && modal.tab === 'levels') {
       scrollTreeToCurrent(overlay);
     } else if (modal.kind === 'manor' && modal.focus) {
       overlay.querySelector(`#hamlet-${modal.focus}`)?.scrollIntoView({ block: 'nearest' });
     }
+  }
+
+  /**
+   * Toda ventana cabe en pantalla y se desplaza por dentro, como Progreso: la cabecera (volver,
+   * titulo, subtitulo y pestanas) y los botones del final quedan fijos, y lo de en medio va en un
+   * cuerpo con scroll. Las ventanas que ya traen su propio cuerpo desplazable se dejan igual.
+   */
+  function scrollableSheet(view: HTMLElement): void {
+    if (!view.classList.contains('sheet') || view.querySelector(SCROLL_BODY)) return;
+    const nodes = [...view.childNodes];
+    const isEl = (n: ChildNode | undefined, sel: string) => n instanceof HTMLElement && n.matches(sel);
+    let start = 0;
+    while (start < nodes.length && isEl(nodes[start], SHEET_HEAD)) start++;
+    let end = nodes.length;
+    while (end > start && isEl(nodes[end - 1], '.btn')) end--;
+    if (end <= start) return;
+    const body = h('div', { class: 'sheet-body' });
+    view.insertBefore(body, nodes[start]);
+    body.append(...nodes.slice(start, end));
   }
 
   function viewKey(m: Modal): string {
