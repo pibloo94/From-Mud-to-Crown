@@ -7,6 +7,8 @@ import { dateFromDay } from '../sim/calendar';
 import { levelProgress, nextLevelXp, renownProgress, unlocksAt } from '../sim/progress';
 import { storageCapacity, storageUsed } from '../sim/buildings';
 import { beds, foodDays } from '../sim/villagers';
+import { foodStock } from '../sim/pantry';
+import { seasonForecast } from '../sim/forecast';
 import { activeModifiers } from '../sim/modifiers';
 import { materialUnlocked } from '../sim/materials';
 import {
@@ -23,7 +25,7 @@ import {
   type ProgressTab,
 } from './panels';
 import { optionAvailable } from '../sim/events';
-import type { BuildingId, CommandResult, CropId, Difficulty, RankId, Speed, WorkshopId } from '../sim/types';
+import type { BuildingId, CommandResult, CropId, Difficulty, GameState, RankId, Speed, WorkshopId } from '../sim/types';
 import { getLang, onLangChange, setLang, t, type Lang } from '../i18n/i18n';
 import { autosave, forgetLinkedFile, hasLinkedFile, loadGameFromFile, readBackup, saveGame, supportsFilePicker } from '../save/storage';
 import { SaveError } from '../save/serialize';
@@ -36,6 +38,7 @@ import { fanfare, type FanfareKind } from '../audio/fanfare';
 import { createCoach, tipView } from './coach';
 import { pendingTip } from '../sim/tutorial';
 import { manorView, type ManorTab } from './noble';
+import { ledgerView } from './ledger';
 import { isNoble } from '../sim/noble';
 
 const AUTOSAVE_EVERY_DAYS = 3;
@@ -64,14 +67,15 @@ type Modal =
   | { kind: 'rank'; rank: RankId }
   | { kind: 'caravan'; params: Record<string, string | number> }
   | { kind: 'event'; id: string; result?: CommandResult }
-  | { kind: 'tip'; id: string };
+  | { kind: 'tip'; id: string }
+  | { kind: 'ledger' };
 
 /** Todas las ventanas detienen el tiempo mientras estan abiertas; al cerrarlas vuelve la velocidad anterior. */
-const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'levelup', 'season', 'rank', 'caravan', 'event', 'tip'];
+const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'levelup', 'season', 'rank', 'caravan', 'event', 'tip', 'ledger'];
 /** Ventanas que se cierran con Escape o tocando fuera. */
-const DISMISSABLE: Modal['kind'][] = ['menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress'];
+const DISMISSABLE: Modal['kind'][] = ['menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'ledger'];
 /** Ventanas desde las que se puede ir a otra y volver con "Atras". */
-const NAVIGABLE: Modal['kind'][] = ['market', 'building', 'workshop', 'site', 'manor', 'progress', 'levelup'];
+const NAVIGABLE: Modal['kind'][] = ['market', 'building', 'workshop', 'site', 'manor', 'progress', 'levelup', 'ledger'];
 
 export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI {
   let lastSpeed: Speed = 1;
@@ -143,8 +147,15 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     { class: 'status-pill', onclick: () => openModal({ kind: 'manor', tab: 'house', focus: null }) },
     h('span', { class: 'status-inner' }, icon('icon_prestige'), prestigeText),
   );
+  // Cuentas de la estacion: lo que se cobrara y en cuantos dias; en rojo si no llega.
+  const ledgerText = h('b', {});
+  const ledgerPill = h(
+    'button',
+    { class: 'status-pill ledger-pill', onclick: () => openModal({ kind: 'ledger' }) },
+    h('span', { class: 'status-inner' }, icon('icon_scroll'), ledgerText),
+  );
   const modsBox = h('div', { class: 'mods' });
-  const statusRow = h('div', { class: 'status-row' }, storagePill, villagersPill, materialsPill, caravanPill, prestigePill, modsBox);
+  const statusRow = h('div', { class: 'status-row' }, ledgerPill, storagePill, villagersPill, materialsPill, caravanPill, prestigePill, modsBox);
 
   const speedButtons = SPEEDS.map((sp) =>
     // Dibujos en vez de caracteres (❚❚ ▶): no todas las fuentes los tienen.
@@ -341,6 +352,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       const fromWorkshop = !!PRODUCTS[p].artisan && !builtWorkshops(s).some((id) => WORKSHOPS[id].recipe.out[p]);
       resources.querySelector<HTMLElement>(`[data-res="${p}"]`)!.hidden = s.inventory[p] === 0 && ((!!crop && s.level < crop.unlockLevel) || fromWorkshop);
     }
+    renderLedgerPill(s);
     const used = storageUsed(s);
     const cap = storageCapacity(s);
     storageText.textContent = `${used}/${cap}`;
@@ -393,6 +405,22 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     marketBtn.lastElementChild!.textContent = t('hud.market');
     progressBtn.lastElementChild!.textContent = t('hud.progress');
     menuBtn.lastElementChild!.textContent = t('hud.menu');
+  }
+
+  /** La prevision ensaya las cuentas sobre una copia: se rehace solo cuando cambia algo que cuenta. */
+  let ledgerKey = '';
+  function renderLedgerPill(s: GameState): void {
+    const key = `${getLang()}|${s.day}|${s.coins}|${s.villagers.length}|${s.stats.seasonEarned}|${s.debt}|${s.noble.soldiers}|${foodStock(s)}`;
+    if (key === ledgerKey) return;
+    ledgerKey = key;
+    const f = seasonForecast(s);
+    const due = f.total - f.income;
+    ledgerText.textContent = t('hud.ledgerShort', { n: Math.max(0, due), days: f.daysLeft });
+    ledgerPill.classList.toggle('warn', f.short > 0 || f.food.short);
+    ledgerPill.title = f.grace
+      ? t('hud.ledgerGrace', { days: f.daysLeft })
+      : `${t('hud.ledger', { days: f.daysLeft, n: Math.max(0, due), coins: s.coins })}${f.short > 0 ? ` ${t('ledger.short', { n: f.short })}` : ''}${f.food.short ? ` ${t('hud.ledgerFood', { days: f.food.days })}` : ''}`;
+    ledgerPill.setAttribute('aria-label', ledgerPill.title);
   }
 
   // ---------------------------------------------------------------- ventanas y tarjetas
@@ -498,6 +526,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       caravan: () => caravanView(panelCtx, (modal as Extract<Modal, { kind: 'caravan' }>).params),
       event: eventView,
       tip: () => tipView(sim, (modal as Extract<Modal, { kind: 'tip' }>).id, () => closeModal()),
+      ledger: () => ledgerView(panelCtx),
     };
     // Al repintar la misma ventana se conserva el desplazamiento (p. ej. al mejorar algo de la lista).
     const prevBody = overlay.querySelector<HTMLElement>(SCROLL_BODY);
@@ -557,6 +586,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     openProgress: (tab = 'levels') => openModal({ kind: 'progress', tab }),
     openMarket: (tab = 'buy') => openModal({ kind: 'market', tab }),
     openWorkshop: (id) => openModal({ kind: 'workshop', workshop: id }),
+    openLedger: () => openModal({ kind: 'ledger' }),
   };
 
   overlay.addEventListener('click', (e) => {

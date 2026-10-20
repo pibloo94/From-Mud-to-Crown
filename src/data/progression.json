@@ -219,6 +219,7 @@
     "dailyChance": 0.3
   },
   "priceDays": 7,
+  "forecast": { "warnDays": [7, 2], "foodWarnDays": 3 },
   "taxes": {
     "titheRate": 0.1,
     "tributeBase": 5,

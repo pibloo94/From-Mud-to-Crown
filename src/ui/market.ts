@@ -9,6 +9,7 @@ import { animalCapacity } from '../sim/rules';
 import { materialPrice, materialUnlocked } from '../sim/materials';
 import { reserved, surplus } from '../sim/pantry';
 import { isProtected, protectionCost } from '../sim/risk';
+import { seasonForecast } from '../sim/forecast';
 import type { AnimalId, MaterialId, ProductId, ProtectionId } from '../sim/types';
 import { t } from '../i18n/i18n';
 import { h, icon } from './dom';
@@ -222,6 +223,19 @@ function buyTab(ctx: PanelCtx): HTMLElement[] {
   ];
 }
 
+/** Recordatorio de las cuentas al pie del mercado: lo que se cobrara y si llega lo que tienes. */
+function ledgerLine(ctx: PanelCtx): HTMLElement {
+  const f = seasonForecast(ctx.sim.state);
+  const due = Math.max(0, f.total - f.income);
+  return h(
+    'button',
+    { class: `ledger-line ${f.short > 0 ? 'warn' : ''}`, onclick: () => ctx.openLedger() },
+    icon('icon_scroll', 'icon tiny'),
+    f.grace ? t('market.ledgerGrace', { days: f.daysLeft }) : t('market.ledger', { days: f.daysLeft, n: due }),
+    f.short > 0 && h('b', { class: 'nowrap' }, t('market.ledgerShort', { n: f.short })),
+  );
+}
+
 export function marketView(ctx: PanelCtx, tab: MarketTab, openTab: (tab: MarketTab) => void): HTMLElement {
   const s = ctx.sim.state;
   return h(
@@ -242,6 +256,7 @@ export function marketView(ctx: PanelCtx, tab: MarketTab, openTab: (tab: MarketT
       ),
     ),
     h('div', { class: 'market-body progress-body' }, ...(tab === 'sell' ? sellTab(ctx) : tab === 'buy' ? buyTab(ctx) : tradeTab(ctx))),
+    ledgerLine(ctx),
     h(
       'div',
       { class: 'market-foot' },
