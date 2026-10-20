@@ -1,6 +1,7 @@
 // Experiencia, niveles, rangos y lo que desbloquea cada nivel (tambien para el arbol de progreso).
 import { BUILDINGS, BUILDING_IDS, CROPS, CROP_IDS, JOB_IDS, MAX_LEVEL, PROGRESSION, TOWN_IDS, TRADE, VILLAGERS, WORKSHOPS, WORKSHOP_IDS, type Feature, type RankDef } from './data';
 import { ESTATE_IDS } from './estates';
+import { traitMult } from './character';
 import type { BuildingId, CropId, GameState, JobId, RankId, WorkshopId } from './types';
 
 export function levelDef(level: number) {
@@ -23,7 +24,7 @@ export function levelProgress(state: GameState): number {
 /** Suma experiencia y sube los niveles que correspondan. Devuelve los niveles alcanzados. */
 export function addXp(state: GameState, amount: number): number[] {
   if (amount <= 0) return [];
-  state.xp += amount;
+  state.xp += amount * traitMult(state, 'xp');
   const reached: number[] = [];
   let next = nextLevelXp(state.level);
   while (next !== null && state.xp >= next) {

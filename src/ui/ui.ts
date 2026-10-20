@@ -1,7 +1,7 @@
 // Interfaz HTML encima del lienzo: barra superior, controles de tiempo, ventanas, tarjetas y avisos.
 import type { Game } from '../sim/game';
 import { createNewGame } from '../sim/state';
-import { CROPS, EVENTS, MATERIALS, MATERIAL_IDS, PRODUCTS, PRODUCT_IDS, PROGRESSION, WORKSHOPS, type EventOptionDef } from '../sim/data';
+import { CROPS, EVENTS, MATERIALS, MATERIAL_IDS, PRODUCTS, PRODUCT_IDS, PROGRESSION, TRAITS, WORKSHOPS, type EventOptionDef } from '../sim/data';
 import { builtWorkshops } from '../sim/workshops';
 import { dateFromDay } from '../sim/calendar';
 import { levelProgress, nextLevelXp, renownProgress, unlocksAt } from '../sim/progress';
@@ -39,6 +39,8 @@ import { createCoach, tipView } from './coach';
 import { pendingTip } from '../sim/tutorial';
 import { manorView, type ManorTab } from './noble';
 import { ledgerView } from './ledger';
+import { characterView, randomName, traitLinesEl, type CharacterTab } from './character';
+import type { CharacterAnswers } from '../sim/character';
 import { isNoble } from '../sim/noble';
 
 const AUTOSAVE_EVERY_DAYS = 3;
@@ -68,14 +70,15 @@ type Modal =
   | { kind: 'caravan'; params: Record<string, string | number> }
   | { kind: 'event'; id: string; result?: CommandResult }
   | { kind: 'tip'; id: string }
-  | { kind: 'ledger' };
+  | { kind: 'ledger' }
+  | { kind: 'character'; tab: CharacterTab };
 
 /** Todas las ventanas detienen el tiempo mientras estan abiertas; al cerrarlas vuelve la velocidad anterior. */
-const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'levelup', 'season', 'rank', 'caravan', 'event', 'tip', 'ledger'];
+const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'levelup', 'season', 'rank', 'caravan', 'event', 'tip', 'ledger', 'character'];
 /** Ventanas que se cierran con Escape o tocando fuera. */
-const DISMISSABLE: Modal['kind'][] = ['menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'ledger'];
+const DISMISSABLE: Modal['kind'][] = ['menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'ledger', 'character'];
 /** Ventanas desde las que se puede ir a otra y volver con "Atras". */
-const NAVIGABLE: Modal['kind'][] = ['market', 'building', 'workshop', 'site', 'manor', 'progress', 'levelup', 'ledger'];
+const NAVIGABLE: Modal['kind'][] = ['market', 'building', 'workshop', 'site', 'manor', 'progress', 'levelup', 'ledger', 'character'];
 
 export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI {
   let lastSpeed: Speed = 1;
@@ -86,6 +89,13 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   let choosingNew = false;
   /** Dificultad marcada para la proxima partida nueva. */
   let pickedDifficulty: Difficulty = 'normal';
+  // Cuestionario de partida nueva: 0 es la dificultad y 1..3 las preguntas de traits.json.
+  let quizStep = 0;
+  let answers: Partial<CharacterAnswers> = {};
+  const resetQuiz = () => {
+    quizStep = 0;
+    answers = { name: randomName() };
+  };
   const queue: Modal[] = [];
 
   // ---------------------------------------------------------------- barra superior
@@ -100,7 +110,8 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   const xpText = h('span', { class: 'xp-text' });
   const levelBox = h(
     'button',
-    { class: 'level-box', onclick: () => openModal({ kind: 'progress', tab: 'levels' }) },
+    // El escudo de nivel abre la ficha del personaje; Progreso tiene su boton abajo.
+    { class: 'level-box', onclick: () => openModal({ kind: 'character', tab: 'traits' }) },
     h('span', { class: 'level-shield' }, levelNum),
     h('div', { class: 'level-info' }, rankText, h('span', { class: 'xp-bar' }, xpFill), xpText),
   );
@@ -527,6 +538,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       event: eventView,
       tip: () => tipView(sim, (modal as Extract<Modal, { kind: 'tip' }>).id, () => closeModal()),
       ledger: () => ledgerView(panelCtx),
+      character: () => characterView(panelCtx, (modal as Extract<Modal, { kind: 'character' }>).tab, (tab) => openModal({ kind: 'character', tab })),
     };
     // Al repintar la misma ventana se conserva el desplazamiento (p. ej. al mejorar algo de la lista).
     const prevBody = overlay.querySelector<HTMLElement>(SCROLL_BODY);
@@ -575,6 +587,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     if (m.kind === 'progress') return `progress:${m.tab}`;
     if (m.kind === 'market') return `market:${m.tab}`;
     if (m.kind === 'manor') return `manor:${m.tab}`;
+    if (m.kind === 'character') return `character:${m.tab}`;
     return m.kind;
   }
 
@@ -620,7 +633,55 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     );
   }
 
+  /** Una pregunta del cuestionario: origen (con el nombre), caracter o ambicion. */
+  function questionView(onDone: () => void): HTMLElement {
+    const total = TRAITS.questions.length;
+    const q = TRAITS.questions[quizStep - 1];
+    const picked = answers[q.id];
+    const last = quizStep === total;
+    return h(
+      'div',
+      { class: 'sheet start character-quiz' },
+      h('h2', {}, t('character.title')),
+      h('p', { class: 'tagline' }, t('character.step', { n: quizStep, total })),
+      quizStep === 1 &&
+        h(
+          'label',
+          { class: 'name-field' },
+          h('span', {}, t('character.name')),
+          h('input', { type: 'text', value: answers.name ?? '', maxlength: 20, autocomplete: 'off', oninput: (e: Event) => (answers.name = (e.target as HTMLInputElement).value) }),
+        ),
+      h('h3', { class: 'market-section' }, t(`character.q.${q.id}`)),
+      h(
+        'div',
+        { class: 'stack difficulty-list', role: 'radiogroup', 'aria-label': t(`character.q.${q.id}`) },
+        ...q.options.map((id) =>
+          h(
+            'button',
+            {
+              class: `btn difficulty-option trait-option ${picked === id ? 'picked' : 'ghost'}`,
+              role: 'radio',
+              'aria-checked': String(picked === id),
+              onclick: () => ((answers[q.id] = id), renderModal()),
+            },
+            h('span', { class: 'difficulty-name' }, picked === id && icon('icon_check', 'icon tiny'), t(`trait.${id}`)),
+            h('small', {}, t(`trait.${id}.desc`)),
+            traitLinesEl(id),
+          ),
+        ),
+      ),
+      // Los botones van sueltos al final: quedan fijos mientras las respuestas se desplazan.
+      h(
+        'button',
+        { class: 'btn primary', disabled: !picked, onclick: () => (last ? onDone() : (quizStep++, renderModal())) },
+        !picked ? t('character.pick') : t(last ? 'difficulty.start' : 'character.next'),
+      ),
+      h('button', { class: 'btn ghost', onclick: () => (quizStep--, renderModal()) }, t('panel.back')),
+    );
+  }
+
   function newGameView(): HTMLElement {
+    if (quizStep > 0) return questionView(() => ((choosingNew = false), startWith(() => newGame())));
     return h(
       'div',
       { class: 'sheet start' },
@@ -630,7 +691,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       h(
         'div',
         { class: 'stack' },
-        h('button', { class: 'btn primary', onclick: () => ((choosingNew = false), startWith(() => newGame())) }, t('difficulty.start')),
+        h('button', { class: 'btn primary', onclick: () => ((quizStep = 1), renderModal()) }, t('character.next')),
         h('button', { class: 'btn ghost', onclick: () => ((choosingNew = false), renderModal()) }, t('panel.back')),
       ),
     );
@@ -656,7 +717,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
             t('menu.continue'),
             h('small', {}, t('menu.continueHint', { date: fmt(backup.savedAt) })),
           ),
-        h('button', { class: `btn ${backup ? '' : 'primary'}`, onclick: () => ((choosingNew = true), renderModal()) }, t('menu.newGame')),
+        h('button', { class: `btn ${backup ? '' : 'primary'}`, onclick: () => ((choosingNew = true), resetQuiz(), renderModal()) }, t('menu.newGame')),
         h('button', { class: 'btn', onclick: () => void loadFlow(true) }, t('menu.load')),
       ),
       h('p', { class: 'howto' }, t('menu.howTo')),
@@ -665,6 +726,15 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   }
 
   function confirmNewView(): HTMLElement {
+    if (quizStep > 0) {
+      return questionView(() => {
+        confirmingNew = false;
+        newGame();
+        queue.length = 0;
+        closeModal();
+        setSpeed(1);
+      });
+    }
     return h(
       'div',
       { class: 'sheet' },
@@ -677,13 +747,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
         { class: 'stack' },
         h('button', {
           class: 'btn primary',
-          onclick: () => {
-            confirmingNew = false;
-            newGame();
-            queue.length = 0;
-            closeModal();
-            setSpeed(1);
-          },
+          onclick: () => ((quizStep = 1), renderModal()),
         }, t('menu.confirmYes')),
         h('button', { class: 'btn', onclick: () => ((confirmingNew = false), renderModal()) }, t('menu.cancel')),
       ),
@@ -706,7 +770,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
           h('button', { class: 'btn', onclick: () => void saveFlow(false) }, t('menu.save')),
           supportsFilePicker() && hasLinkedFile() && h('button', { class: 'btn', onclick: () => void saveFlow(true) }, t('menu.saveAs')),
           h('button', { class: 'btn', onclick: () => void loadFlow(false) }, t('menu.load')),
-          h('button', { class: 'btn danger', onclick: () => ((confirmingNew = true), renderModal()) }, t('menu.newGame')),
+          h('button', { class: 'btn danger', onclick: () => ((confirmingNew = true), resetQuiz(), renderModal()) }, t('menu.newGame')),
           h(
             'button',
             {
@@ -976,7 +1040,9 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
 
   function newGame(): void {
     forgetLinkedFile();
-    sim.replaceState(createNewGame(undefined, pickedDifficulty));
+    const name = answers.name?.trim() || randomName();
+    const full = TRAITS.questions.every((q) => answers[q.id]);
+    sim.replaceState(createNewGame(undefined, pickedDifficulty, full ? ({ ...answers, name } as CharacterAnswers) : undefined));
   }
 
   async function saveFlow(saveAs: boolean): Promise<void> {

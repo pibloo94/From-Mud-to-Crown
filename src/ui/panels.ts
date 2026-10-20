@@ -667,7 +667,7 @@ export function modifierText(m: Modifier, day: number): { text: string; days: st
 }
 
 /** Relacion con un estamento: barra, tramo, lo que da ahora, como sube y quien es su rival. */
-function estateBar(s: GameState, e: EstateId): HTMLElement {
+export function estateBar(s: GameState, e: EstateId): HTMLElement {
   const value = s.rep[e];
   const tier = tierOf(value);
   const fx = Object.entries(tierEffects(s, e)).map(([k, v]) => t(`estateEffect.${k}`, { pct: pct(v ?? 1) }));

@@ -2763,6 +2763,107 @@ img[src^='assets/pixel/'] {
   opacity: 1;
 }
 
+/* ------------------------------------------------------------ personaje y rasgos */
+
+.trait-lines {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  font: 400 15px var(--font-body);
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: left;
+}
+
+.trait-lines li {
+  margin: 2px 0;
+}
+
+/* Sobre pergamino (ficha y opcion sin marcar): verde y rojo oscuros, sin sombra. */
+.trait-lines .good {
+  color: #2f5a1f;
+}
+
+.trait-lines .bad {
+  color: var(--blood);
+}
+
+.trait-option.ghost .trait-lines li,
+.trait-card .trait-lines li {
+  text-shadow: none;
+}
+
+/* Sobre el boton oscuro de la opcion marcada: claros para que se lean. */
+.trait-option.picked .trait-lines .good {
+  color: #b7dd8e;
+}
+
+.trait-option.picked .trait-lines .bad {
+  color: #f4a38f;
+}
+
+.trait-option {
+  align-items: stretch;
+  padding: 8px 12px;
+}
+
+.trait-option .difficulty-name {
+  justify-content: center;
+}
+
+.trait-card {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 8px;
+  border-top: 1px solid rgba(110, 80, 40, 0.3);
+}
+
+.trait-card .up-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.trait-card b {
+  font: 600 18px var(--font-caps);
+}
+
+.name-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 6px;
+  text-align: left;
+  font: 600 15px var(--font-caps);
+  color: var(--ink-soft);
+}
+
+.name-field input {
+  min-height: 44px;
+  padding: 6px 10px;
+  font: 400 18px var(--font-body);
+  color: var(--ink);
+  background: #efe2c2;
+  border: 2px solid var(--parch-3);
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.12);
+}
+
+.name-field input:focus {
+  outline: 2px solid var(--gold-2);
+  outline-offset: 1px;
+}
+
+.character-quiz > .btn {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.sheet.character .row-btns {
+  margin-top: 12px;
+}
+
 /* ------------------------------------------------------------ estamentos */
 
 .rep small {
