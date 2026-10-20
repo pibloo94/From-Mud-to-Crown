@@ -26,6 +26,11 @@ jobs:
           exit $status
       - name: Tests
         run: npm test
+      - name: Bot de equilibrio (partida corta)
+        run: npm run balance
+        env:
+          BALANCE_DAYS: 300
+          BALANCE_SEEDS: 1,2
       - name: Build
         run: npm run build
       - uses: actions/upload-artifact@v4
