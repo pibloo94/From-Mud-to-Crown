@@ -17,3 +17,8 @@ export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Attrs = 
 export function icon(name: string, cls = 'icon'): HTMLImageElement {
   return h('img', { class: cls, src: `assets/sprites/${name}.svg`, alt: '', draggable: 'false' });
 }
+
+/** Dibujo del mapa (pixel art) para usarlo como retrato en la interfaz. */
+export function artUrl(name: string): string {
+  return `assets/pixel/${name}.png`;
+}

@@ -2606,3 +2606,11 @@ button.level-box:hover .rank-text {
   background: rgba(60, 40, 20, 0.08);
   box-shadow: inset 0 0 0 1px var(--parch-3);
 }
+
+/* ============================================================ arte en pixel */
+
+/* Los retratos sacados del mapa son pixel art: se amplian sin suavizar. */
+img[src^='assets/pixel/'] {
+  image-rendering: pixelated;
+  object-fit: contain;
+}

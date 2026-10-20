@@ -14,7 +14,7 @@ import {
 } from '../sim/noble';
 import type { ProductId } from '../sim/types';
 import { t } from '../i18n/i18n';
-import { h, icon } from './dom';
+import { artUrl, h, icon } from './dom';
 import { buyMissingButton, materialChips, pct, tabs, type PanelCtx } from './panels';
 
 export type ManorTab = 'house' | 'fief' | 'host' | 'patronage';
@@ -32,7 +32,7 @@ function manorFx(up: ManorUpgradeDef): string {
 }
 
 function portrait(src: string, cls = ''): HTMLElement {
-  return h('img', { class: `workshop-portrait ${cls}`, src: `assets/sprites/${src}.svg`, alt: '' });
+  return h('img', { class: `workshop-portrait ${cls}`, src: artUrl(src), alt: '' });
 }
 
 // ---------------------------------------------------------------- casa
