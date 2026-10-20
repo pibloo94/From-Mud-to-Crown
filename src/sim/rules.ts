@@ -8,8 +8,9 @@ import { isReserved, nextToKeepClear } from './layout';
 import { priceOf, rollPrices } from './market';
 import { maybeTriggerEvent } from './events';
 import { buildingStat, storageFree, store } from './buildings';
-import { expireModifiers, multiplier } from './modifiers';
-import { carterSells, farmerPlots, feedVillagers, growthPerDay, hasHerder, herderBonus } from './villagers';
+import { expireModifiers, multiplier, nextSeasonStart } from './modifiers';
+import { carterSells, farmerPlots, feedVillagers, foodDays, growthPerDay, hasHerder, herderBonus } from './villagers';
+import { seasonForecast } from './forecast';
 import { isIdle } from './modifiers';
 import { buildableWorkshops, workshopAt, workshopsWork } from './workshops';
 import { caravansReturn } from './trade';
@@ -82,7 +83,14 @@ export function advanceDay(state: GameState): Notice[] {
   notices.push(...farmersWork(state));
   notices.push(...workshopsWork(state));
 
+  const foodBefore = foodDays(state);
   notices.push(...feedVillagers(state));
+  // Aviso de comida: cuando quedan pocos dias (solo al cruzar el umbral, no cada dia).
+  const foodAfter = foodDays(state);
+  const foodWarn = PROGRESSION.forecast.foodWarnDays;
+  if (state.villagers.length > 0 && foodBefore > foodWarn && foodAfter <= foodWarn) {
+    notices.push({ ok: false, msg: 'msg.foodLow', params: { days: foodAfter } });
+  }
 
   state.day++;
   const newSeason = dateFromDay(state.day).season;
@@ -92,6 +100,12 @@ export function advanceDay(state: GameState): Notice[] {
     notices.push({ ok: true, msg: `msg.season.${newSeason}` });
   } else if (state.day % PROGRESSION.priceDays === 0) {
     rollPrices(state);
+  }
+  // Aviso de cuentas: unos dias antes, si con lo que hay no llega.
+  const daysLeft = nextSeasonStart(state.day) - state.day;
+  if (PROGRESSION.forecast.warnDays.includes(daysLeft)) {
+    const f = seasonForecast(state);
+    if (f.short > 0) notices.push({ ok: false, msg: 'msg.ledgerShort', params: { days: daysLeft, short: f.short, total: f.total } });
   }
   notices.push(...caravansReturn(state));
   const sale = carterSells(state);

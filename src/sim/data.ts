@@ -114,6 +114,8 @@ export interface ProgressionDef {
   animalsForSale: Record<AnimalId, { price: number; unlock: Feature }>;
   events: { firstDay: number; minGap: number; dailyChance: number };
   priceDays: number;
+  /** Avisos del parte de la estacion: dias antes de las cuentas y dias de comida. */
+  forecast: { warnDays: number[]; foodWarnDays: number };
   taxes: {
     titheRate: number;
     tributeBase: number;

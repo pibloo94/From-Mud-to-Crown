@@ -55,6 +55,7 @@ export interface PanelCtx {
   openProgress: (tab?: ProgressTab) => void;
   openMarket: (tab?: 'sell' | 'buy') => void;
   openWorkshop: (id: WorkshopId) => void;
+  openLedger: () => void;
 }
 
 export const BUILDING_ICON: Record<BuildingId, string> = {
