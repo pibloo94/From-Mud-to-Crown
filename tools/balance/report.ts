@@ -45,6 +45,12 @@ export function formatReport(reports: BalanceReport[]): string {
   add('Aldeanos que se van sin cobrar', (r) => r.unpaidLeft);
   add('Estaciones sin mantenimiento', (r) => r.neglectedSeasons);
   add('Salarios y mantenimiento pagados', (r) => r.fixedCosts);
+  add('Estaciones con mal tiempo', (r) => r.badWeather);
+  add('Percances evitados con prevención', (r) => r.prevented);
+  add('Mayor deuda con el señor', (r) => r.maxDebt);
+  add('Tierras embargadas', (r) => r.seizures);
+  add('Avisos de perder el rango', (r) => r.rankWarnings);
+  add('Rangos perdidos', (r) => r.ranksLost);
   add('Cosechas con el granero lleno', (r) => r.granaryFull);
   add('Caravanas', (r) => r.caravans);
   add('Ganado con caravanas', (r) => r.caravanEarnings);

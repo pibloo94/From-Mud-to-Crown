@@ -99,7 +99,7 @@ export function advanceDay(state: GameState): Notice[] {
   expireModifiers(state);
   if (state.marketBoost && state.day >= state.marketBoost.untilDay) state.marketBoost = null;
   notices.push(...checkRank(state));
-  maybeTriggerEvent(state);
+  maybeTriggerEvent(state, notices);
   return notices;
 }
 

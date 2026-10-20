@@ -5,6 +5,7 @@ import { DAYS_PER_SEASON } from './calendar';
 import { clampRep } from './villagers';
 import { claimRenown } from './progress';
 import { payUpkeep } from './upkeep';
+import { chargeDebt, checkRankKeep, rollWeather, seasonNow, seizeForDebt } from './risk';
 import { manorStat, nobleSeasonBill, nobleSeasonEffects, amountsList, liegeOf } from './noble';
 import type { GameState, Notice } from './types';
 
@@ -58,11 +59,16 @@ export function settleSeason(state: GameState, endedSeason: string): Notice {
   const noble = nobleSeasonBill(state);
   state.coins += bill.rent + bill.dues;
   nobleSeasonEffects(state, noble);
+  // Lo que se debia de antes crece y se paga primero (ver risk.ts).
+  const debt = chargeDebt(state);
   const due = bill.tithe + bill.tribute;
   const paid = Math.min(due, state.coins);
   state.coins -= paid;
   const unpaid = due - paid;
-  if (unpaid > 0) state.rep.baron = clampRep(state.rep.baron + PROGRESSION.taxes.unpaidBaron);
+  if (unpaid > 0) {
+    state.rep.baron = clampRep(state.rep.baron + PROGRESSION.taxes.unpaidBaron);
+    state.debt += unpaid;
+  }
   // Soldada: los soldados que no cobran se marchan.
   const wage = Math.min(bill.upkeep, state.coins);
   state.coins -= wage;
@@ -74,6 +80,10 @@ export function settleSeason(state: GameState, endedSeason: string): Notice {
   state.stats.seasonEarned = 0;
   state.stats.seasonFood = 0;
   const renown = claimRenown(state);
+  // Riesgo: embargo si la deuda pasa del limite, aviso o perdida de rango, y tiempo de la estacion.
+  const seized = seizeForDebt(state);
+  const keep = checkRankKeep(state);
+  const weather = rollWeather(state, seasonNow(state));
   return {
     ok: unpaid === 0,
     msg: 'report.season',
@@ -99,6 +109,15 @@ export function settleSeason(state: GameState, endedSeason: string): Notice {
       wagesLeft: fixed.left.length,
       wagesLeftNames: fixed.left.join(', '),
       neglected: fixed.neglected ? 1 : 0,
+      debtInterest: debt.interest,
+      debtPaid: debt.paid,
+      debt: state.debt,
+      seizeDebt: PROGRESSION.taxes.seizeDebt,
+      seized: seized ?? '',
+      rankWarning: keep.warning ? 1 : 0,
+      rankLost: keep.lost ?? '',
+      rank: state.rank,
+      weather: `${seasonNow(state)}.${weather}`,
     },
   };
 }

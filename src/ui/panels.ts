@@ -658,7 +658,9 @@ function toolsTab(ctx: PanelCtx): HTMLElement {
 }
 
 export function modifierText(m: Modifier, day: number): { text: string; days: string } {
-  const text = t(`modifier.${m.kind}`, { pct: pct(m.value) });
+  const effect = t(`modifier.${m.kind}`, { pct: pct(m.value) });
+  // El tiempo de la estacion lleva su nombre delante: «Verano seco: cultivos al 80 %».
+  const text = m.source.startsWith('weather:') ? `${t(`weather.${m.source.slice(8)}`)}: ${effect.toLowerCase()}` : effect;
   const left = m.untilDay - day;
   return { text, days: t('modifier.days', { n: left }) };
 }
@@ -778,11 +780,20 @@ export function scrollTreeToCurrent(root: HTMLElement): void {
 
 // ---------------------------------------------------------------- tarjetas de cuentas y rango
 
+/** Efectos del tiempo de la estacion, en la misma forma que las etiquetas de la barra. */
+function weatherEffects(key: string): string {
+  const [season, id] = key.split('.');
+  const w = PROGRESSION.weather[season as keyof typeof PROGRESSION.weather]?.find((o) => o.id === id);
+  if (!w) return '';
+  const parts = (['growth', 'animal', 'food'] as const).filter((k) => w[k] !== undefined && w[k] !== 1).map((k) => t(`modifier.${k}`, { pct: pct(w[k]!) }).toLowerCase());
+  return parts.length ? ` · ${parts.join(', ')}` : '';
+}
+
 export function seasonView(ctx: PanelCtx, params: Record<string, string | number>): HTMLElement {
   const n = (k: string) => Number(params[k] ?? 0);
   const row = (label: string, value: string, cls = '') => h('div', { class: `acct-row ${cls}` }, h('span', {}, label), h('b', {}, value));
   const coins = (v: number, sign: string) => (v ? `${sign}${v}` : '0');
-  const balance = n('rent') + n('dues') - n('tithe') - n('tribute') - n('upkeep') - n('wages') - n('maintenance');
+  const balance = n('rent') + n('dues') - n('tithe') - n('tribute') - n('upkeep') - n('wages') - n('maintenance') - n('debtPaid');
   const liege = String(params.liege ?? 'baron');
   const mult = n('tributeMult');
   return h(
@@ -801,6 +812,7 @@ export function seasonView(ctx: PanelCtx, params: Record<string, string | number
       n('upkeep') > 0 && row(t('seasonCard.upkeep'), coins(n('upkeep'), '−')),
       n('wages') > 0 && row(t('seasonCard.wages'), coins(n('wages'), '−')),
       n('maintenance') > 0 && row(t('seasonCard.maintenance'), coins(n('maintenance'), '−')),
+      n('debtPaid') > 0 && row(t('seasonCard.debtPaid', { interest: n('debtInterest') }), coins(n('debtPaid'), '−')),
       n('renown') > 0 && row(t('seasonCard.renown', { n: n('renown') }), '', 'muted'),
       row(t('seasonCard.balance'), `${balance > 0 ? '+' : ''}${balance}`, 'total'),
       n('food') > 0 && row(t('seasonCard.food'), t('seasonCard.foodUnits', { n: n('food') }), 'muted'),
@@ -808,8 +820,13 @@ export function seasonView(ctx: PanelCtx, params: Record<string, string | number
     ),
     n('deserted') > 0 && h('p', { class: 'fair-banner' }, t('seasonCard.deserted', { n: n('deserted') })),
     n('grace') > 0 && h('p', { class: 'hint' }, t('seasonCard.grace')),
+    params.weather ? h('p', { class: 'hint season-weather' }, t('seasonCard.weather', { weather: String(params.weather) }), weatherEffects(String(params.weather))) : null,
     n('unpaid') > 0 && h('p', { class: 'fair-banner' }, t('seasonCard.unpaid', { n: n('unpaid'), liege })),
     n('wagesLeft') > 0 && h('p', { class: 'fair-banner' }, t('seasonCard.wagesLeft', { n: n('wagesLeft'), names: String(params.wagesLeftNames ?? '') })),
+    params.seized ? h('p', { class: 'fair-banner' }, t(`seasonCard.seized.${params.seized}`)) : null,
+    n('debt') > 0 && h('p', { class: 'fair-banner' }, t('seasonCard.debt', { n: n('debt'), limit: n('seizeDebt') })),
+    n('rankWarning') > 0 && h('p', { class: 'fair-banner' }, t('seasonCard.rankWarning')),
+    params.rankLost ? h('p', { class: 'fair-banner' }, t('seasonCard.rankLost', { lost: String(params.rankLost), rank: String(params.rank) })) : null,
     n('neglected') > 0 && h('p', { class: 'fair-banner' }, t('seasonCard.neglected', { pct: Math.round(PROGRESSION.upkeep.neglect.growth * 100) })),
     h('button', { class: 'btn primary', onclick: () => ctx.close() }, t('seasonCard.ok')),
   );

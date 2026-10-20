@@ -13,7 +13,7 @@ import tradeJson from '../data/trade.json';
 import nobilityJson from '../data/nobility.json';
 import tutorialJson from '../data/tutorial.json';
 import layoutJson from '../data/layout.json';
-import type { AnimalId, BuildingId, CropId, JobId, LiegeId, MaterialId, ModifierKind, ProductId, RankId, TileKind, WorkshopId } from './types';
+import type { AnimalId, BuildingId, CropId, JobId, LiegeId, MaterialId, ModifierKind, ProductId, ProtectionId, RankId, TileKind, WorkshopId } from './types';
 import type { Season } from './calendar';
 
 export interface ProductDef {
@@ -84,6 +84,11 @@ export interface RankDef {
   village?: number;
   /** Titulos de rama que pide (Artesano o Burgues). */
   branches?: number;
+  /**
+   * Lo que hay que mantener para conservar el rango (favor minimo). Si falla en unas cuentas llega
+   * un aviso; si sigue fallando en las siguientes, se baja al rango anterior.
+   */
+  keep?: { baron?: number; village?: number };
   /** Pide haber comprado la carta de nobleza. */
   charter?: boolean;
   /** Mejoras de la casa solariega que pide. */
@@ -119,11 +124,22 @@ export interface ProgressionDef {
     graceSeasons: number;
     /** El tributo crece con el rango: a mas tierra y nombre, mas pide el baron. */
     rankTribute: Record<RankId, number>;
+    /** Lo que no se paga queda como deuda y crece esto cada estacion. */
+    debtInterest: number;
+    /** Con esta deuda o mas, el baron embarga tierra para cobrarse. */
+    seizeDebt: number;
   };
   reputation: { start: number; highVillage: number };
   lands: { eastFrom: number; leaseBaseCost: number; leaseGrowth: number; rentPerSeason: number };
   /** Experiencia por encima del nivel maximo: cada `xpPerPoint` es un punto de renombre que da prestigio. */
   renown: { xpPerPoint: number; prestigePerPoint: number };
+  /** Tiempo de cada estacion: se sortea al empezarla y dura hasta las cuentas siguientes. */
+  weather: Record<Season, WeatherDef[]>;
+  /**
+   * Prevencion que se compra en el mercado y dura hasta las cuentas: libra de los percances de
+   * `prevents`. Cuesta `base` + `perUnit` por parcela (cultivos) o por animal (animales).
+   */
+  protection: Record<ProtectionId, { base: number; perUnit: number; prevents: string[] }>;
   /**
    * Mantenimiento por estacion: cada mejora de edificio, cada taller y sus mejoras, carretas, puesto y
    * obras de la casa solariega. Si no se paga, `neglect` baja cultivos y animales durante `days` dias.
@@ -137,6 +153,15 @@ export interface ProgressionDef {
     perManorLevel: number;
     neglect: { days: number; growth: number; animal: number };
   };
+}
+
+export interface WeatherDef {
+  id: string;
+  weight: number;
+  /** Multiplicadores de la estacion (crecimiento, animales y comida de los aldeanos). */
+  growth?: number;
+  animal?: number;
+  food?: number;
 }
 
 /** Efectos que suma cada mejora de edificio. */

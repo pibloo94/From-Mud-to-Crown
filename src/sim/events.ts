@@ -17,7 +17,8 @@ import { priceOf } from './market';
 import { addModifier } from './modifiers';
 import { buildingStat, store } from './buildings';
 import { addVillager, clampRep, freeBeds } from './villagers';
-import type { AnimalId, CommandResult, GameState, MaterialId, ProductId, RankId, WorkshopId } from './types';
+import { preventedBy } from './risk';
+import type { AnimalId, CommandResult, GameState, MaterialId, Notice, ProductId, RankId, WorkshopId } from './types';
 import { delayCaravans } from './trade';
 import { hasRank, mainRanks } from './progress';
 
@@ -96,13 +97,21 @@ function aboveRank(state: GameState, rank: RankId): boolean {
 }
 
 /** Tirada diaria: puede dejar un evento pendiente. Devuelve su id si aparece. */
-export function maybeTriggerEvent(state: GameState): string | null {
+export function maybeTriggerEvent(state: GameState, notices?: Notice[]): string | null {
   const cfg = PROGRESSION.events;
   const ev = state.events;
   if (ev.pending || state.day < cfg.firstDay || state.day - ev.lastDay < cfg.minGap) return null;
   if (random(state) >= cfg.dailyChance) return null;
   const id = weightedPick(state, eligibleEvents(state).map((e) => ({ id: e, weight: EVENTS[e].weight })));
   if (!id) return null;
+  // Con la prevencion comprada, el percance no llega: cuenta como pasado y se avisa.
+  const kind = preventedBy(state, id);
+  if (kind) {
+    state.events.lastDay = state.day;
+    state.events.cooldowns[id] = state.day + EVENTS[id].cooldownDays;
+    notices?.push({ ok: true, msg: 'msg.prevented', params: { protection: kind, eventTitle: id } });
+    return null;
+  }
   startEvent(state, id);
   return id;
 }

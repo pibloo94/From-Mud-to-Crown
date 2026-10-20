@@ -95,6 +95,32 @@
     "xpPerPoint": 1000,
     "prestigePerPoint": 10
   },
+  "weather": {
+    "spring": [
+      { "id": "fair", "weight": 2, "growth": 1.15 },
+      { "id": "normal", "weight": 6 },
+      { "id": "wet", "weight": 2, "growth": 0.85 }
+    ],
+    "summer": [
+      { "id": "fair", "weight": 2, "growth": 1.15 },
+      { "id": "normal", "weight": 5 },
+      { "id": "dry", "weight": 3, "growth": 0.8 }
+    ],
+    "autumn": [
+      { "id": "fair", "weight": 2, "growth": 1.1 },
+      { "id": "normal", "weight": 6 },
+      { "id": "blight", "weight": 2, "growth": 0.85, "animal": 0.9 }
+    ],
+    "winter": [
+      { "id": "mild", "weight": 3, "food": 0.9 },
+      { "id": "normal", "weight": 4 },
+      { "id": "harsh", "weight": 3, "food": 1.5, "animal": 0.8 }
+    ]
+  },
+  "protection": {
+    "crops": { "base": 30, "perUnit": 3, "prevents": ["pests", "drought"] },
+    "animals": { "base": 30, "perUnit": 2, "prevents": ["fox", "foxDen", "sickCow"] }
+  },
   "upkeep": {
     "perBuildingLevel": 10,
     "workshop": 60,
@@ -117,7 +143,8 @@
       "id": "landowner",
       "level": 8,
       "days": 240,
-      "baron": 60
+      "baron": 60,
+      "keep": { "baron": 40 }
     },
     {
       "id": "lord",
@@ -126,7 +153,8 @@
       "baron": 70,
       "village": 60,
       "branches": 1,
-      "charter": true
+      "charter": true,
+      "keep": { "baron": 45, "village": 30 }
     },
     {
       "id": "baron",
@@ -135,7 +163,8 @@
       "manor": 3,
       "hamlets": 3,
       "soldiers": 6,
-      "prestige": 800
+      "prestige": 800,
+      "keep": { "baron": 50 }
     },
     {
       "id": "count",
@@ -145,7 +174,8 @@
       "hamletLevels": 9,
       "soldiers": 10,
       "prestige": 3000,
-      "baron": 80
+      "baron": 80,
+      "keep": { "baron": 55 }
     },
     {
       "id": "artisan",
@@ -190,6 +220,8 @@
     "lowBaronMult": 1.25,
     "unpaidBaron": -10,
     "graceSeasons": 1,
+    "debtInterest": 0.1,
+    "seizeDebt": 400,
     "rankTribute": {
       "peasant": 1,
       "freeFarmer": 1.5,

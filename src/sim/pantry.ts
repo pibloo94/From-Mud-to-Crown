@@ -2,6 +2,7 @@
 import { PRODUCT_IDS, VILLAGERS } from './data';
 import { buildingStat } from './buildings';
 import { priceOf } from './market';
+import { multiplier } from './modifiers';
 import type { CommandResult, GameState, Pantry, ProductId } from './types';
 
 export function defaultPantry(): Pantry {
@@ -13,7 +14,8 @@ export function defaultPantry(): Pantry {
 /** Racion diaria total de todos los aldeanos, con el ahorro de la casa. */
 export function dailyFood(state: GameState): number {
   const saving = Math.min(0.8, buildingStat(state, 'house', 'foodSaving'));
-  return state.villagers.length * VILLAGERS.foodPerDay * (1 - saving);
+  // El invierno duro hace comer mas (y uno suave, algo menos).
+  return state.villagers.length * VILLAGERS.foodPerDay * (1 - saving) * multiplier(state, 'food');
 }
 
 /** Productos que se pueden comer, del mas barato al mas caro: se come primero lo que menos vale. */
