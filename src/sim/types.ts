@@ -137,6 +137,9 @@ export interface Pantry {
 
 export type ModifierKind = 'tribute' | 'growth' | 'animal' | 'toolDiscount' | 'idle' | 'priceAll' | 'food';
 
+/** Dificultad elegida al crear la partida. */
+export type Difficulty = 'easy' | 'normal' | 'hard';
+
 /** Prevencion que se compra en el mercado contra los percances. */
 export type ProtectionId = 'crops' | 'animals';
 
@@ -202,6 +205,8 @@ export interface GameState {
   weather: string;
   /** En las ultimas cuentas no se cumplia lo que pide el rango: si se repite, se pierde. */
   rankWarning: boolean;
+  /** Dificultad elegida al crear la partida (no cambia despues). */
+  difficulty: Difficulty;
   /** Mejoras compradas de cada edificio (se compran en orden). */
   buildings: Record<BuildingId, number>;
   villagers: Villager[];

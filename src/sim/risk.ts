@@ -2,11 +2,12 @@
 // el senor (que acaba en embargo de tierras) y perder el rango si no se mantiene el favor.
 // Todo se resuelve en las cuentas de la estacion (taxes.ts), salvo comprar prevencion.
 import { DAYS_PER_SEASON, dateFromDay, type Season } from './calendar';
-import { PROGRESSION, START } from './data';
+import { PROGRESSION, START, type WeatherDef } from './data';
 import { addModifier, nextSeasonStart } from './modifiers';
 import { mainRanks, rankDef } from './progress';
 import { weightedPick } from './random';
 import { plotKey, tileAt } from './state';
+import { difficulty } from './difficulty';
 import type { CommandResult, GameState, ProtectionId, RankId } from './types';
 
 // ------------------------------------------------------------------ tiempo de la estacion
@@ -14,7 +15,9 @@ import type { CommandResult, GameState, ProtectionId, RankId } from './types';
 /** Sortea el tiempo de la estacion que empieza y lo deja puesto hasta las cuentas siguientes. */
 export function rollWeather(state: GameState, season: Season): string {
   const options = PROGRESSION.weather[season];
-  const id = weightedPick(state, options) ?? 'normal';
+  // La dificultad hace mas o menos probables las estaciones malas.
+  const bad = difficulty(state).badWeather;
+  const id = weightedPick(state, options.map((o) => ({ id: o.id, weight: o.weight * (isBadWeather(o) ? bad : 1) }))) ?? 'normal';
   const w = options.find((o) => o.id === id)!;
   state.weather = id;
   const source = `weather:${season}.${id}`;
@@ -24,6 +27,9 @@ export function rollWeather(state: GameState, season: Season): string {
   }
   return id;
 }
+
+/** Mal tiempo: baja cultivos o animales, o hace comer mas. */
+export const isBadWeather = (w: WeatherDef): boolean => (w.growth ?? 1) < 1 || (w.animal ?? 1) < 1 || (w.food ?? 1) > 1;
 
 // ------------------------------------------------------------------ prevencion
 
@@ -86,9 +92,12 @@ function startPlots(): Set<string> {
   return out;
 }
 
+/** Deuda a partir de la que se embarga (segun la dificultad). */
+export const seizeLimit = (state: GameState): number => Math.round(PROGRESSION.taxes.seizeDebt * difficulty(state).seizeDebt);
+
 /** Si la deuda pasa del limite, el senor se cobra en tierra: primero arriendos, luego parcelas. */
 export function seizeForDebt(state: GameState): DebtResult['seized'] {
-  if (state.debt < PROGRESSION.taxes.seizeDebt) return null;
+  if (state.debt < seizeLimit(state)) return null;
   const tenant = state.map.tiles.find((t) => t.kind === 'tenant');
   if (tenant) {
     tenant.kind = 'grass';

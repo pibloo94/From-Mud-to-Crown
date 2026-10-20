@@ -68,7 +68,7 @@ describe('gastos fijos', () => {
     const s = farm();
     const village = s.rep.village;
     const [first, second, last] = s.villagers;
-    s.coins = wageOf(first) + wageOf(second);
+    s.coins = wageOf(s, first) + wageOf(s, second);
     const out = payUpkeep(s, false);
     expect(out.left).toEqual([last.name]);
     expect(s.villagers.map((v) => v.id)).toEqual([first.id, second.id]);

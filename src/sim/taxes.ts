@@ -5,8 +5,9 @@ import { DAYS_PER_SEASON } from './calendar';
 import { clampRep } from './villagers';
 import { claimRenown } from './progress';
 import { payUpkeep } from './upkeep';
-import { chargeDebt, checkRankKeep, rollWeather, seasonNow, seizeForDebt } from './risk';
+import { chargeDebt, checkRankKeep, rollWeather, seasonNow, seizeForDebt, seizeLimit } from './risk';
 import { manorStat, nobleSeasonBill, nobleSeasonEffects, amountsList, liegeOf } from './noble';
+import { difficulty } from './difficulty';
 import type { GameState, Notice } from './types';
 
 export interface SeasonBill {
@@ -43,8 +44,8 @@ export function seasonBill(state: GameState): SeasonBill {
   return {
     grace,
     earned: state.stats.seasonEarned,
-    tithe: grace ? 0 : Math.round(state.stats.seasonEarned * t.titheRate * manorStat(state, 'titheMult')),
-    tribute: grace ? 0 : Math.round(base * tributeMult),
+    tithe: grace ? 0 : Math.round(state.stats.seasonEarned * t.titheRate * manorStat(state, 'titheMult') * difficulty(state).taxes),
+    tribute: grace ? 0 : Math.round(base * tributeMult * difficulty(state).taxes),
     tributeMult,
     rent: state.leases * PROGRESSION.lands.rentPerSeason,
     dues: nobleSeasonBill(state).dues,
@@ -112,7 +113,7 @@ export function settleSeason(state: GameState, endedSeason: string): Notice {
       debtInterest: debt.interest,
       debtPaid: debt.paid,
       debt: state.debt,
-      seizeDebt: PROGRESSION.taxes.seizeDebt,
+      seizeDebt: seizeLimit(state),
       seized: seized ?? '',
       rankWarning: keep.warning ? 1 : 0,
       rankLost: keep.lost ?? '',

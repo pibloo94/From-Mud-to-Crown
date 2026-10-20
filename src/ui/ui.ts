@@ -23,7 +23,7 @@ import {
   type ProgressTab,
 } from './panels';
 import { optionAvailable } from '../sim/events';
-import type { BuildingId, CommandResult, CropId, RankId, Speed, WorkshopId } from '../sim/types';
+import type { BuildingId, CommandResult, CropId, Difficulty, RankId, Speed, WorkshopId } from '../sim/types';
 import { getLang, onLangChange, setLang, t, type Lang } from '../i18n/i18n';
 import { autosave, forgetLinkedFile, hasLinkedFile, loadGameFromFile, readBackup, saveGame, supportsFilePicker } from '../save/storage';
 import { SaveError } from '../save/serialize';
@@ -40,6 +40,7 @@ import { isNoble, liegeOf } from '../sim/noble';
 
 const AUTOSAVE_EVERY_DAYS = 3;
 const SPEEDS: Speed[] = [0, 1, 2, 3];
+const DIFFICULTIES: Difficulty[] = ['easy', 'normal', 'hard'];
 
 export interface UI {
   getInsets: () => Insets;
@@ -77,6 +78,10 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   let modal: Modal | null = { kind: 'start' };
   let speedBeforeModal: Speed = 0;
   let confirmingNew = false;
+  /** Pantalla de inicio: eligiendo dificultad para una partida nueva. */
+  let choosingNew = false;
+  /** Dificultad marcada para la proxima partida nueva. */
+  let pickedDifficulty: Difficulty = 'normal';
   const queue: Modal[] = [];
 
   // ---------------------------------------------------------------- barra superior
@@ -540,7 +545,45 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     return h('div', { class: 'lang', role: 'group', 'aria-label': t('menu.language') }, btn('es', 'ES'), btn('en', 'EN'));
   }
 
+  /** Las tres dificultades como botones; la marcada, llena y con marca. Cada una dice en que cambia. */
+  function difficultyPicker(): HTMLElement {
+    return h(
+      'div',
+      { class: 'stack difficulty-list', role: 'radiogroup', 'aria-label': t('difficulty.title') },
+      ...DIFFICULTIES.map((d) =>
+        h(
+          'button',
+          {
+            class: `btn difficulty-option ${pickedDifficulty === d ? 'picked' : 'ghost'}`,
+            role: 'radio',
+            'aria-checked': String(pickedDifficulty === d),
+            onclick: () => ((pickedDifficulty = d), renderModal()),
+          },
+          h('span', { class: 'difficulty-name' }, pickedDifficulty === d && icon('icon_check', 'icon tiny'), t(`difficulty.${d}`)),
+          h('small', {}, t(`difficulty.${d}.desc`)),
+        ),
+      ),
+    );
+  }
+
+  function newGameView(): HTMLElement {
+    return h(
+      'div',
+      { class: 'sheet start' },
+      h('h2', {}, t('menu.newGame')),
+      h('p', { class: 'howto' }, t('difficulty.pick')),
+      difficultyPicker(),
+      h(
+        'div',
+        { class: 'stack' },
+        h('button', { class: 'btn primary', onclick: () => ((choosingNew = false), startWith(() => newGame())) }, t('difficulty.start')),
+        h('button', { class: 'btn ghost', onclick: () => ((choosingNew = false), renderModal()) }, t('panel.back')),
+      ),
+    );
+  }
+
   function startView(): HTMLElement {
+    if (choosingNew) return newGameView();
     const backup = readBackup();
     const fmt = (d: Date) => d.toLocaleString(getLang(), { dateStyle: 'medium', timeStyle: 'short' });
     return h(
@@ -559,7 +602,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
             t('menu.continue'),
             h('small', {}, t('menu.continueHint', { date: fmt(backup.savedAt) })),
           ),
-        h('button', { class: `btn ${backup ? '' : 'primary'}`, onclick: () => startWith(() => newGame()) }, t('menu.newGame')),
+        h('button', { class: `btn ${backup ? '' : 'primary'}`, onclick: () => ((choosingNew = true), renderModal()) }, t('menu.newGame')),
         h('button', { class: 'btn', onclick: () => void loadFlow(true) }, t('menu.load')),
       ),
       h('p', { class: 'howto' }, t('menu.howTo')),
@@ -573,6 +616,8 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       { class: 'sheet' },
       h('h2', {}, t('menu.newGame')),
       h('p', { class: 'howto' }, t('menu.confirmNew')),
+      h('h3', { class: 'market-section' }, t('difficulty.title')),
+      difficultyPicker(),
       h(
         'div',
         { class: 'stack' },
@@ -640,6 +685,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
         volumeRow(t('menu.fanfares'), fanfare.getVolume(), (v) => fanfare.setVolume(v), () => fanfare.play('level')),
         h('p', { class: 'hint' }, t(supportsFilePicker() ? 'menu.saveHintFile' : 'menu.saveHintDownload')),
         h('p', { class: 'howto' }, t('menu.howTo')),
+        h('p', { class: 'hint' }, t('menu.difficulty', { difficulty: sim.state.difficulty ?? 'normal' })),
         h('p', { class: 'hint keys' }, t('menu.keys')),
         langSwitch(),
       ),
@@ -877,7 +923,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
 
   function newGame(): void {
     forgetLinkedFile();
-    sim.replaceState(createNewGame());
+    sim.replaceState(createNewGame(undefined, pickedDifficulty));
   }
 
   async function saveFlow(saveAs: boolean): Promise<void> {

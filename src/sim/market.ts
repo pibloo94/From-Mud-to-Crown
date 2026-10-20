@@ -3,6 +3,7 @@ import { PRODUCTS, PRODUCT_IDS, PROGRESSION, TRADE } from './data';
 import { dateFromDay } from './calendar';
 import { random } from './random';
 import { multiplier } from './modifiers';
+import { difficulty } from './difficulty';
 import type { GameState, ProductId } from './types';
 
 /** Recalcula la variacion aleatoria de cada producto (se llama cada semana y al cambiar de estacion). */
@@ -21,7 +22,7 @@ export function priceOf(state: GameState, p: ProductId): number {
   const guild = def.artisan && state.titles?.includes('artisan') ? PROGRESSION.artisanPriceBonus : 1;
   // Puesto propio en el mercado: se vende sin intermediarios.
   const stall = state.stall ? TRADE.stall.priceBonus : 1;
-  return Math.max(1, Math.round(def.price * def.season[season] * (state.priceMult[p] ?? 1) * boost * guild * stall));
+  return Math.max(1, Math.round(def.price * def.season[season] * (state.priceMult[p] ?? 1) * boost * guild * stall * difficulty(state).prices));
 }
 
 /** -1 por debajo del precio base, 0 parecido, 1 por encima. */

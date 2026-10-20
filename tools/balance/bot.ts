@@ -18,11 +18,12 @@ import * as N from '../../src/sim/noble';
 import { seasonBill } from '../../src/sim/taxes';
 import { upkeepBill } from '../../src/sim/upkeep';
 import { isProtected, protectionCost } from '../../src/sim/risk';
-import type { CropId, GameState, JobId, MaterialId, ProductId } from '../../src/sim/types';
+import type { CropId, Difficulty, GameState, JobId, MaterialId, ProductId } from '../../src/sim/types';
 
 /** Lo que mide una partida del bot. Los dias son dias de juego (10 s reales a velocidad x1). */
 export interface BalanceReport {
   seed: number;
+  difficulty: Difficulty;
   days: number;
   /** Dia en que se llega a cada nivel (2..20). */
   levelDay: Record<number, number>;
@@ -95,11 +96,12 @@ function seasonReserve(s: GameState): number {
   return bill.tribute + Math.round(bill.tithe * 1.2) + bill.upkeep + fixed.wages + fixed.maintenance;
 }
 
-export function simulate(seed: number, days: number): BalanceReport {
-  const game = new Game(createNewGame(seed));
+export function simulate(seed: number, days: number, level: Difficulty = 'normal'): BalanceReport {
+  const game = new Game(createNewGame(seed, level));
   const s = (): GameState => game.state;
   const report: BalanceReport = {
     seed,
+    difficulty: level,
     days,
     levelDay: {},
     rankDay: {},

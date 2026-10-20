@@ -2602,3 +2602,38 @@ img[src^='assets/pixel/'] {
   align-items: center;
   justify-content: center;
 }
+
+/* ------------------------------------------------------------ dificultad al empezar */
+
+.difficulty-list {
+  margin: 4px 0 12px;
+}
+
+.difficulty-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: 56px;
+  text-transform: none;
+}
+
+.difficulty-option .difficulty-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+}
+
+.difficulty-option small {
+  font: 400 12px var(--font-body);
+  letter-spacing: 0;
+  opacity: 0.85;
+}
+
+
+/* Sobre el boton claro (sin marcar), la descripcion va en tinta, no en el dorado de los oscuros. */
+.difficulty-option.ghost small {
+  color: var(--ink-soft);
+  opacity: 1;
+}
