@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import { priceOf } from '../../src/sim/market';
 import { createNewGame, tileAt } from '../../src/sim/state';
 import { advanceDay, buyLand, collect, interact, lease, leaseCost, plant, sell } from '../../src/sim/rules';
 import { buildingStat, nextUpgrade, storageCapacity, upgradeBuilding, visualStage } from '../../src/sim/buildings';
 import {
   beds,
+  carterSells,
   dailyFood,
   dismissVillager,
   foodDays,
@@ -147,7 +149,30 @@ describe('aldeanos', () => {
     expect(toolCost(s, 2)).toBe(49);
     upgradeTool(s, id);
     upgradeTool(s, id);
+    // la herramienta del gremio llega en el nivel 17
+    expect(upgradeTool(s, id).msg).toBe('msg.upgradeLocked');
+    s.level = 17;
+    s.materials = { wood: 99, stone: 99, iron: 99 };
+    expect(upgradeTool(s, id)).toMatchObject({ ok: true, params: { tool: 'farmer.4' } });
     expect(upgradeTool(s, id).msg).toBe('msg.toolMaxed');
+  });
+
+  it('el carretero con la herramienta del gremio no vende por encima del precio de mercado', () => {
+    const s = withBeds(1);
+    hireVillager(s);
+    setJob(s, s.villagers[0].id, 'carter');
+    s.villagers[0].tool = 4;
+    s.herds.chicken.count = 0;
+    s.herds.cow.count = 0;
+    s.pantry.reserveDays = 0;
+    s.inventory.wheat = 20;
+    s.day = 7;
+    const coins = s.coins;
+    const price = priceOf(s, 'wheat');
+    expect(carterSells(s)).not.toBeNull();
+    const sold = 20 - s.inventory.wheat;
+    expect(sold).toBeGreaterThan(0);
+    expect(s.coins - coins).toBeLessThanOrEqual(sold * price);
   });
 
   it('comen de la cosecha cada dia, primero lo mas barato de la despensa', () => {

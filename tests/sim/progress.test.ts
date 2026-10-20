@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { createNewGame } from '../../src/sim/state';
-import { addXp, hasFeature, levelProgress, nextLevelXp, unlocksAt, updateRank } from '../../src/sim/progress';
+import { addXp, claimRenown, hasFeature, levelDef, levelProgress, nextLevelXp, renownProgress, unlocksAt, updateRank } from '../../src/sim/progress';
 import { priceOf, priceTrend, rollPrices } from '../../src/sim/market';
 import { eligibleEvents, maybeTriggerEvent, optionAvailable, resolveEvent, startEvent } from '../../src/sim/events';
 import { advanceDay } from '../../src/sim/rules';
 import { EVENTS, MAX_LEVEL, PRODUCTS, PRODUCT_IDS, PROGRESSION } from '../../src/sim/data';
 import { DAYS_PER_SEASON } from '../../src/sim/calendar';
-import { seasonBill } from '../../src/sim/taxes';
+import { seasonBill, settleSeason } from '../../src/sim/taxes';
 import { multiplier } from '../../src/sim/modifiers';
 
 describe('experiencia y niveles', () => {
@@ -22,7 +22,40 @@ describe('experiencia y niveles', () => {
     addXp(s, 1e9);
     expect(s.level).toBe(MAX_LEVEL);
     expect(nextLevelXp(s.level)).toBeNull();
-    expect(levelProgress(s)).toBe(1);
+  });
+
+  it('en el nivel maximo la barra mide el camino al siguiente punto de renombre', () => {
+    const s = createNewGame(1);
+    addXp(s, levelDef(MAX_LEVEL).xp + PROGRESSION.renown.xpPerPoint * 2 + PROGRESSION.renown.xpPerPoint / 4);
+    expect(renownProgress(s)).toEqual({ points: 2, xp: PROGRESSION.renown.xpPerPoint / 4 });
+    expect(levelProgress(s)).toBeCloseTo(0.25);
+  });
+
+  it('el renombre se cobra al cerrar la estacion, una sola vez por punto', () => {
+    const s = createNewGame(1);
+    s.events.lastDay = 1e9;
+    // antes del nivel maximo no hay renombre
+    addXp(s, levelDef(MAX_LEVEL).xp - 1);
+    expect(claimRenown(s)).toBe(0);
+    addXp(s, 1 + PROGRESSION.renown.xpPerPoint * 3);
+    const prestige = s.noble.prestige;
+    const card = settleSeason(s, 'spring');
+    expect(card.params?.renown).toBe(3 * PROGRESSION.renown.prestigePerPoint);
+    expect(s.noble.prestige).toBe(prestige + 3 * PROGRESSION.renown.prestigePerPoint);
+    expect(s.renown).toBe(3);
+    // la estacion siguiente, sin experiencia nueva, no se cobra otra vez
+    expect(settleSeason(s, 'summer').params?.renown).toBe(0);
+    addXp(s, PROGRESSION.renown.xpPerPoint);
+    expect(claimRenown(s)).toBe(PROGRESSION.renown.prestigePerPoint);
+  });
+
+  it('los niveles 17 a 20 abren algo', () => {
+    const anything = (L: number) => {
+      const u = unlocksAt(L);
+      return u.features.length + u.tools.length + u.workshopUpgrades.length + u.towns.length + u.carts + u.upgrades.length + (u.rank ? 1 : 0);
+    };
+    for (const L of [17, 18, 19, 20]) expect(anything(L), `nivel ${L}`).toBeGreaterThan(0);
+    expect(unlocksAt(20).features).toContain('renown');
   });
 
   it('los umbrales de experiencia crecen', () => {

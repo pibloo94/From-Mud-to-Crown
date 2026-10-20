@@ -57,7 +57,7 @@ export interface StartDef {
   map: { legend: Record<string, TileKind>; rows: string[] };
 }
 
-export type Feature = 'buyLand' | 'buyChicken' | 'buyCow';
+export type Feature = 'buyLand' | 'buyChicken' | 'buyCow' | 'renown';
 
 export interface LevelDef {
   xp: number;
@@ -122,6 +122,8 @@ export interface ProgressionDef {
   };
   reputation: { start: number; highVillage: number };
   lands: { eastFrom: number; leaseBaseCost: number; leaseGrowth: number; rentPerSeason: number };
+  /** Experiencia por encima del nivel maximo: cada `xpPerPoint` es un punto de renombre que da prestigio. */
+  renown: { xpPerPoint: number; prestigePerPoint: number };
 }
 
 /** Efectos que suma cada mejora de edificio. */
@@ -321,7 +323,8 @@ export interface VillagersDef {
     /** Parcelas que siembra y cosecha solo: `plots` + `plotsPerTool` por grado de herramienta. */
     farmer: { growthBonus: number; plots: number; plotsPerTool: number };
     herder: { animalBonus: number };
-    carter: { sellEvery: number; priceRate: number; priceRatePerTier: number };
+    /** El carretero vende a `priceRate` + `priceRatePerTier` por grado de herramienta, sin pasar de `priceRateMax`. */
+    carter: { sellEvery: number; priceRate: number; priceRatePerTier: number; priceRateMax: number };
     artisan: { perWorkshop: number };
   };
   tools: { efficiency: number[]; tiers: { cost: number; level: number; materials?: MaterialAmounts }[] };

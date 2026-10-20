@@ -48,8 +48,11 @@ describe('carretas y puesto', () => {
     expect(buyCart(s).msg).toBe('msg.upgradeLocked');
     s.level = 16;
     expect(buyCart(s).ok).toBe(true);
+    expect(buyCart(s).msg).toBe('msg.upgradeLocked');
+    s.level = 18;
+    expect(buyCart(s).ok).toBe(true);
     expect(buyCart(s).msg).toBe('msg.buildingMaxed');
-    expect(s.carts).toBe(2);
+    expect(s.carts).toBe(3);
   });
 
   it('una carreta cuesta monedas, madera y hierro', () => {

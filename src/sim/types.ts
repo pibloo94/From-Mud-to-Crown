@@ -189,6 +189,8 @@ export interface GameState {
   landBought: number;
   /** Parcelas arrendadas en las tierras del este. */
   leases: number;
+  /** Puntos de renombre ya cobrados (experiencia por encima del nivel maximo, ver progress.ts). */
+  renown: number;
   /** Mejoras compradas de cada edificio (se compran en orden). */
   buildings: Record<BuildingId, number>;
   villagers: Villager[];

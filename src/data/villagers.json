@@ -14,7 +14,8 @@
     "carter": {
       "sellEvery": 7,
       "priceRate": 0.75,
-      "priceRatePerTier": 0.08
+      "priceRatePerTier": 0.08,
+      "priceRateMax": 1
     },
     "artisan": {
       "perWorkshop": 1
@@ -25,7 +26,8 @@
       1,
       1.5,
       2,
-      2.6
+      2.6,
+      3.3
     ],
     "tiers": [
       {
@@ -47,6 +49,14 @@
         "level": 8,
         "materials": {
           "iron": 4
+        }
+      },
+      {
+        "cost": 450,
+        "level": 17,
+        "materials": {
+          "iron": 8,
+          "wood": 6
         }
       }
     ]

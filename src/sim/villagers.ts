@@ -174,7 +174,7 @@ export function carterSells(state: GameState): Notice | null {
   const cfg = VILLAGERS.jobs.carter;
   if (state.day % cfg.sellEvery !== 0) return null;
   const bestTier = Math.max(...carters.map((c) => c.tool));
-  const rate = cfg.priceRate + cfg.priceRatePerTier * bestTier;
+  const rate = Math.min(cfg.priceRateMax, cfg.priceRate + cfg.priceRatePerTier * bestTier);
   let coins = 0;
   let units = 0;
   // Se calcula antes de vender: la reserva de la despensa no se toca.

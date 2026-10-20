@@ -87,9 +87,14 @@
     },
     {
       "xp": 31200,
-      "maxPlots": 28
+      "maxPlots": 28,
+      "unlocks": ["renown"]
     }
   ],
+  "renown": {
+    "xpPerPoint": 1000,
+    "prestigePerPoint": 10
+  },
   "ranks": [
     {
       "id": "peasant",

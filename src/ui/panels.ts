@@ -21,6 +21,7 @@ import {
   WORKSHOPS,
   WORKSHOP_IDS,
   type BuildingStats,
+  type Feature,
   type MaterialAmounts,
   type RankDef,
   type UpgradeDef,
@@ -485,6 +486,11 @@ interface TreeItem {
   where?: string;
 }
 
+/** Texto de lo que abre un nivel (el renombre lleva sus cifras de los datos). */
+export function featureText(f: Feature): string {
+  return f === 'renown' ? t('levelup.unlock.renown', { xp: PROGRESSION.renown.xpPerPoint, prestige: PROGRESSION.renown.prestigePerPoint }) : t(`levelup.unlock.${f}`);
+}
+
 function levelItems(level: number): TreeItem[] {
   const u = unlocksAt(level);
   const items: TreeItem[] = [];
@@ -492,9 +498,9 @@ function levelItems(level: number): TreeItem[] {
   if (u.rank) items.push({ icon: 'icon_crown', text: t('levelup.rank', { rank: u.rank }) });
   for (const c of u.crops) items.push({ icon: PRODUCTS[CROPS[c].product].icon, text: t('levelup.unlock.crop', { name: t(`product.${CROPS[c].product}`) }), where: t('progress.where.plant') });
   for (const f of u.features) {
-    const where = f === 'buyLand' ? 'field' : 'market';
-    const ic = f === 'buyLand' ? 'icon_wheat' : f === 'buyChicken' ? 'icon_egg' : 'icon_milk';
-    items.push({ icon: ic, text: t(`levelup.unlock.${f}`), where: t(`progress.where.${where}`) });
+    const where = f === 'buyLand' ? 'field' : f === 'renown' ? 'season' : 'market';
+    const ic = f === 'buyLand' ? 'icon_wheat' : f === 'buyChicken' ? 'icon_egg' : f === 'renown' ? 'icon_prestige' : 'icon_milk';
+    items.push({ icon: ic, text: featureText(f), where: t(`progress.where.${where}`) });
   }
   if (u.maxPlots) items.push({ icon: 'icon_wheat', text: t('levelup.maxPlots', { max: u.maxPlots }), where: t('progress.where.field') });
   const withMats = (where: string, mats?: MaterialAmounts) => {
@@ -790,6 +796,7 @@ export function seasonView(ctx: PanelCtx, params: Record<string, string | number
       n('rent') > 0 && row(t('seasonCard.rent'), coins(n('rent'), '+')),
       n('dues') > 0 && row(t('seasonCard.dues'), coins(n('dues'), '+')),
       n('upkeep') > 0 && row(t('seasonCard.upkeep'), coins(n('upkeep'), '−')),
+      n('renown') > 0 && row(t('seasonCard.renown', { n: n('renown') }), '', 'muted'),
       row(t('seasonCard.balance'), `${balance > 0 ? '+' : ''}${balance}`, 'total'),
       n('food') > 0 && row(t('seasonCard.food'), t('seasonCard.foodUnits', { n: n('food') }), 'muted'),
       params.duesMats ? row(t('seasonCard.duesMats'), t('progress.needs', { list: String(params.duesMats) }), 'muted') : null,
