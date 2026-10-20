@@ -1,6 +1,7 @@
 // Ventanas de los talleres: elegir que levantar en un solar y el panel de cada taller.
 import { PRODUCTS, PRODUCT_IDS, WORKSHOPS, type WorkshopUpgradeDef } from '../sim/data';
 import { hasMaterials } from '../sim/materials';
+import { workshopUpkeep } from '../sim/upkeep';
 import {
   artisansOf,
   batchesPerDay,
@@ -135,6 +136,7 @@ export function workshopView(ctx: PanelCtx, id: WorkshopId): HTMLElement {
     h('p', { class: 'tagline' }, t(`workshop.${id}.desc`)),
     h('p', { class: 'panel-stats' }, recipeLine(id)),
     h('p', { class: 'panel-stats' }, t('workshop.stats', { batches: batchesPerDay(s, id), made: w.made })),
+    h('p', { class: 'panel-stats muted' }, t('panel.upkeep', { n: workshopUpkeep(s, id) })),
     h('p', { class: `ws-status ws-${status}` }, t(`workshop.status.${status}`)),
     h('h3', { class: 'market-section' }, t('workshop.artisan')),
     artisans.length

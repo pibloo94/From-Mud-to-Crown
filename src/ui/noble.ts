@@ -1,5 +1,5 @@
 // Ventana del feudo: casa solariega, aldeas vasallas, mesnada y mecenazgo.
-import { HAMLET_IDS, MATERIALS, NOBILITY, PATRONAGE_IDS, PRODUCTS, type ManorUpgradeDef, type PatronageDef } from '../sim/data';
+import { HAMLET_IDS, MATERIALS, NOBILITY, PATRONAGE_IDS, PRODUCTS, PROGRESSION, type ManorUpgradeDef, type PatronageDef } from '../sim/data';
 import { hasMaterials } from '../sim/materials';
 import {
   freeEscort,
@@ -226,6 +226,7 @@ export function manorView(ctx: PanelCtx, tab: ManorTab, focus: string | null, op
       h('b', {}, `${t('noble.prestige')} ${s.noble.prestige}`),
       h('small', {}, t('noble.prestigeHint')),
     ),
+    s.noble.manor > 0 && h('p', { class: 'panel-stats muted' }, t('panel.upkeep', { n: s.noble.manor * PROGRESSION.upkeep.perManorLevel })),
     tabs<ManorTab>(
       [
         { id: 'house', label: t('noble.tab.house'), icon: 'icon_manor' },

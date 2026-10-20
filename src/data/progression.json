@@ -95,6 +95,15 @@
     "xpPerPoint": 1000,
     "prestigePerPoint": 10
   },
+  "upkeep": {
+    "perBuildingLevel": 10,
+    "workshop": 60,
+    "perWorkshopUpgrade": 30,
+    "cart": 50,
+    "stall": 60,
+    "perManorLevel": 60,
+    "neglect": { "days": 30, "growth": 0.75, "animal": 0.75 }
+  },
   "ranks": [
     {
       "id": "peasant",

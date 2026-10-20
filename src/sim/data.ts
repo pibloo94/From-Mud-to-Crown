@@ -124,6 +124,19 @@ export interface ProgressionDef {
   lands: { eastFrom: number; leaseBaseCost: number; leaseGrowth: number; rentPerSeason: number };
   /** Experiencia por encima del nivel maximo: cada `xpPerPoint` es un punto de renombre que da prestigio. */
   renown: { xpPerPoint: number; prestigePerPoint: number };
+  /**
+   * Mantenimiento por estacion: cada mejora de edificio, cada taller y sus mejoras, carretas, puesto y
+   * obras de la casa solariega. Si no se paga, `neglect` baja cultivos y animales durante `days` dias.
+   */
+  upkeep: {
+    perBuildingLevel: number;
+    workshop: number;
+    perWorkshopUpgrade: number;
+    cart: number;
+    stall: number;
+    perManorLevel: number;
+    neglect: { days: number; growth: number; animal: number };
+  };
 }
 
 /** Efectos que suma cada mejora de edificio. */
@@ -328,6 +341,8 @@ export interface VillagersDef {
     artisan: { perWorkshop: number };
   };
   tools: { efficiency: number[]; tiers: { cost: number; level: number; materials?: MaterialAmounts }[] };
+  /** Salario por estacion de cada oficio (ademas de la comida). */
+  wages: Record<JobId, number>;
   names: string[];
 }
 

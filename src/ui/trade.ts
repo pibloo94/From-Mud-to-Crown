@@ -1,5 +1,5 @@
 // Pestaña Comercio del mercado: carretas, puesto propio y caravanas a otras villas.
-import { MATERIALS, MATERIAL_IDS, PRODUCTS, PRODUCT_IDS, TOWN_IDS, TRADE, type MaterialAmounts } from '../sim/data';
+import { MATERIALS, MATERIAL_IDS, PRODUCTS, PRODUCT_IDS, PROGRESSION, TOWN_IDS, TRADE, type MaterialAmounts } from '../sim/data';
 import { surplus } from '../sim/pantry';
 import { hasMaterials } from '../sim/materials';
 import {
@@ -59,7 +59,7 @@ function cartsSection(ctx: PanelCtx): HTMLElement {
       'div',
       { class: 'trade-head' },
       icon('icon_cart', 'icon big'),
-      h('div', { class: 'market-info' }, h('b', {}, t('trade.carts')), h('small', {}, t('trade.cartsInfo', { n: s.carts, max, free: idleCarts(s), cap: cartCapacity(s) }))),
+      h('div', { class: 'market-info' }, h('b', {}, t('trade.carts')), h('small', {}, t('trade.cartsInfo', { n: s.carts, max, free: idleCarts(s), cap: cartCapacity(s), upkeep: PROGRESSION.upkeep.cart }))),
       canMore
         ? h(
             'button',
