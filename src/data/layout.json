@@ -1,0 +1,5 @@
+{
+  "size": { "manor": 2 },
+  "annexes": { "market": { "stall": [-1, 0], "cart": [1, 0] } },
+  "keepClear": ["site", "workshop", "manor", "hamlet", "market", "pen", "coop"]
+}

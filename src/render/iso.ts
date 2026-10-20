@@ -22,6 +22,19 @@ export function toTile(wx: number, wy: number): { x: number; y: number } {
   return { x: Math.floor((a + b) / 2), y: Math.floor((b - a) / 2) };
 }
 
+/**
+ * Escala para que un dibujo no sea mas ancho que las casillas que ocupa su objeto (lado `n`).
+ * Asi nada invade la casilla de al lado. Los dibujos a medida tienen escala 1.
+ */
+export function fitScale(width: number, n = 1): number {
+  return Math.min(1, (n * TILE_W) / width);
+}
+
+/** Vertice inferior de un bloque de n x n casillas cuyo origen es (x, y): ahi se apoya su dibujo. */
+export function blockBase(x: number, y: number, n = 1): { sx: number; sy: number } {
+  return toScreen(x + n, y + n);
+}
+
 /** Orden de dibujo: lo que esta mas abajo en pantalla se dibuja encima. */
 export function depthOf(x: number, y: number, layer = 0): number {
   return 100 + (x + y) * 10 + layer;

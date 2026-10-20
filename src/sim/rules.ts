@@ -4,6 +4,7 @@ import { DAY_MS, dateFromDay } from './calendar';
 import { plotKey, tileAt } from './state';
 import { addXp, cropUnlocked, hasFeature, hasRank, levelDef, levelOnlyRank, rankDef, updateRank } from './progress';
 import { charterReady, expandFief, hamletAt, isFiefRow } from './noble';
+import { isReserved, nextToKeepClear } from './layout';
 import { priceOf, rollPrices } from './market';
 import { maybeTriggerEvent } from './events';
 import { buildingStat, storageFree, store } from './buildings';
@@ -241,6 +242,7 @@ const isEast = (x: number) => x >= PROGRESSION.lands.eastFrom;
 export function canExpandAt(state: GameState, x: number, y: number): boolean {
   const tile = tileAt(state, x, y);
   if (!tile || tile.kind !== 'grass' || isEast(x) || isFiefRow(y)) return false;
+  if (isReserved(state, x, y) || nextToKeepClear(state, x, y)) return false;
   return [
     [1, 0],
     [-1, 0],
@@ -283,7 +285,7 @@ export function leaseCost(state: GameState): number {
 }
 
 export function canLeaseAt(state: GameState, x: number, y: number): boolean {
-  return hasRank(state, 'landowner') && isEast(x) && !isFiefRow(y) && tileAt(state, x, y)?.kind === 'grass';
+  return hasRank(state, 'landowner') && isEast(x) && !isFiefRow(y) && tileAt(state, x, y)?.kind === 'grass' && !isReserved(state, x, y) && !nextToKeepClear(state, x, y);
 }
 
 export function lease(state: GameState, x: number, y: number): Outcome {

@@ -18,9 +18,11 @@ Convenciones:
 """
 from __future__ import annotations
 
+import json
 import math
 import os
 import random
+import re
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "public", "assets", "sprites")
 TW, TH = 128, 64
@@ -1627,9 +1629,16 @@ def main() -> None:
         "icon_charter.svg": icon_charter(),
         "icon_manor.svg": icon_manor(),
     }
+    manifest = {}
     for name, content in files.items():
         with open(os.path.join(OUT, name), "w", encoding="utf-8") as fh:
             fh.write(content)
+        m = re.search(r'width="([\d.]+)" height="([\d.]+)"', content)
+        manifest[name[:-4]] = [float(m.group(1)), float(m.group(2))]
+    # Tamano de cada dibujo: lo usan los tests para comprobar que nada se sale de sus casillas.
+    with open(os.path.join(OUT, "manifest.json"), "w", encoding="utf-8") as fh:
+        json.dump(dict(sorted(manifest.items())), fh, indent=1)
+        fh.write("\n")
     print(f"{len(files)} sprites escritos en {os.path.normpath(OUT)}")
 
 
