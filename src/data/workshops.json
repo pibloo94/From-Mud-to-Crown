@@ -37,6 +37,18 @@
         },
         "batches": 2,
         "title": "artisan"
+      },
+      {
+        "id": "waterWheel",
+        "cost": 1400,
+        "level": 18,
+        "materials": {
+          "wood": 50,
+          "stone": 30,
+          "iron": 10
+        },
+        "batches": 2,
+        "title": "artisan"
       }
     ]
   },
@@ -76,6 +88,17 @@
         "materials": {
           "stone": 30,
           "iron": 6
+        },
+        "batches": 2,
+        "title": "artisan"
+      },
+      {
+        "id": "royalOven",
+        "cost": 1600,
+        "level": 19,
+        "materials": {
+          "stone": 50,
+          "iron": 12
         },
         "batches": 2,
         "title": "artisan"
@@ -120,6 +143,18 @@
           "iron": 8
         },
         "batches": 1,
+        "title": "artisan"
+      },
+      {
+        "id": "agingCellar",
+        "cost": 1200,
+        "level": 17,
+        "materials": {
+          "stone": 40,
+          "wood": 20,
+          "iron": 6
+        },
+        "batches": 2,
         "title": "artisan"
       }
     ]

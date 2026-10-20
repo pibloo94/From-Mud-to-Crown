@@ -4,7 +4,8 @@ import { advanceDay, plant } from '../../src/sim/rules';
 import { deserialize, SAVE_VERSION, serialize } from '../../src/save/serialize';
 import { buildingStat, storageCapacity } from '../../src/sim/buildings';
 import { beds } from '../../src/sim/villagers';
-import { START } from '../../src/sim/data';
+import { MAX_LEVEL, PROGRESSION, START } from '../../src/sim/data';
+import { addXp, claimRenown, levelDef } from '../../src/sim/progress';
 import type { GameState } from '../../src/sim/types';
 
 describe('archivo de partida', () => {
@@ -124,3 +125,14 @@ function days(s: GameState, n: number) {
     s.events.pending = null;
   }
 }
+
+describe('partida version 10', () => {
+  it('cuenta el renombre ya acumulado sin cobrarlo de golpe', () => {
+    const s = createNewGame(5);
+    addXp(s, levelDef(MAX_LEVEL).xp + PROGRESSION.renown.xpPerPoint * 4 + 10);
+    delete (s as Partial<GameState>).renown;
+    const back = deserialize(JSON.stringify({ format: 'from-mud-to-crown-save', version: 10, savedAt: '2026-10-20T14:00:00Z', state: s }));
+    expect(back.renown).toBe(4);
+    expect(claimRenown(back)).toBe(0);
+  });
+});

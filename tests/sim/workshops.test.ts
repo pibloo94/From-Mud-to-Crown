@@ -112,6 +112,10 @@ describe('solares y talleres', () => {
     expect(upgradeWorkshop(s, 'mill').result.msg).toBe('msg.needsTitle');
     s.titles.push('artisan');
     expect(upgradeWorkshop(s, 'mill').result.ok).toBe(true);
+    // la rueda hidraulica llega en el nivel 18
+    expect(upgradeWorkshop(s, 'mill').result.msg).toBe('msg.upgradeLocked');
+    s.level = 18;
+    expect(upgradeWorkshop(s, 'mill').result.ok).toBe(true);
     expect(upgradeWorkshop(s, 'mill').result.msg).toBe('msg.buildingMaxed');
   });
 

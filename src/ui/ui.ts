@@ -4,7 +4,7 @@ import { createNewGame } from '../sim/state';
 import { CROPS, EVENTS, MATERIALS, MATERIAL_IDS, PRODUCTS, PRODUCT_IDS, PROGRESSION, WORKSHOPS, type EventOptionDef } from '../sim/data';
 import { builtWorkshops } from '../sim/workshops';
 import { dateFromDay } from '../sim/calendar';
-import { levelProgress, nextLevelXp, unlocksAt } from '../sim/progress';
+import { levelProgress, nextLevelXp, renownProgress, unlocksAt } from '../sim/progress';
 import { storageCapacity, storageUsed } from '../sim/buildings';
 import { beds, foodDays } from '../sim/villagers';
 import { activeModifiers } from '../sim/modifiers';
@@ -12,6 +12,7 @@ import { materialUnlocked } from '../sim/materials';
 import {
   buildingView,
   caravanView,
+  featureText,
   modifierText,
   progressView,
   rankView,
@@ -321,7 +322,9 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     levelBox.style.setProperty('--xp', `${Math.round(levelProgress(s) * 100)}%`);
     const next = nextLevelXp(s.level);
     const xp = Math.floor(s.xp);
-    xpText.textContent = next === null ? t('hud.xpMax', { xp }) : t('hud.xp', { xp, next });
+    const renown = renownProgress(s);
+    xpText.textContent =
+      next === null ? t('hud.renown', { n: renown.points, xp: renown.xp, next: PROGRESSION.renown.xpPerPoint }) : t('hud.xp', { xp, next });
     levelBox.title = `${t('hud.level', { n: s.level })} · ${rankText.textContent} · ${xpText.textContent}`;
 
     amounts.get('coins')!.textContent = String(s.coins);
@@ -744,7 +747,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     const items: string[] = [];
     if (u.rank) items.push(t('levelup.rank', { rank: u.rank }));
     for (const c of u.crops) items.push(t('levelup.unlock.crop', { name: t(`product.${CROPS[c].product}`) }));
-    for (const f of u.features) items.push(t(`levelup.unlock.${f}`));
+    for (const f of u.features) items.push(featureText(f));
     if (u.maxPlots) items.push(t('levelup.maxPlots', { max: u.maxPlots }));
     for (const up of u.upgrades) items.push(t('progress.unlock.upgrade', { building: up.building, upgrade: up.id, cost: up.cost }));
     for (const tl of u.tools) items.push(t('progress.unlock.tool', { tier: t(`tool.tier.${tl.tier}`), cost: tl.cost }));

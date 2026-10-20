@@ -11,10 +11,10 @@ export function nextLevelXp(level: number): number | null {
   return level >= MAX_LEVEL ? null : PROGRESSION.levels[level].xp;
 }
 
-/** Progreso dentro del nivel actual, de 0 a 1. */
+/** Progreso dentro del nivel actual, de 0 a 1. En el nivel maximo, hacia el siguiente punto de renombre. */
 export function levelProgress(state: GameState): number {
   const next = nextLevelXp(state.level);
-  if (next === null) return 1;
+  if (next === null) return renownProgress(state).xp / PROGRESSION.renown.xpPerPoint;
   const cur = levelDef(state.level).xp;
   return Math.min(1, Math.max(0, (state.xp - cur) / (next - cur)));
 }
@@ -31,6 +31,31 @@ export function addXp(state: GameState, amount: number): number[] {
     next = nextLevelXp(state.level);
   }
   return reached;
+}
+
+// ------------------------------------------------------------------ renombre
+
+/** Experiencia por encima del nivel maximo. */
+const spareXp = (state: GameState): number => (state.level >= MAX_LEVEL ? Math.max(0, state.xp - levelDef(MAX_LEVEL).xp) : 0);
+
+/** Puntos de renombre ganados (cobrados o no) y experiencia que llevas hacia el siguiente. */
+export function renownProgress(state: GameState): { points: number; xp: number } {
+  const per = PROGRESSION.renown.xpPerPoint;
+  const spare = spareXp(state);
+  return { points: Math.floor(spare / per), xp: Math.floor(spare % per) };
+}
+
+/**
+ * Cobra el renombre pendiente al cerrar la estacion: cada punto nuevo suma prestigio.
+ * Devuelve el prestigio ganado.
+ */
+export function claimRenown(state: GameState): number {
+  const { points } = renownProgress(state);
+  const fresh = Math.max(0, points - state.renown);
+  state.renown = Math.max(state.renown, points);
+  const prestige = fresh * PROGRESSION.renown.prestigePerPoint;
+  state.noble.prestige += prestige;
+  return prestige;
 }
 
 // ------------------------------------------------------------------ rangos

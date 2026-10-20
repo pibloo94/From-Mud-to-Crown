@@ -59,6 +59,7 @@ export function createNewGame(seed: number = newSeed()): GameState {
     tutorial: { step: TUTORIAL.steps[0].id, seen: [], tips: true },
     landBought: 0,
     leases: 0,
+    renown: 0,
     buildings,
     villagers: [],
     nextVillagerId: 1,

@@ -3,6 +3,7 @@ import { PROGRESSION } from './data';
 import { multiplier } from './modifiers';
 import { DAYS_PER_SEASON } from './calendar';
 import { clampRep } from './villagers';
+import { claimRenown } from './progress';
 import { manorStat, nobleSeasonBill, nobleSeasonEffects, amountsList, liegeOf } from './noble';
 import type { GameState, Notice } from './types';
 
@@ -69,6 +70,7 @@ export function settleSeason(state: GameState, endedSeason: string): Notice {
   state.noble.soldiers -= deserted;
   state.stats.seasonEarned = 0;
   state.stats.seasonFood = 0;
+  const renown = claimRenown(state);
   return {
     ok: unpaid === 0,
     msg: 'report.season',
@@ -88,6 +90,7 @@ export function settleSeason(state: GameState, endedSeason: string): Notice {
       food: bill.food,
       unpaid,
       grace: bill.grace ? 1 : 0,
+      renown,
     },
   };
 }

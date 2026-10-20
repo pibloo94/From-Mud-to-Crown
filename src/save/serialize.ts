@@ -8,9 +8,10 @@ import { addVillager, beds } from '../sim/villagers';
 import { defaultNoble } from '../sim/noble';
 import { finishedTutorial } from '../sim/tutorial';
 import { relayFief } from '../sim/layout';
+import { renownProgress } from '../sim/progress';
 
 export const SAVE_FORMAT = 'from-mud-to-crown-save';
-export const SAVE_VERSION = 10;
+export const SAVE_VERSION = 11;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;
@@ -97,6 +98,9 @@ export function migrate(state: Record<string, unknown>, from: number): GameState
     s = { ...s, map: { ...s.map, tiles: (s.map.tiles as Record<string, unknown>[]).map((t) => ({ ...t })) } };
     relayFief(s as GameState);
   }
+  // v10 -> v11: renombre por la experiencia por encima del nivel maximo. Lo ya acumulado no se
+  // cobra de golpe: se empieza a contar desde aqui.
+  if (from < 11) s = { ...s, renown: renownProgress(s as GameState).points };
   return s as GameState;
 }
 
