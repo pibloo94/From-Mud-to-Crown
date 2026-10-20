@@ -14,7 +14,7 @@ import {
 } from '../sim/noble';
 import type { ProductId } from '../sim/types';
 import { t } from '../i18n/i18n';
-import { h, icon } from './dom';
+import { artUrl, h, icon } from './dom';
 import { buyMissingButton, materialChips, pct, tabs, type PanelCtx } from './panels';
 
 export type ManorTab = 'house' | 'fief' | 'host' | 'patronage';
@@ -32,7 +32,7 @@ function manorFx(up: ManorUpgradeDef): string {
 }
 
 function portrait(src: string, cls = ''): HTMLElement {
-  return h('img', { class: `workshop-portrait ${cls}`, src: `assets/sprites/${src}.svg`, alt: '' });
+  return h('img', { class: `workshop-portrait ${cls}`, src: artUrl(src), alt: '' });
 }
 
 // ---------------------------------------------------------------- casa
@@ -50,7 +50,7 @@ function houseTab(ctx: PanelCtx): (HTMLElement | null)[] {
         const bought = i < s.noble.manor;
         const isNext = i === s.noble.manor;
         const action = bought
-          ? h('span', { class: 'up-check', 'aria-label': t('panel.bought') }, '✓')
+          ? h('span', { class: 'up-check', 'aria-label': t('panel.bought') }, icon('icon_check', 'icon tiny'))
           : isNext
             ? h(
                 'div',
@@ -118,7 +118,7 @@ function fiefTab(ctx: PanelCtx, focus: string | null): HTMLElement[] {
               ),
               buyMissingButton(ctx, next.materials, () => ctx.sim.buyMaterialsFor(next.materials)),
             )
-          : h('span', { class: 'up-check', 'aria-label': t('noble.hamlet.maxed') }, '✓'),
+          : h('span', { class: 'up-check', 'aria-label': t('noble.hamlet.maxed') }, icon('icon_check', 'icon tiny')),
       );
     }),
   ];
@@ -198,7 +198,7 @@ function patronageTab(ctx: PanelCtx): HTMLElement[] {
           costChips(ctx, def),
         ),
         done
-          ? h('span', { class: 'up-check', 'aria-label': t('noble.patronage.done') }, '✓')
+          ? h('span', { class: 'up-check', 'aria-label': t('noble.patronage.done') }, icon('icon_check', 'icon tiny'))
           : h(
               'div',
               { class: 'up-actions' },

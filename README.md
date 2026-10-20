@@ -6,7 +6,7 @@ Se juega en el navegador, en ordenador y en móvil, en español e inglés.
 
 ## Estado
 
-**Fase 3d · Tutorial y sonido.** Cierra la fase 3 (talleres, comercio y nobleza): tutorial guiado para empezar, consejos breves cuando se desbloquea algo y fanfarrias para nivel, rango, estación y eventos, con volumen por canal.
+**Arte en pixel art (estilo D: paleta limitada).** El mapa es una isla isométrica en pixel art de tonos apagados, con cada objeto dibujado a la medida de sus casillas, y la interfaz usa el mismo estilo: marcos de madera y pergamino, botones con relieve, iconos y sellos en píxel, y fuentes en píxel (Jacquard 24 y Pixelify Sans). Antes, la fase 3 completa: talleres, comercio, nobleza, tutorial y sonido.
 
 **Fase 2 · La aldea.** Sobre la progresión de la fase 1 se añaden aldeanos con oficio y herramientas, mejoras de cada edificio (casa, granero, gallinero y corral) que se ven en el mapa, un granero con capacidad limitada, reputación con el barón y la aldea, impuestos cada estación, 21 eventos (ofertas, obligaciones y percances), el rango de Terrateniente con las tierras del este y la pantalla de *Progreso*.
 
@@ -75,7 +75,8 @@ src/
   ui/        interfaz HTML encima del lienzo: barra superior, mercado, menús
   i18n/      textos en es.json y en.json
   save/      formato del archivo de partida y guardado en disco
-public/assets/sprites/   arte provisional en SVG (generado con tools/gen_sprites.py)
+public/assets/pixel/     arte del mapa en pixel art (PNG, generado con tools/gen_pixel.py)
+public/assets/ui/        marcos, botones, sellos e iconos de la interfaz en pixel art (tools/gen_pixel.py)
 tests/       tests de la simulación, el guardado y el contenido
 ```
 
@@ -83,14 +84,14 @@ tests/       tests de la simulación, el guardado y el contenido
 
 ### Añadir contenido
 
-- **Un cultivo nuevo:** entrada en `src/data/crops.json`, su producto en `products.json`, sus dibujos de crecimiento en `tools/gen_sprites.py` y su nombre en `es.json` y `en.json` (`crop.<id>`, `product.<id>`).
+- **Un cultivo nuevo:** entrada en `src/data/crops.json`, su producto en `products.json`, sus dibujos de crecimiento en `tools/gen_pixel.py` y su nombre en `es.json` y `en.json` (`crop.<id>`, `product.<id>`).
 - **Un evento nuevo:** entrada en `src/data/events.json` (categoría `offer`, `obligation` o `mishap`, peso, condiciones, opciones con coste, efectos y riesgo) y sus textos `event.<id>.*` en los dos idiomas. Las ofertas deben tener una opción `decline` sin efectos. Para encadenar eventos, una opción marca un `flag` y el siguiente lo pide con `"flag:<nombre>": 1`. Los tests comprueban textos y reglas.
 - **Una mejora de edificio:** entrada en `src/data/buildings.json` (coste, nivel y lo que suma: camas, capacidad, animales...) y su nombre `upgrade.<edificio>.<id>`. Aparece sola en el panel del edificio y en la pantalla de *Progreso*.
 - **Un paso o un consejo del tutorial:** en `src/data/tutorial.json` (los consejos llevan su condición: nivel, días, rango, camas...) y sus textos `tutorial.<id>.*` o `tip.<id>.*` en los dos idiomas.
 - **Ajustar el ritmo:** experiencia por nivel, rangos, precio de la tierra, impuestos, reputación, arriendos y frecuencia de eventos están en `src/data/progression.json`; aldeanos, oficios y herramientas, en `src/data/villagers.json`; la carta, el feudo, la casa solariega, las aldeas, la mesnada y el mecenazgo, en `src/data/nobility.json`.
 - **Un texto nuevo:** misma clave en `src/i18n/es.json` y `en.json`. Un test comprueba que no falte ninguna.
-- **Que nada se pise en el mapa:** `src/data/layout.json` dice cuántas casillas ocupa cada objeto (la casa solariega, 2×2), qué casillas se reservan junto a otro (el puesto y la carreta junto al mercado) y junto a qué no se rotura. Un dibujo nunca se pinta más ancho que sus casillas, y un test lo comprueba con `public/assets/sprites/manifest.json`, que genera `tools/gen_sprites.py`.
-- **Cambiar el arte:** `python3 tools/gen_sprites.py` regenera los SVG. Para usar otro arte (p. ej. Kenney), sustituye los archivos de `public/assets/sprites/` respetando nombres y anclajes.
+- **Que nada se pise en el mapa:** `src/data/layout.json` dice cuántas casillas ocupa cada objeto (la casa solariega, 2×2), qué casillas se reservan junto a otro (el puesto y la carreta junto al mercado) y junto a qué no se rotura. Un dibujo nunca se pinta más ancho que sus casillas, y un test lo comprueba con `public/assets/pixel/manifest.json`, que genera `tools/gen_pixel.py`.
+- **Cambiar el arte:** `python3 tools/gen_pixel.py` regenera el pixel art del mapa (PNG a 32×16 px por casilla, que el juego amplía ×4 sin suavizar) y también los marcos, botones e iconos de la interfaz (`public/assets/ui/`, que el CSS amplía ×2 o ×3). Para usar otro arte, sustituye los PNG de `public/assets/pixel/` respetando nombres, anclaje (vértice inferior de la casilla) y ancho máximo (32 px por casilla); el test de anchos avisa si alguno no cabe.
 
 ### Flujo de trabajo
 
@@ -100,4 +101,4 @@ Cada cambio va en una rama con su pull request. La CI de GitHub instala dependen
 
 - Código del juego: MIT (ver `LICENSE`).
 - [Phaser](https://phaser.io): MIT. Las skills de `.claude/skills/phaser-*` proceden del repositorio de Phaser (ver `.claude/skills/PHASER-LICENSE.md`).
-- Arte provisional: propio, generado por `tools/gen_sprites.py`.
+- Arte: propio, generado por `tools/gen_pixel.py` (mapa e interfaz).

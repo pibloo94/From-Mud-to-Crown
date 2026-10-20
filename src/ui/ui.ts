@@ -141,7 +141,8 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   const statusRow = h('div', { class: 'status-row' }, storagePill, villagersPill, materialsPill, caravanPill, prestigePill, modsBox);
 
   const speedButtons = SPEEDS.map((sp) =>
-    h('button', { class: 'speed-btn', 'data-speed': sp, onclick: () => setSpeed(sp) }, sp === 0 ? '❚❚' : '▶'.repeat(sp)),
+    // Dibujos en vez de caracteres (❚❚ ▶): no todas las fuentes los tienen.
+    h('button', { class: 'speed-btn', 'data-speed': sp, onclick: () => setSpeed(sp) }, ...(sp === 0 ? [icon('icon_pause')] : Array.from({ length: sp }, () => icon('icon_play')))),
   );
   // El reloj y sus controles van juntos, a la izquierda.
   const timeBox = h('div', { class: 'time-box panel' }, dateBox, h('div', { class: 'speed', role: 'group' }, ...speedButtons));
@@ -153,7 +154,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   // ---------------------------------------------------------------- barra inferior
   const marketBtn = h('button', { class: 'big-btn', onclick: () => openModal({ kind: 'market', tab: 'sell' }) }, icon('icon_coin'), h('span', {}));
   const progressBtn = h('button', { class: 'big-btn', onclick: () => openModal({ kind: 'progress', tab: 'levels' }) }, icon('icon_scroll'), h('span', {}));
-  const menuBtn = h('button', { class: 'big-btn', onclick: () => openModal({ kind: 'menu' }) }, h('span', { class: 'burger' }, '☰'), h('span', {}));
+  const menuBtn = h('button', { class: 'big-btn', onclick: () => openModal({ kind: 'menu' }) }, h('span', { class: 'burger' }, icon('icon_menu')), h('span', {}));
   const bottombar = h('footer', { class: 'bottombar' }, marketBtn, progressBtn, menuBtn);
 
   const toasts = h('div', { class: 'toasts', 'aria-live': 'polite' });
@@ -858,7 +859,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     fn();
     music.start(); // este clic es el gesto que los navegadores exigen para reproducir sonido
     fanfare.start();
-    setSpeed(1); // el tiempo corre desde el primer momento; espacio o el boton ❚❚ lo pausan
+    setSpeed(1); // el tiempo corre desde el primer momento; espacio o el boton de pausa lo paran
     // Salvo durante la bienvenida del tutorial, que espera a que el jugador pulse Empezar.
     if (sim.state.tutorial.step === 'welcome') sim.setSpeed(0);
     tipShown = null;

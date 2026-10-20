@@ -10,7 +10,7 @@ import {
 } from '../sim/workshops';
 import type { ProductId, WorkshopId } from '../sim/types';
 import { t } from '../i18n/i18n';
-import { h, icon } from './dom';
+import { artUrl, h, icon } from './dom';
 import { buyMissingButton, materialChips, type PanelCtx } from './panels';
 
 /** Producto principal que sale del taller (para su icono). */
@@ -31,7 +31,7 @@ export function recipeLine(id: WorkshopId): HTMLElement {
 }
 
 function workshopPortrait(id: WorkshopId): HTMLElement {
-  return h('img', { class: 'workshop-portrait', src: `assets/sprites/${id}.svg`, alt: '' });
+  return h('img', { class: 'workshop-portrait', src: artUrl(id), alt: '' });
 }
 
 // ---------------------------------------------------------------- solar
@@ -86,7 +86,7 @@ function upgradeRow(ctx: PanelCtx, id: WorkshopId, up: WorkshopUpgradeDef, index
   const levelOk = s.level >= up.level && titleOk;
   const state = bought ? 'done' : isNext ? (levelOk ? 'next' : 'locked') : 'later';
   let action: HTMLElement;
-  if (bought) action = h('span', { class: 'up-check', 'aria-label': t('panel.bought') }, '✓');
+  if (bought) action = h('span', { class: 'up-check', 'aria-label': t('panel.bought') }, icon('icon_check', 'icon tiny'));
   else if (isNext && interactive && levelOk)
     action = h(
       'div',
@@ -141,7 +141,7 @@ export function workshopView(ctx: PanelCtx, id: WorkshopId): HTMLElement {
       ? h(
           'div',
           { class: 'artisan-line' },
-          h('img', { class: 'villager-portrait small', src: 'assets/sprites/villager_artisan.svg', alt: '' }),
+          h('img', { class: 'villager-portrait small', src: artUrl('villager_artisan'), alt: '' }),
           h('b', {}, artisans.map((a) => a.name).join(', ')),
         )
       : h('p', { class: 'hint left' }, t('workshop.noArtisan')),
@@ -153,7 +153,7 @@ export function workshopView(ctx: PanelCtx, id: WorkshopId): HTMLElement {
           h(
             'button',
             { class: 'job-btn', onclick: () => ctx.sim.assignArtisan(v.id, id) },
-            h('img', { src: `assets/sprites/villager_${v.job}.svg`, alt: '' }),
+            h('img', { src: artUrl(`villager_${v.job}`), alt: '' }),
             t('workshop.put', { name: v.name }),
           ),
         ),

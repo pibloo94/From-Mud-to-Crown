@@ -32,7 +32,7 @@ export function resetMarketChoices(): void {
 function trendMark(sim: Game, p: ProductId): HTMLElement | null {
   const tr = priceTrend(sim.state, p);
   if (tr === 0) return null;
-  return h('span', { class: `trend trend-${tr > 0 ? 'up' : 'down'}`, title: t(tr > 0 ? 'market.trendUp' : 'market.trendDown') }, tr > 0 ? '▲' : '▼');
+  return h('span', { class: `trend trend-${tr > 0 ? 'up' : 'down'}`, title: t(tr > 0 ? 'market.trendUp' : 'market.trendDown') }, icon(tr > 0 ? 'icon_up' : 'icon_down', 'icon tiny'));
 }
 
 /**

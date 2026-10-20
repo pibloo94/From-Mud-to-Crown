@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import manifest from '../../public/assets/sprites/manifest.json';
+import manifest from '../../public/assets/pixel/manifest.json';
 import { createNewGame, tileAt } from '../../src/sim/state';
 import { canExpandAt, canLeaseAt, checkRank, openEastLands } from '../../src/sim/rules';
 import { buyCharter } from '../../src/sim/noble';
@@ -73,19 +73,23 @@ describe('casillas ocupadas', () => {
 });
 
 describe('dibujos dentro de sus casillas', () => {
+  // El arte del mapa es pixel art a x4: una casilla mide 32 px de ancho en el PNG.
+  const ART = 4;
   const sizes = manifest as Record<string, number[]>;
-  const width = (f: string) => sizes[f][0];
-  // Dibujos de objetos del mapa (no suelo, cultivos, personas, animales ni iconos).
+  // Dibujos de objetos del mapa (no suelo, cultivos, personas ni animales).
   const objects = Object.keys(sizes).filter((f) => /^(house|granary|coop|market|well|rocks|tree|site|tenant|mill|bakery|cheesery|manor|hamlet|stall|cart|pen_shed)/.test(f));
 
-  it('ningun objeto se dibuja mas ancho que sus casillas', () => {
-    expect(objects.length).toBeGreaterThan(30);
+  it('cada objeto esta dibujado a la medida de sus casillas (sin tener que encogerlo)', () => {
+    expect(objects.length).toBeGreaterThan(35);
     for (const f of objects) {
       const n = f.startsWith('manor') ? objectSize('manor') : 1;
-      const w = width(f);
-      expect(w * fitScale(w, n), f).toBeLessThanOrEqual(n * TILE_W);
-      // Si hay que encogerlo mucho, el dibujo esta mal hecho: mejor redibujarlo a medida.
-      expect(fitScale(w, n), f).toBeGreaterThan(0.6);
+      const w = sizes[f][0] * ART;
+      expect(w, f).toBeLessThanOrEqual(n * TILE_W);
+      expect(fitScale(w, n), f).toBe(1);
     }
+  });
+
+  it('suelo, cultivos y bordes miden exactamente una casilla de ancho', () => {
+    for (const f of Object.keys(sizes).filter((k) => /^(grass|soil|path|wild|cliff|wheat|carrot|cabbage)/.test(k))) expect(sizes[f][0] * ART, f).toBe(TILE_W);
   });
 });

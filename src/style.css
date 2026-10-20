@@ -1,8 +1,9 @@
 /*
- * Direccion visual: medieval sombrio (referencia Warhammer Fantasy).
- * Barras de madera ennegrecida con herrajes y filete de oro; ventanas de pergamino envejecido;
- * fraktur solo para el titulo, capitulares grabadas (Cinzel) en botones y cabeceras, Alegreya para leer.
- * Un unico aspecto oscuro: la pagina no cambia con el tema del sistema.
+ * Direccion visual: pixel art medieval con paleta limitada (el mismo estilo que el mapa).
+ * Marcos de madera y de pergamino, botones con relieve y sellos dibujados pixel a pixel
+ * (public/assets/ui, generados con tools/gen_pixel.py) y ampliados sin suavizar.
+ * Jacquard 24 (gotica en pixel) para titulos; Pixelify Sans para todo lo demas.
+ * Sin degradados ni esquinas redondeadas; sombras duras, sin difuminar.
  */
 :root {
   color-scheme: dark;
@@ -25,24 +26,29 @@
   --bone: #e8dcc0;
   --bone-dim: #b7a888;
 
-  --font-title: 'UnifrakturMaguntia', 'Old English Text MT', 'Times New Roman', serif;
-  --font-caps: 'Cinzel', 'Trajan Pro', 'Times New Roman', serif;
-  --font-body: 'Alegreya', Georgia, 'Times New Roman', serif;
+  --font-title: 'Jacquard 24', 'Pixelify Sans', serif;
+  --font-caps: 'Pixelify Sans', 'Courier New', monospace;
+  --font-body: 'Pixelify Sans', 'Courier New', monospace;
 
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
 
-  /* Madera oscura con veta, usada en todas las barras */
-  --plank: repeating-linear-gradient(92deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 9px),
-    linear-gradient(180deg, var(--wood-2), var(--wood));
-  /* Remaches dorados en las cuatro esquinas */
-  --rivets: radial-gradient(circle at 7px 7px, var(--gold-2) 0 2.2px, transparent 2.6px),
-    radial-gradient(circle at calc(100% - 7px) 7px, var(--gold-2) 0 2.2px, transparent 2.6px),
-    radial-gradient(circle at 7px calc(100% - 7px), var(--gold-2) 0 2.2px, transparent 2.6px),
-    radial-gradient(circle at calc(100% - 7px) calc(100% - 7px), var(--gold-2) 0 2.2px, transparent 2.6px);
-  --frame: inset 0 0 0 2px var(--wood), inset 0 0 0 3px var(--gold-2), 0 3px 0 #000, 0 8px 18px rgba(0, 0, 0, 0.55);
+  /* Marcos en pixel art (border-image): madera para barras, pergamino para ventanas, botones con relieve */
+  --frame-wood: url('../public/assets/ui/frame_wood.png') 4 fill / 8px / 0 round;
+  --frame-parch: url('../public/assets/ui/frame_parch.png') 6 fill / 18px / 0 round;
+  --frame-btn: url('../public/assets/ui/btn.png') 4 fill / 8px / 0 round;
+  --frame-btn-hover: url('../public/assets/ui/btn_hover.png') 4 fill / 8px / 0 round;
+  --frame-btn-down: url('../public/assets/ui/btn_down.png') 4 fill / 8px / 0 round;
+  --frame-red: url('../public/assets/ui/btn_red.png') 4 fill / 8px / 0 round;
+  --frame-red-hover: url('../public/assets/ui/btn_red_hover.png') 4 fill / 8px / 0 round;
+  --frame-red-down: url('../public/assets/ui/btn_red_down.png') 4 fill / 8px / 0 round;
+  --frame-ghost: url('../public/assets/ui/btn_ghost.png') 4 fill / 8px / 0 round;
+  --frame-inset: url('../public/assets/ui/inset.png') 3 fill / 6px / 0 round;
+  --frame-inset-parch: url('../public/assets/ui/inset_parch.png') 3 fill / 6px / 0 round;
+  /* Sombra dura, como un pixel desplazado */
+  --drop: 4px 4px 0 rgba(0, 0, 0, 0.45);
 }
 
 * {
@@ -57,6 +63,12 @@ body {
   background: var(--night);
   font-family: var(--font-body);
   color: var(--bone);
+  /* Todo el arte de la interfaz es pixel art: se amplia sin suavizar. */
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  /* Pixelify trae ligaduras (fl, fi) que a este tamano se leen como otra letra. */
+  font-variant-ligatures: none;
+  font-feature-settings: 'liga' 0, 'clig' 0;
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   user-select: none;
@@ -92,22 +104,20 @@ body {
 }
 
 .icon {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   display: block;
-  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.6));
 }
 
 .icon.big {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
 }
 
 .panel {
-  background: var(--rivets), var(--plank);
-  border: 1px solid #000;
-  border-radius: 4px;
-  box-shadow: var(--frame);
+  border: 8px solid transparent;
+  border-image: var(--frame-wood);
+  box-shadow: var(--drop);
   color: var(--bone);
 }
 
@@ -158,9 +168,8 @@ button:focus-visible {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--bone);
-  background: linear-gradient(180deg, var(--blood), var(--blood-2));
+  background: var(--blood);
   border: 1px solid var(--gold-2);
-  border-radius: 2px;
   padding: 1px 7px;
   animation: pulse 1.8s ease-in-out infinite;
 }
@@ -176,18 +185,18 @@ button:focus-visible {
 }
 
 .day-bar {
-  height: 6px;
-  border-radius: 1px;
-  background: #0d0a07;
-  box-shadow: inset 0 1px 2px #000, 0 0 0 1px var(--gold-2);
+  height: 8px;
   overflow: hidden;
+  background: #14110d;
+  border: 2px solid #1b1611;
+  box-shadow: 0 0 0 2px var(--gold-2);
 }
 
 .day-bar-fill {
   display: block;
   height: 100%;
   width: 0;
-  background: linear-gradient(180deg, var(--gold-3), var(--gold-2));
+  background: var(--gold-3);
 }
 
 .resources {
@@ -228,27 +237,23 @@ button:focus-visible {
 }
 
 .speed-btn {
-  font: 700 12px var(--font-caps);
-  letter-spacing: -2px;
+  display: inline-grid;
+  place-items: center;
   min-width: 44px;
   min-height: 40px;
-  border: 1px solid transparent;
-  border-radius: 2px;
-  background: transparent;
+  padding: 0;
+  border: 6px solid transparent;
+  background: none;
   color: var(--bone-dim);
   cursor: pointer;
 }
 
 .speed-btn:hover {
-  color: var(--gold-3);
-  background: rgba(0, 0, 0, 0.25);
+  border-image: url('../public/assets/ui/btn.png') 4 fill / 6px / 0 round;
 }
 
 .speed-btn.active {
-  background: linear-gradient(180deg, var(--blood), var(--blood-2));
-  border-color: var(--gold-2);
-  color: var(--gold-3);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  border-image: url('../public/assets/ui/btn_red.png') 4 fill / 6px / 0 round;
 }
 
 /* ------------------------------------------------------------ barra inferior */
@@ -266,30 +271,33 @@ button:focus-visible {
   align-items: center;
   gap: 9px;
   min-height: 52px;
-  padding: 0 20px;
-  font: 700 15px var(--font-caps);
-  letter-spacing: 0.08em;
+  padding: 0 14px;
+  font: 600 16px var(--font-caps);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--gold-3);
-  text-shadow: 0 1px 0 #000;
-  background: var(--rivets), var(--plank);
-  border: 1px solid #000;
-  border-radius: 4px;
-  box-shadow: var(--frame);
+  text-shadow: 2px 2px 0 #000;
+  background: none;
+  border: 8px solid transparent;
+  border-image: var(--frame-wood);
+  box-shadow: var(--drop);
   cursor: pointer;
 }
 
 .big-btn:hover {
   color: #fff1c9;
+  border-image: var(--frame-btn-hover);
 }
 
 .big-btn:active {
-  transform: translateY(2px);
+  border-image: var(--frame-btn-down);
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.45);
 }
 
 .burger {
-  font-size: 18px;
-  line-height: 1;
+  display: block;
+  line-height: 0;
 }
 
 /* ------------------------------------------------------------ avisos */
@@ -308,27 +316,26 @@ button:focus-visible {
 }
 
 .toast {
-  background: linear-gradient(180deg, var(--iron-2), var(--iron));
+  background: none;
+  border: 8px solid transparent;
+  border-image: var(--frame-wood);
   color: var(--bone);
   font-family: var(--font-body);
-  font-weight: 700;
-  font-size: 17px;
-  padding: 8px 20px;
-  border-radius: 2px;
-  border: 1px solid #000;
-  box-shadow: inset 0 0 0 1px var(--gold-2), 0 6px 16px rgba(0, 0, 0, 0.6);
-  animation: toast-in 0.18s ease-out;
+  font-weight: 600;
+  font-size: 16px;
+  padding: 4px 12px;
+  box-shadow: var(--drop);
+  animation: toast-in 0.18s steps(3);
   transition: opacity 0.4s, transform 0.4s;
   text-align: center;
 }
 
 .toast-warn {
-  background: linear-gradient(180deg, var(--blood), var(--blood-2));
+  border-image: var(--frame-red);
 }
 
 .toast-quiet {
-  font-weight: 500;
-  font-style: italic;
+  font-weight: 400;
   color: var(--bone-dim);
 }
 
@@ -352,7 +359,7 @@ button:focus-visible {
   display: grid;
   place-items: center;
   padding: 16px max(16px, var(--safe-right)) 16px max(16px, var(--safe-left));
-  background: radial-gradient(ellipse at center, rgba(15, 10, 6, 0.55), rgba(8, 5, 2, 0.85));
+  background: rgba(8, 6, 3, 0.72);
   overflow-y: auto;
 }
 
@@ -364,41 +371,20 @@ button:focus-visible {
   position: relative;
   width: min(100%, 460px);
   color: var(--ink);
-  background:
-    radial-gradient(ellipse at 50% 40%, transparent 50%, rgba(110, 70, 30, 0.35) 100%),
-    radial-gradient(circle at 15% 20%, rgba(120, 80, 40, 0.12) 0 18%, transparent 19%),
-    radial-gradient(circle at 85% 75%, rgba(120, 80, 40, 0.1) 0 14%, transparent 15%),
-    linear-gradient(180deg, #e2cfa6, var(--parch) 40%, var(--parch-2));
-  border-radius: 3px;
-  box-shadow:
-    0 0 0 3px var(--wood),
-    0 0 0 5px var(--gold-2),
-    0 0 0 9px var(--wood-2),
-    0 0 0 10px #000,
-    0 24px 60px rgba(0, 0, 0, 0.7);
-  padding: 30px 26px 22px;
+  background: none;
+  border: 18px solid transparent;
+  border-image: var(--frame-parch);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
+  padding: 12px 8px 4px;
   text-align: center;
   user-select: text;
   margin: 12px 0;
 }
 
-/* Remaches en las esquinas del marco */
-.sheet::before {
-  content: '';
-  position: absolute;
-  inset: -7px;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 0 0, var(--gold) 0 3px, #000 3.5px 4.5px, transparent 5px),
-    radial-gradient(circle at 100% 0, var(--gold) 0 3px, #000 3.5px 4.5px, transparent 5px),
-    radial-gradient(circle at 0 100%, var(--gold) 0 3px, #000 3.5px 4.5px, transparent 5px),
-    radial-gradient(circle at 100% 100%, var(--gold) 0 3px, #000 3.5px 4.5px, transparent 5px);
-}
-
 .sheet h1 {
   font-family: var(--font-title);
   font-weight: 400;
-  font-size: clamp(38px, 9vw, 54px);
+  font-size: clamp(40px, 10vw, 60px);
   line-height: 1;
   margin: 4px 0 6px;
   color: var(--blood-2);
@@ -407,9 +393,9 @@ button:focus-visible {
 
 .sheet h2 {
   font-family: var(--font-caps);
-  font-weight: 900;
+  font-weight: 700;
   font-size: 22px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   margin: 0 0 4px;
   color: var(--blood-2);
@@ -417,40 +403,34 @@ button:focus-visible {
 }
 
 .tagline {
-  margin: 0 0 16px;
+  margin: 0 0 14px;
   color: var(--ink-soft);
-  font-style: italic;
-  font-size: 17px;
+  font-size: 16px;
 }
 
 /* Ornamento: filete con rombo central bajo los subtitulos */
 .tagline::after {
   content: '';
   display: block;
-  height: 9px;
+  height: 6px;
   margin: 10px auto 0;
   width: 70%;
-  background:
-    radial-gradient(circle, var(--blood) 0 3px, transparent 3.5px) center / 9px 9px no-repeat,
-    linear-gradient(90deg, transparent, var(--parch-3) 20% 44%, transparent 44% 56%, var(--parch-3) 56% 80%, transparent) center / 100% 1px no-repeat;
+  background: url('../public/assets/ui/rule.png') center / 12px 6px repeat-x;
 }
 
 /* Sello de lacre con el escudo del juego */
 .crest {
-  width: 76px;
-  height: 76px;
-  margin: -6px auto 8px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 38% 32%, #a8382a, var(--blood) 45%, var(--blood-2));
-  box-shadow: 0 0 0 4px rgba(122, 29, 20, 0.35), inset 0 -3px 6px rgba(0, 0, 0, 0.45), 0 4px 10px rgba(0, 0, 0, 0.4);
+  width: 66px;
+  height: 66px;
+  margin: -4px auto 8px;
+  background: url('../public/assets/ui/seal.png') center / 66px 66px no-repeat;
   display: grid;
   place-items: center;
 }
 
 .crest-icon {
-  width: 40px;
-  height: 40px;
-  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.6));
+  width: 36px;
+  height: 36px;
 }
 
 .stack {
@@ -461,17 +441,17 @@ button:focus-visible {
 }
 
 .btn {
-  font: 700 15px var(--font-caps);
-  letter-spacing: 0.08em;
+  font: 600 15px var(--font-caps);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   min-height: 50px;
-  padding: 8px 16px;
-  border-radius: 2px;
-  border: 1px solid #000;
-  background: linear-gradient(180deg, var(--iron-2), var(--iron));
-  box-shadow: inset 0 0 0 1px var(--gold-2), inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 0 #000;
+  padding: 2px 10px;
+  border: 8px solid transparent;
+  border-image: var(--frame-btn);
+  background: none;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.35);
   color: var(--bone);
-  text-shadow: 0 1px 0 #000;
+  text-shadow: 2px 2px 0 #000;
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -483,7 +463,6 @@ button:focus-visible {
 .btn small {
   font-family: var(--font-body);
   font-weight: 500;
-  font-style: italic;
   text-transform: none;
   letter-spacing: 0;
   font-size: 14px;
@@ -492,16 +471,26 @@ button:focus-visible {
 
 .btn:hover:not(:disabled) {
   color: var(--gold-3);
-  box-shadow: inset 0 0 0 1px var(--gold), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 0 #000;
+  border-image: var(--frame-btn-hover);
 }
 
 .btn:active:not(:disabled) {
-  transform: translateY(1px);
+  border-image: var(--frame-btn-down);
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.35);
 }
 
 .btn.primary {
-  background: linear-gradient(180deg, #8f2519, var(--blood) 55%, var(--blood-2));
+  border-image: var(--frame-red);
   color: var(--gold-3);
+}
+
+.btn.primary:hover:not(:disabled) {
+  border-image: var(--frame-red-hover);
+}
+
+.btn.primary:active:not(:disabled) {
+  border-image: var(--frame-red-down);
 }
 
 .btn.primary small {
@@ -513,14 +502,15 @@ button:focus-visible {
 }
 
 .btn:disabled {
-  opacity: 0.4;
+  opacity: 0.45;
+  filter: grayscale(0.6);
   cursor: default;
 }
 
 .btn.small {
   min-height: 44px;
   font-size: 13px;
-  padding: 4px 12px;
+  padding: 0 8px;
 }
 
 .howto,
@@ -542,33 +532,30 @@ button:focus-visible {
 
 .hint {
   font-size: 14px;
-  font-style: italic;
 }
 
 .lang {
   display: inline-flex;
   gap: 4px;
   margin-top: 8px;
-  padding: 3px;
-  border-radius: 2px;
-  background: rgba(60, 40, 20, 0.15);
-  box-shadow: inset 0 0 0 1px var(--parch-3);
+  padding: 2px;
+  border: 6px solid transparent;
+  border-image: var(--frame-inset-parch);
 }
 
 .lang-btn {
-  font: 700 13px var(--font-caps);
-  letter-spacing: 0.1em;
+  font: 600 14px var(--font-caps);
+  letter-spacing: 0.08em;
   min-width: 52px;
   min-height: 38px;
-  border: 0;
-  border-radius: 2px;
-  background: transparent;
+  border: 6px solid transparent;
+  background: none;
   color: var(--ink-soft);
   cursor: pointer;
 }
 
 .lang-btn.active {
-  background: linear-gradient(180deg, var(--iron-2), var(--iron));
+  border-image: url('../public/assets/ui/btn.png') 4 fill / 6px / 0 round;
   color: var(--gold-3);
 }
 
@@ -585,7 +572,7 @@ button:focus-visible {
 }
 
 .market-row .icon.big {
-  filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.35));
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.35));
 }
 
 .market-info {
@@ -722,29 +709,18 @@ button:focus-visible {
 .level-shield {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 38px;
+  width: 36px;
+  height: 42px;
   flex: none;
-  background: linear-gradient(180deg, var(--iron-2), var(--iron));
-  clip-path: polygon(0 0, 100% 0, 100% 58%, 50% 100%, 0 58%);
-  box-shadow: inset 0 0 0 2px var(--gold-2);
+  background: url('../public/assets/ui/shield.png') center / 36px 42px no-repeat;
   position: relative;
 }
 
-.level-shield::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  clip-path: polygon(0 0, 100% 0, 100% 58%, 50% 100%, 0 58%);
-  border: 2px solid var(--gold-2);
-  pointer-events: none;
-}
-
 .level-num {
-  font: 900 16px var(--font-caps);
+  font: 700 17px var(--font-caps);
   color: var(--gold-3);
-  margin-top: -6px;
-  text-shadow: 0 1px 0 #000;
+  margin-top: -8px;
+  text-shadow: 2px 2px 0 #000;
 }
 
 .level-info {
@@ -764,18 +740,18 @@ button:focus-visible {
 
 .xp-bar {
   display: block;
-  height: 5px;
-  border-radius: 1px;
-  background: #0d0a07;
-  box-shadow: 0 0 0 1px var(--gold-2);
+  height: 8px;
   overflow: hidden;
+  background: #14110d;
+  border: 2px solid #1b1611;
+  box-shadow: 0 0 0 2px var(--gold-2);
 }
 
 .xp-fill {
   display: block;
   height: 100%;
   width: 0;
-  background: linear-gradient(90deg, var(--blood), #b23a24);
+  background: var(--blood);
   transition: width 0.4s ease-out;
 }
 
@@ -813,11 +789,10 @@ button:focus-visible {
 .fair-banner {
   margin: 0 0 10px;
   padding: 8px 12px;
-  background: linear-gradient(180deg, var(--blood), var(--blood-2));
+  background: var(--blood);
   color: var(--gold-3);
   font: 700 13px var(--font-caps);
   letter-spacing: 0.05em;
-  border-radius: 2px;
   box-shadow: inset 0 0 0 1px var(--gold-2);
 }
 
@@ -862,7 +837,6 @@ button:focus-visible {
   min-height: 60px;
   padding: 8px 14px 8px 10px;
   text-align: left;
-  border-radius: 2px;
   border: 1px solid var(--parch-3);
   background: rgba(255, 245, 220, 0.35);
   color: var(--ink);
@@ -911,21 +885,23 @@ button:focus-visible {
 /* ------------------------------------------------------------ subida de nivel */
 
 .level-seal {
-  width: 84px;
-  height: 96px;
+  width: 72px;
+  height: 84px;
   margin: -4px auto 10px;
   display: grid;
   place-items: center;
-  font: 900 40px var(--font-caps);
+  font: 700 36px var(--font-caps);
   color: var(--gold-3);
-  text-shadow: 0 2px 0 #000;
-  background: linear-gradient(180deg, var(--iron-2), var(--iron));
-  clip-path: polygon(0 0, 100% 0, 100% 60%, 50% 100%, 0 60%);
+  text-shadow: 3px 3px 0 #000;
+  background: url('../public/assets/ui/shield.png') center / 72px 84px no-repeat;
   padding-bottom: 14px;
 }
 
 .rank-up .level-seal {
-  background: linear-gradient(180deg, #8f2519, var(--blood) 55%, var(--blood-2));
+  width: 66px;
+  height: 66px;
+  padding: 0;
+  background: url('../public/assets/ui/seal.png') center / 66px 66px no-repeat;
 }
 
 .unlocks {
@@ -945,7 +921,6 @@ button:focus-visible {
   line-height: 1.35;
   background: rgba(255, 245, 220, 0.4);
   border: 1px solid rgba(110, 80, 40, 0.3);
-  border-radius: 2px;
 }
 
 .unlocks li::before {
@@ -968,19 +943,17 @@ button:focus-visible {
 /* ------------------------------------------------------------ tarjeta de evento */
 
 .event-seal {
-  width: 72px;
-  height: 72px;
+  width: 66px;
+  height: 66px;
   margin: -4px auto 10px;
-  border-radius: 50%;
+  background: url('../public/assets/ui/seal.png') center / 66px 66px no-repeat;
   display: grid;
   place-items: center;
-  background: radial-gradient(circle at 40% 35%, #3a342c, var(--iron));
-  box-shadow: 0 0 0 3px var(--gold-2), 0 4px 10px rgba(0, 0, 0, 0.4);
 }
 
 .event-icon {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
 }
 
 .event-text {
@@ -1068,19 +1041,15 @@ button:focus-visible {
   .level-info {
     display: none;
   }
-  .level-shield {
-    width: 30px;
-    height: 34px;
-  }
-  /* Debajo del escudo, la barra de experiencia en miniatura */
+  /* Dentro del escudo, bajo el numero, la barra de experiencia en miniatura (corte duro, sin degradado) */
   .level-shield::after {
     content: '';
     position: absolute;
-    left: 4px;
-    right: 4px;
-    bottom: 13px;
-    height: 3px;
-    background: linear-gradient(90deg, #b23a24 var(--xp, 0%), #0d0a07 var(--xp, 0%));
+    left: 8px;
+    right: 8px;
+    bottom: 12px;
+    height: 4px;
+    background: linear-gradient(90deg, #b23a24 var(--xp, 0%), #14110d var(--xp, 0%));
   }
 }
 
@@ -1144,16 +1113,16 @@ button.level-box:hover .rank-text {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 32px;
-  padding: 3px 10px;
-  font: 700 14px var(--font-caps);
+  min-height: 36px;
+  padding: 0 6px;
+  font: 600 15px var(--font-caps);
   font-variant-numeric: lining-nums tabular-nums;
   color: var(--bone);
-  text-shadow: 0 1px 0 #000;
-  background: var(--plank);
-  border: 1px solid #000;
-  border-radius: 3px;
-  box-shadow: inset 0 0 0 1px var(--gold-2), 0 3px 8px rgba(0, 0, 0, 0.5);
+  text-shadow: 2px 2px 0 #000;
+  background: none;
+  border: 6px solid transparent;
+  border-image: url('../public/assets/ui/frame_wood.png') 4 fill / 6px / 0 round;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.4);
 }
 
 .status-pill:hover .status-inner {
@@ -1161,41 +1130,42 @@ button.level-box:hover .rank-text {
 }
 
 .status-inner .icon {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
 }
 
 .mini-bar {
   display: block;
-  width: 34px;
-  height: 5px;
-  background: #0d0a07;
-  box-shadow: 0 0 0 1px var(--gold-2);
+  width: 36px;
+  height: 8px;
+  background: #14110d;
+  border: 2px solid #1b1611;
+  box-shadow: 0 0 0 2px var(--gold-2);
 }
 
 .mini-fill {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, var(--gold-2), var(--gold-3));
+  background: var(--gold-2);
 }
 
 .status-pill.full .mini-fill,
 .status-pill.warn .status-inner {
-  background: linear-gradient(180deg, var(--blood), var(--blood-2));
+  border-image: url('../public/assets/ui/btn_red.png') 4 fill / 6px / 0 round;
 }
 
 .status-pill.full .status-inner {
-  box-shadow: inset 0 0 0 1px var(--blood), 0 3px 8px rgba(0, 0, 0, 0.5);
+  border-image: url('../public/assets/ui/btn_red.png') 4 fill / 6px / 0 round;
 }
 
 .status-pill.mod .status-inner {
-  font-size: 12px;
-  letter-spacing: 0.03em;
-  background: linear-gradient(180deg, #3a1a12, #24100b);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  border-image: url('../public/assets/ui/btn_red_down.png') 4 fill / 6px / 0 round;
 }
 
 .status-pill.mod-toolDiscount .status-inner {
-  background: linear-gradient(180deg, #2f3a22, #1e2616);
+  border-image: url('../public/assets/ui/btn.png') 4 fill / 6px / 0 round;
 }
 
 /* ------------------------------------------------------------ pestanas */
@@ -1204,10 +1174,9 @@ button.level-box:hover .rank-text {
   display: flex;
   gap: 4px;
   margin: 6px 0 12px;
-  padding: 3px;
-  background: rgba(60, 40, 20, 0.15);
-  box-shadow: inset 0 0 0 1px var(--parch-3);
-  border-radius: 2px;
+  padding: 2px;
+  border: 6px solid transparent;
+  border-image: var(--frame-inset-parch);
 }
 
 .tab {
@@ -1218,20 +1187,19 @@ button.level-box:hover .rank-text {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 4px 6px;
-  font: 700 12px var(--font-caps);
-  letter-spacing: 0.05em;
+  padding: 2px 4px;
+  font: 600 13px var(--font-caps);
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  border: 0;
-  border-radius: 2px;
-  background: transparent;
+  border: 6px solid transparent;
+  background: none;
   color: var(--ink-soft);
   cursor: pointer;
 }
 
 .tab .icon {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   flex: none;
 }
 
@@ -1242,8 +1210,9 @@ button.level-box:hover .rank-text {
 }
 
 .tab.active {
-  background: linear-gradient(180deg, var(--iron-2), var(--iron));
+  border-image: url('../public/assets/ui/btn.png') 4 fill / 6px / 0 round;
   color: var(--gold-3);
+  text-shadow: 2px 2px 0 #000;
 }
 
 /* ------------------------------------------------------------ edificios */
@@ -1358,7 +1327,6 @@ button.level-box:hover .rank-text {
   margin-bottom: 8px;
   background: rgba(255, 245, 220, 0.4);
   border: 1px solid rgba(110, 80, 40, 0.35);
-  border-radius: 2px;
 }
 
 .villager.hungry {
@@ -1403,7 +1371,6 @@ button.level-box:hover .rank-text {
   min-width: 44px;
   min-height: 44px;
   border: 1px solid var(--parch-3);
-  border-radius: 2px;
   background: transparent;
   color: var(--ink-soft);
   font: 700 16px var(--font-caps);
@@ -1411,7 +1378,7 @@ button.level-box:hover .rank-text {
 }
 
 .icon-btn.confirm {
-  background: linear-gradient(180deg, var(--blood), var(--blood-2));
+  background: var(--blood);
   color: var(--gold-3);
   font-size: 12px;
   padding: 0 8px;
@@ -1431,12 +1398,12 @@ button.level-box:hover .rank-text {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 2px 4px;
-  font: 700 12px var(--font-caps);
+  padding: 0 2px;
+  font: 600 13px var(--font-caps);
   letter-spacing: 0.02em;
-  border: 1px solid var(--parch-3);
-  border-radius: 2px;
-  background: rgba(255, 245, 220, 0.3);
+  border: 6px solid transparent;
+  border-image: url('../public/assets/ui/btn_ghost.png') 4 fill / 6px / 0 round;
+  background: none;
   color: var(--ink-soft);
   cursor: pointer;
 }
@@ -1447,7 +1414,7 @@ button.level-box:hover .rank-text {
 }
 
 .job-btn.active {
-  background: linear-gradient(180deg, var(--iron-2), var(--iron));
+  background: var(--iron-2);
   color: var(--gold-3);
   border-color: #000;
 }
@@ -1482,13 +1449,12 @@ button.level-box:hover .rank-text {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--gold-3);
-  background: linear-gradient(180deg, var(--iron-2), var(--iron));
-  border-radius: 2px;
+  background: var(--iron-2);
   vertical-align: 2px;
 }
 
 .pill.warn {
-  background: linear-gradient(180deg, var(--blood), var(--blood-2));
+  background: var(--blood);
 }
 
 .warn-text {
@@ -1526,7 +1492,7 @@ button.level-box:hover .rank-text {
   top: 20px;
   bottom: 20px;
   width: 3px;
-  background: linear-gradient(180deg, var(--blood), var(--parch-3));
+  background: var(--blood);
 }
 
 .tree-level {
@@ -1538,14 +1504,15 @@ button.level-box:hover .rank-text {
 
 .tree-seal {
   flex: none;
-  width: 45px;
-  height: 50px;
+  width: 36px;
+  height: 42px;
   display: grid;
   place-items: center;
-  font: 900 19px var(--font-caps);
+  font: 700 17px var(--font-caps);
   color: var(--bone-dim);
-  background: linear-gradient(180deg, var(--iron-2), var(--iron));
-  clip-path: polygon(0 0, 100% 0, 100% 60%, 50% 100%, 0 60%);
+  text-shadow: 2px 2px 0 #000;
+  background: url('../public/assets/ui/shield.png') center / 36px 42px no-repeat;
+  filter: grayscale(0.7) brightness(0.8);
   z-index: 1;
 }
 
@@ -1558,7 +1525,7 @@ button.level-box:hover .rank-text {
 }
 
 .tree-current .tree-seal {
-  background: linear-gradient(180deg, #8f2519, var(--blood) 55%, var(--blood-2));
+  background: #8f2519;
   color: var(--gold-3);
 }
 
@@ -1608,7 +1575,6 @@ button.level-box:hover .rank-text {
   line-height: 1.3;
   background: rgba(255, 245, 220, 0.4);
   border: 1px solid rgba(110, 80, 40, 0.25);
-  border-radius: 2px;
 }
 
 .tree-items li .icon {
@@ -1621,7 +1587,6 @@ button.level-box:hover .rank-text {
 }
 
 .tree-items li small {
-  font-style: italic;
   color: var(--ink-soft);
   font-size: 13px;
 }
@@ -1635,7 +1600,6 @@ button.level-box:hover .rank-text {
   padding: 4px 8px 6px;
   background: rgba(255, 245, 220, 0.25);
   border: 1px solid rgba(110, 80, 40, 0.3);
-  border-radius: 2px;
 }
 
 .tree-building.locked {
@@ -1698,16 +1662,17 @@ button.level-box:hover .rank-text {
 
 .rep-bar {
   display: block;
-  height: 8px;
+  height: 10px;
   margin: 4px 0;
-  background: #0d0a07;
-  box-shadow: 0 0 0 1px var(--gold-2);
+  background: #14110d;
+  border: 2px solid #1b1611;
+  box-shadow: 0 0 0 2px var(--gold-2);
 }
 
 .rep-fill {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, var(--blood), var(--gold-2));
+  background: var(--blood);
 }
 
 .rep small {
@@ -1756,7 +1721,6 @@ button.level-box:hover .rank-text {
 
 .acct-row.muted {
   color: var(--ink-soft);
-  font-style: italic;
 }
 
 .acct-row.total {
@@ -1773,17 +1737,16 @@ button.level-box:hover .rank-text {
   font: 700 11px var(--font-caps);
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  border-radius: 2px;
   color: var(--gold-3);
-  background: linear-gradient(180deg, var(--iron-2), var(--iron));
+  background: var(--iron-2);
 }
 
 .event-cat.cat-obligation {
-  background: linear-gradient(180deg, var(--blood), var(--blood-2));
+  background: var(--blood);
 }
 
 .event-cat.cat-offer {
-  background: linear-gradient(180deg, #3d4a2a, #263018);
+  background: #3d4a2a;
 }
 
 @media (max-width: 760px) {
@@ -1862,7 +1825,6 @@ button.level-box:hover .rank-text {
 .market-sub {
   margin: 0 0 8px;
   color: var(--ink-soft);
-  font-style: italic;
   font-size: 15px;
 }
 
@@ -1925,7 +1887,6 @@ button.level-box:hover .rank-text {
   grid-column: 1;
   min-width: 0;
   font-size: 13px;
-  font-style: italic;
   color: var(--blood);
 }
 
@@ -1955,36 +1916,33 @@ button.level-box:hover .rank-text {
 }
 
 .qty-range::-webkit-slider-runnable-track {
-  height: 8px;
-  border-radius: 1px;
-  background: linear-gradient(90deg, var(--blood) var(--fill), #0d0a07 var(--fill));
-  box-shadow: 0 0 0 1px var(--gold-2), inset 0 1px 2px #000;
+  height: 10px;
+  border: 2px solid #1b1611;
+  background: linear-gradient(90deg, var(--blood) var(--fill), #14110d var(--fill));
+  box-shadow: 0 0 0 2px var(--gold-2);
 }
 
 .qty-range::-moz-range-track {
-  height: 8px;
-  border-radius: 1px;
-  background: linear-gradient(90deg, var(--blood) var(--fill), #0d0a07 var(--fill));
-  box-shadow: 0 0 0 1px var(--gold-2);
+  height: 10px;
+  border: 2px solid #1b1611;
+  background: linear-gradient(90deg, var(--blood) var(--fill), #14110d var(--fill));
+  box-shadow: 0 0 0 2px var(--gold-2);
 }
 
 .qty-range::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 28px;
-  height: 28px;
-  margin-top: -10px;
-  border-radius: 50%;
-  border: 2px solid #000;
-  background: radial-gradient(circle at 40% 35%, var(--gold-3), var(--gold-2));
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  width: 16px;
+  height: 24px;
+  margin-top: -9px;
+  border: 0;
+  background: url('../public/assets/ui/thumb.png') center / 16px 24px no-repeat;
 }
 
 .qty-range::-moz-range-thumb {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  border: 2px solid #000;
-  background: radial-gradient(circle at 40% 35%, var(--gold-3), var(--gold-2));
+  width: 16px;
+  height: 24px;
+  border: 0;
+  background: url('../public/assets/ui/thumb.png') center / 16px 24px no-repeat;
 }
 
 .qty-range:focus-visible {
@@ -2010,7 +1968,6 @@ button.level-box:hover .rank-text {
   font-variant-numeric: lining-nums tabular-nums;
   color: var(--ink);
   background: rgba(60, 40, 20, 0.12);
-  border-radius: 2px;
 }
 
 .mat-chip.lack {
@@ -2142,12 +2099,11 @@ button.level-box:hover .rank-text {
 .resources > .status-row .status-pill.warn .status-inner,
 .resources > .status-row .status-pill.mod .status-inner {
   font-size: 13px;
-  background: linear-gradient(180deg, var(--blood), var(--blood-2));
-  border-radius: 2px;
+  background: var(--blood);
 }
 
 .resources > .status-row .status-pill.mod-toolDiscount .status-inner {
-  background: linear-gradient(180deg, #2f3a22, #1e2616);
+  background: #2f3a22;
 }
 
 /* ============================================================ volver atras */
@@ -2167,9 +2123,8 @@ button.level-box:hover .rank-text {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--gold-3);
-  background: linear-gradient(180deg, var(--iron-2), var(--iron));
+  background: var(--iron-2);
   border: 1px solid #000;
-  border-radius: 2px;
   box-shadow: inset 0 0 0 1px var(--gold-2), 0 2px 0 #000;
   cursor: pointer;
   z-index: 2;
@@ -2220,15 +2175,14 @@ button.level-box:hover .rank-text {
 .ws-status {
   margin: 0 0 8px;
   padding: 6px 10px;
-  border-radius: 2px;
   font: 700 13px var(--font-caps);
   letter-spacing: 0.04em;
   color: var(--gold-3);
-  background: linear-gradient(180deg, var(--blood), var(--blood-2));
+  background: var(--blood);
 }
 
 .ws-status.ws-working {
-  background: linear-gradient(180deg, #3d4a2a, #263018);
+  background: #3d4a2a;
 }
 
 .artisan-line {
@@ -2302,7 +2256,6 @@ button.level-box:hover .rank-text {
   color: var(--ink);
   background: rgba(255, 245, 220, 0.35);
   border: 1px solid var(--parch-3);
-  border-radius: 2px;
   cursor: pointer;
 }
 
@@ -2316,7 +2269,7 @@ button.level-box:hover .rank-text {
 }
 
 .town.active {
-  background: linear-gradient(180deg, var(--iron-2), var(--iron));
+  background: var(--iron-2);
   border-color: #000;
   color: var(--gold-3);
 }
@@ -2359,7 +2312,7 @@ button.level-box:hover .rank-text {
 }
 
 .mini-bar.load.over .mini-fill {
-  background: linear-gradient(90deg, var(--blood), #b23a24);
+  background: var(--blood);
 }
 
 .cargo-row {
@@ -2492,15 +2445,16 @@ button.level-box:hover .rank-text {
   transform: translateX(-50%);
   z-index: 5;
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: flex-start;
   width: min(calc(100vw - 20px), 460px);
-  padding: 10px 12px;
+  padding: 2px;
   color: var(--ink);
-  background: linear-gradient(180deg, var(--parch), var(--parch-2));
-  border-radius: 3px;
-  box-shadow: var(--frame);
-  animation: toast-in 0.2s ease-out;
+  background: none;
+  border: 18px solid transparent;
+  border-image: var(--frame-parch);
+  box-shadow: var(--drop);
+  animation: toast-in 0.2s steps(3);
 }
 
 .coach[hidden] {
@@ -2514,13 +2468,11 @@ button.level-box:hover .rank-text {
 
 .coach-seal {
   flex: none;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 40% 35%, var(--blood), var(--blood-2));
-  box-shadow: inset 0 0 0 2px var(--gold-2);
+  background: url('../public/assets/ui/seal.png') center / 44px 44px no-repeat;
 }
 
 .coach-body {
@@ -2555,29 +2507,30 @@ button.level-box:hover .rank-text {
 }
 
 .btn.ghost {
-  background: transparent;
-  color: var(--ink-soft);
+  border-image: var(--frame-ghost);
+  color: var(--ink);
   text-shadow: none;
-  box-shadow: inset 0 0 0 1px var(--parch-3);
 }
 
 /* Boton que senala el tutorial: latido dorado. */
 .tut-target {
-  animation: tut-pulse 1.3s ease-in-out infinite;
+  animation: tut-pulse 1s steps(1) infinite;
+  outline-offset: 2px;
 }
 
+/* Parpadeo de un recuadro dorado (sin desvanecidos: en pixel art se enciende y se apaga). */
 @keyframes tut-pulse {
   0%,
   100% {
-    box-shadow: var(--frame), 0 0 0 0 rgba(240, 210, 127, 0.9);
+    outline: 3px solid rgba(240, 210, 127, 0);
   }
   50% {
-    box-shadow: var(--frame), 0 0 0 7px rgba(240, 210, 127, 0);
+    outline: 3px solid rgba(240, 210, 127, 1);
   }
 }
 
 .event-cat.cat-tip {
-  background: linear-gradient(180deg, #34465a, #1f2b38);
+  background: #34465a;
 }
 
 .volume-row {
@@ -2602,7 +2555,25 @@ button.level-box:hover .rank-text {
 
 .btn.ghost:hover,
 .btn.ghost:focus-visible {
-  color: var(--ink);
-  background: rgba(60, 40, 20, 0.08);
-  box-shadow: inset 0 0 0 1px var(--parch-3);
+  color: var(--blood-2);
+  border-image: var(--frame-ghost);
+}
+
+/* ============================================================ arte en pixel */
+
+/* Los retratos sacados del mapa son pixel art: se amplian sin suavizar. */
+img[src^='assets/pixel/'] {
+  image-rendering: pixelated;
+  object-fit: contain;
+}
+
+/* Botones de velocidad: triangulos dibujados que se solapan un poco (x2, x3) */
+.speed-btn .icon + .icon {
+  margin-left: -12px;
+}
+
+.speed-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }

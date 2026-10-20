@@ -39,7 +39,7 @@ import { charterReady, liegeBefore, liegeOf } from '../sim/noble';
 import { buildingOf } from '../sim/rules';
 import type { AnimalId, BuildingId, CropId, JobId, Modifier, RankId, Villager, WorkshopId } from '../sim/types';
 import { t } from '../i18n/i18n';
-import { h, icon } from './dom';
+import { artUrl, h, icon } from './dom';
 
 export type BuildingTab = 'upgrades' | 'villagers' | 'pantry';
 export type ProgressTab = 'levels' | 'buildings' | 'tools' | 'ranks';
@@ -145,7 +145,7 @@ function upgradeRow(ctx: PanelCtx, b: BuildingId, up: UpgradeDef, index: number,
   const levelOk = s.level >= up.level;
   const state = bought ? 'done' : isNext ? (levelOk ? 'next' : 'locked') : 'later';
   let action: HTMLElement;
-  if (bought) action = h('span', { class: 'up-check', 'aria-label': t('panel.bought') }, '✓');
+  if (bought) action = h('span', { class: 'up-check', 'aria-label': t('panel.bought') }, icon('icon_check', 'icon tiny'));
   else if (isNext && interactive && levelOk)
     action = h(
       'div',
@@ -298,7 +298,7 @@ function villagerCard(ctx: PanelCtx, v: Villager): HTMLElement {
     h(
       'div',
       { class: 'villager-head' },
-      h('img', { class: 'villager-portrait', src: `assets/sprites/villager_${v.job}.svg`, alt: '' }),
+      h('img', { class: 'villager-portrait', src: artUrl(`villager_${v.job}`), alt: '' }),
       h(
         'div',
         { class: 'villager-name' },
@@ -336,7 +336,7 @@ function villagerCard(ctx: PanelCtx, v: Villager): HTMLElement {
             'aria-pressed': String(v.job === job),
             onclick: () => v.job !== job && ctx.sim.setJob(v.id, job),
           },
-          h('img', { src: `assets/sprites/villager_${job}.svg`, alt: '' }),
+          h('img', { src: artUrl(`villager_${job}`), alt: '' }),
           t(`job.${job}.title`),
         ),
       ),
@@ -638,7 +638,7 @@ function toolsTab(ctx: PanelCtx): HTMLElement {
           h(
             'div',
             { class: 'upgrade-row' },
-            h('img', { class: 'villager-portrait small', src: `assets/sprites/villager_${job}.svg`, alt: '' }),
+            h('img', { class: 'villager-portrait small', src: artUrl(`villager_${job}`), alt: '' }),
             h('div', { class: 'up-info' }, h('b', {}, t(`tool.${job}.${i + 1}`)), h('small', {}, `${t(`job.${job}.title`)} · ${jobDesc(job)}`)),
           ),
         ),
