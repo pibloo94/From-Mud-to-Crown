@@ -30,15 +30,16 @@ const ZOOM_STEP = 0.25;
 const snapZoom = (z: number) => Math.max(ZOOM_STEP, Math.floor(z / ZOOM_STEP) * ZOOM_STEP);
 
 /**
- * Color de cada estacion sobre hierba y arboles. MULTIPLY tine y oscurece; SCREEN aclara
- * (la escarcha del invierno).
+ * Color de cada estacion sobre hierba y arboles (MULTIPLY tine y oscurece). En invierno no se
+ * tine: suelos y arboles cambian a su version nevada (`<clave>_snow`).
  */
-const SEASON_TINT: Record<Season, { color: number; mode: 'multiply' | 'screen' } | null> = {
+const SEASON_TINT: Record<Season, number | null> = {
   spring: null,
-  summer: { color: 0xfff0c4, mode: 'multiply' },
-  autumn: { color: 0xf2bf7a, mode: 'multiply' },
-  winter: { color: 0x7d8a96, mode: 'screen' },
+  summer: 0xfff0c4,
+  autumn: 0xf2bf7a,
+  winter: null,
 };
+const SNOW = '_snow';
 const FONT = '"Pixelify Sans", monospace';
 const TAP_SLOP = 12;
 
@@ -280,8 +281,11 @@ export class FarmScene extends Phaser.Scene {
         if (isBlockOrigin(st, tile)) this.landmarks.push(this.place(`manor_${manorStage(st)}`, tile, 5, objectSize('manor')));
         break;
       case 'hamlet': {
+        // Ocupa un bloque como la casa solariega: se dibuja una vez, desde la casilla de origen.
         const id = hamletAt(tile.x, tile.y);
-        if (id) this.landmarks.push(this.place(`hamlet_${NOBILITY.hamlets[id].material}_${hamletLevel(st, id)}`, tile, 5));
+        const h = id ? NOBILITY.hamlets[id] : null;
+        if (id && h && h.x === tile.x && h.y === tile.y)
+          this.landmarks.push(this.place(`hamlet_${h.material}_${hamletLevel(st, id)}`, tile, 5, objectSize('hamlet')));
         break;
       }
       case 'wild':
@@ -537,8 +541,11 @@ export class FarmScene extends Phaser.Scene {
     this.season = season;
     const tint = SEASON_TINT[season];
     for (const im of this.seasonal) {
-      if (!tint) im.clearTint();
-      else im.setTint(tint.color).setTintMode(tint.mode === 'screen' ? Phaser.TintModes.SCREEN : Phaser.TintModes.MULTIPLY);
+      const base = im.texture.key.endsWith(SNOW) ? im.texture.key.slice(0, -SNOW.length) : im.texture.key;
+      const snowy = season === 'winter' && this.textures.exists(base + SNOW);
+      im.setTexture(snowy ? base + SNOW : base);
+      if (tint === null) im.clearTint();
+      else im.setTint(tint).setTintMode(Phaser.TintModes.MULTIPLY);
     }
   }
 

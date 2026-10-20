@@ -10,7 +10,7 @@ import { finishedTutorial } from '../sim/tutorial';
 import { relayFief } from '../sim/layout';
 
 export const SAVE_FORMAT = 'from-mud-to-crown-save';
-export const SAVE_VERSION = 9;
+export const SAVE_VERSION = 10;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;
@@ -91,8 +91,9 @@ export function migrate(state: Record<string, unknown>, from: number): GameState
   if (from < 7) s = { ...s, noble: defaultNoble() };
   // v7 -> v8 (fase 3d): tutorial y consejos. Una partida empezada no repite el tutorial.
   if (from < 8) s = { ...s, tutorial: finishedTutorial(s as GameState) };
-  // v8 -> v9: la casa solariega pasa a ocupar 2x2 casillas; se recolocan las filas del feudo.
-  if (from < 9) {
+  // v8 -> v9: la casa solariega pasa a ocupar 2x2 casillas; v9 -> v10: las aldeas, tambien.
+  // En ambos casos se recolocan las filas del feudo segun los datos.
+  if (from < 10) {
     s = { ...s, map: { ...s.map, tiles: (s.map.tiles as Record<string, unknown>[]).map((t) => ({ ...t })) } };
     relayFief(s as GameState);
   }

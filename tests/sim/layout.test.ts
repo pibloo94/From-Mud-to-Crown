@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import manifest from '../../public/assets/pixel/manifest.json';
 import { createNewGame, tileAt } from '../../src/sim/state';
 import { canExpandAt, canLeaseAt, checkRank, openEastLands } from '../../src/sim/rules';
-import { buyCharter } from '../../src/sim/noble';
+import { buyCharter, hamletAt } from '../../src/sim/noble';
 import { annexTiles, blockOrigin, isBlockOrigin, objectSize } from '../../src/sim/layout';
-import { LAYOUT, NOBILITY, START } from '../../src/sim/data';
+import { HAMLET_IDS, LAYOUT, NOBILITY, START } from '../../src/sim/data';
 import { fitScale, TILE_W } from '../../src/render/iso';
 import { deserialize } from '../../src/save/serialize';
 import type { GameState, TileKind } from '../../src/sim/types';
@@ -70,6 +70,24 @@ describe('casillas ocupadas', () => {
     expect(back.map.tiles.filter((t) => t.kind === 'manor')).toHaveLength(4);
     expect(tileAt(back, 7, 12)?.kind).toBe('path');
   });
+
+  it('una partida de la version 9 pasa cada aldea a su bloque de 2x2', () => {
+    const s = lordWithFief();
+    // Feudo como lo dejaba la version 9: aldeas de una sola casilla.
+    const base = START.map.rows.length;
+    const old = ['TTGGRGGGGTGGTTT', 'TAGGRGGGNNGGAKT', 'GGGGRRRRNNRRRGG', 'TKGGRGGGGGGGGGT', 'TTGAGGTGGTTGTTT'];
+    const legend: Record<string, TileKind> = { ...START.map.legend, ...NOBILITY.fief.legend };
+    old.forEach((row, i) => [...row].forEach((ch, x) => (tileAt(s, x, base + i)!.kind = legend[ch])));
+    const back = deserialize(JSON.stringify({ format: 'from-mud-to-crown-save', version: 9, savedAt: '2026-10-20T10:00:00Z', state: s }));
+    expect(back.map.tiles.filter((t) => t.kind === 'hamlet')).toHaveLength(4 * HAMLET_IDS.length);
+    for (const id of HAMLET_IDS) {
+      const { x, y } = NOBILITY.hamlets[id];
+      for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+        expect(tileAt(back, x + dx, y + dy)?.kind, `${id} ${x + dx},${y + dy}`).toBe('hamlet');
+        expect(hamletAt(x + dx, y + dy)).toBe(id);
+      }
+    }
+  });
 });
 
 describe('dibujos dentro de sus casillas', () => {
@@ -82,7 +100,7 @@ describe('dibujos dentro de sus casillas', () => {
   it('cada objeto esta dibujado a la medida de sus casillas (sin tener que encogerlo)', () => {
     expect(objects.length).toBeGreaterThan(35);
     for (const f of objects) {
-      const n = f.startsWith('manor') ? objectSize('manor') : 1;
+      const n = f.startsWith('manor') ? objectSize('manor') : f.startsWith('hamlet') ? objectSize('hamlet') : 1;
       const w = sizes[f][0] * ART;
       expect(w, f).toBeLessThanOrEqual(n * TILE_W);
       expect(fitScale(w, n), f).toBe(1);

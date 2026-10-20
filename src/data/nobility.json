@@ -4,10 +4,10 @@
     "legend": { "N": "manor", "A": "hamlet" },
     "rows": [
       "TTGGRGGGGTGGTTT",
-      "TAGGRGGGNNGGAKT",
-      "GGGGRRRRNNRRRGG",
-      "TKGGRGGGGGGGGGT",
-      "TTGAGGTGGTTGTTT"
+      "TAAGRGGGNNGGAAG",
+      "GAAGRRRRNNRRAAG",
+      "TKGAAGGGGGGGGGG",
+      "TTGAAGTGGTGGGGG"
     ]
   },
   "manor": {
@@ -43,7 +43,7 @@
     },
     "mine": {
       "x": 3,
-      "y": 14,
+      "y": 13,
       "material": "iron",
       "levels": [
         { "cost": 2500, "materials": { "wood": 40, "stone": 20 }, "coins": 60, "amount": 3, "prestige": 15 },
