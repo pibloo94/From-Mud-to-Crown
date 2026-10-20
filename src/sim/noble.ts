@@ -1,5 +1,5 @@
 // Nobleza: carta de nobleza, feudo al sur del mapa, casa solariega, aldeas vasallas, mesnada y mecenazgo.
-import { HAMLET_IDS, MATERIAL_IDS, NOBILITY, START, type ManorStats, type ManorUpgradeDef, type MaterialAmounts } from './data';
+import { HAMLET_IDS, LAYOUT, MATERIAL_IDS, NOBILITY, START, type ManorStats, type ManorUpgradeDef, type MaterialAmounts } from './data';
 import { DAYS_PER_SEASON } from './calendar';
 import { hasMaterials, payMaterials } from './materials';
 import { hasRank, mainRanks, meetsRank, rankDef } from './progress';
@@ -110,8 +110,15 @@ export const hamletLevel = (state: GameState, id: string): number => state.noble
 export const hamletCount = (state: GameState): number => HAMLET_IDS.filter((id) => hamletLevel(state, id) > 0).length;
 export const hamletLevels = (state: GameState): number => HAMLET_IDS.reduce((sum, id) => sum + hamletLevel(state, id), 0);
 
+/** Aldea que ocupa la casilla (x, y). Cada aldea es un bloque cuadrado que empieza en su (x, y). */
 export function hamletAt(x: number, y: number): string | null {
-  return HAMLET_IDS.find((id) => NOBILITY.hamlets[id].x === x && NOBILITY.hamlets[id].y === y) ?? null;
+  const n = LAYOUT.size.hamlet ?? 1;
+  return (
+    HAMLET_IDS.find((id) => {
+      const h = NOBILITY.hamlets[id];
+      return x >= h.x && x < h.x + n && y >= h.y && y < h.y + n;
+    }) ?? null
+  );
 }
 
 export function nextHamletLevel(state: GameState, id: string) {

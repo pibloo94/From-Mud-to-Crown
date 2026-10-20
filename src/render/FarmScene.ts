@@ -281,8 +281,11 @@ export class FarmScene extends Phaser.Scene {
         if (isBlockOrigin(st, tile)) this.landmarks.push(this.place(`manor_${manorStage(st)}`, tile, 5, objectSize('manor')));
         break;
       case 'hamlet': {
+        // Ocupa un bloque como la casa solariega: se dibuja una vez, desde la casilla de origen.
         const id = hamletAt(tile.x, tile.y);
-        if (id) this.landmarks.push(this.place(`hamlet_${NOBILITY.hamlets[id].material}_${hamletLevel(st, id)}`, tile, 5));
+        const h = id ? NOBILITY.hamlets[id] : null;
+        if (id && h && h.x === tile.x && h.y === tile.y)
+          this.landmarks.push(this.place(`hamlet_${h.material}_${hamletLevel(st, id)}`, tile, 5, objectSize('hamlet')));
         break;
       }
       case 'wild':

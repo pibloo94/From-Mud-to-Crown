@@ -1072,11 +1072,14 @@ def cottage(s: Spr, cx, by, stone=False, ruined=False, rnd=None, al=6, ar=4, h=4
     """Casita de aldea: planta alargada, paja (o pizarra si es de piedra). En ruinas, sin tejado."""
     walls = ("r3", "r1") if stone else ("pl2", "pl0")
     if ruined:
-        b = s.box2(cx, by, al, ar, 3, *walls)
-        # muros desmochados y una viga caida
-        s.wall(cx, by, al, "l", cx - al, cx - al + 1, 3, 5, walls[0])
-        s.wall(cx, by, ar, "r", cx + ar - 2, cx + ar - 1, 3, 4, walls[1])
-        s.line((cx - al + 1, by - al // 2 - 4), (cx + 1, by - 1), "w1")
+        # muros de piedra desmochados, con el hueco oscuro de dentro, escombro y una viga caida
+        b = s.box2(cx, by, al, ar, 3, "r2", "r1", "s1")
+        s.wall(cx, by, al, "l", cx - al, cx - al + 2, 3, 6, "r2")
+        s.wall(cx, by, al, "l", cx - 4, cx - 3, 3, 5, "r2")
+        s.wall(cx, by, ar, "r", cx + ar - 2, cx + ar - 1, 3, 5, "r1")
+        s.line((cx - al + 2, by - al // 2 - 6), (cx + 2, by - 2), "w1")
+        for (dx, dy) in ((-al - 2, -1), (ar, 1), (2, 1)):
+            s.ellipse(cx + dx, by + dy - 1, 1, 1, "r3")
         return b
     b = s.box2(cx, by, al, ar, h, *walls)
     if not stone:
@@ -1090,106 +1093,219 @@ def cottage(s: Spr, cx, by, stone=False, ruined=False, rnd=None, al=6, ar=4, h=4
 
 def chapel(s: Spr, cx, by, rnd):
     """Capilla con espadana: nave pequena de piedra y torrecilla con campana."""
-    b = s.box2(cx, by, 8, 4, 7, "r3", "r1")
-    stone_texture(s, cx, by, 4, 7, rnd)
-    door(s, b, "r", 0.3, 2, 4, "w1")
-    m1, m2 = s.gable_roof(b, 4, "sh2", "sh0", "r2", 1, shingle_texture("sh1", "sh2"), rnd)
+    b = s.box2(cx, by, 12, 6, 9, "r3", "r1")
+    stone_texture(s, cx, by, 6, 9, rnd)
+    door(s, b, "r", 0.3, 2, 5, "w1")
+    window(s, b, "l", 0.5, 4, True, 1, 3)
+    m1, m2 = s.gable_roof(b, 6, "sh2", "sh0", "r2", 1, shingle_texture("sh1", "sh2"), rnd)
     # espadana sobre el hastial con la campana
     x, y = int(m2[0]) - 1, int(m2[1])
-    s.rect(x - 1, y - 5, x + 1, y, "r3")
-    s.px(x, y - 3, "gold")
-    s.px(x, y - 6, "r2")
+    s.rect(x - 2, y - 7, x + 1, y, "r3")
+    s.rect(x - 1, y - 5, x, y - 3, "#141612")
+    s.px(x - 1, y - 4, "gold")
+    s.px(x, y - 4, "gold")
+    s.line((x - 2, y - 8), (x - 1, y - 9), "r2")
+    s.line((x, y - 9), (x + 1, y - 8), "r2")
     return b
 
 
-def resource_site(s: Spr, material: str, by, stage: int):
-    """Lo que da cada aldea, al fondo a la izquierda y sin nada delante: troncos, cantera o mina."""
+def block_cells(by, n=2, cx=None):
+    """Pixeles del rombo de un bloque de n x n casillas con el vertice inferior en (cx, by)."""
+    w, h = 16 * n, 8 * n
+    cx = w if cx is None else cx
+    out = []
+    for y in range(by - 2 * h, by + 1):
+        for x in range(cx - w, cx + w):
+            if abs(x + 0.5 - cx) / w + abs(y - (by - h)) / h <= 1:
+                out.append((x, y))
+    return out
+
+
+def log_pile(s: Spr, x0, y0, rows=(4, 3, 2), length=10, old=False):
+    """Pila de troncos tumbados hacia el fondo a la derecha, con las testas claras mirando al frente.
+    Se pinta de atras adelante y cada tronco lleva su borde oscuro para que se lean sueltos."""
+    logs = []
+    for k, n in enumerate(rows):
+        for j in range(n):
+            logs.append((x0 + j * 5 + k * 2 + (k * 1), y0 - k * 4 + j * 0))
+    for (x, y) in sorted(logs, key=lambda p: (p[1], -p[0])):
+        bark, top = ("w1", "w2") if old else ("w2", "w3")
+        ex, ey = x + length, y - length // 2
+        s.poly([(x, y - 2), (ex, ey - 2), (ex, ey + 2), (x, y + 2)], bark)
+        s.line((x, y - 2), (ex, ey - 2), top)
+        s.line((x, y + 2), (ex, ey + 2), "w0")
+        s.line((ex, ey - 2), (ex, ey + 2), "w0")
+        s.ellipse(x, y, 2, 2, "w1")
+        s.ellipse(x, y, 1, 1, "w2" if old else "st3")
+        if not old:
+            s.px(x, y, "st2")
+
+
+def resource_site(s: Spr, material: str, by, stage: int, rnd):
+    """Lo que da cada aldea, al fondo a la izquierda del bloque y sin nada delante."""
     old = stage == 0
     if material == "wood":
-        # pila de troncos con las testas a la vista y tocon con hacha
-        for k in range(3):
-            for j in range(3 - k):
-                x, y = 3 + j * 3 + k, by - 11 - k * 2 + j
-                s.ellipse(x, y, 1, 1, "w2" if old else "w3")
-                if not old:
-                    s.px(x, y, "st3")
-        s.rect(11, by - 8, 13, by - 6, "w3")
-        s.rect(11, by - 8, 13, by - 8, "st3")
-        if not old:
-            s.line((12, by - 8), (14, by - 11), "w4")
-            s.px(14, by - 11, "iron1")
-            s.px(15, by - 11, "iron1")
+        # dos pilas de troncos, caballete con un tronco a medio serrar, tocon con hacha y astillas
+        log_pile(s, 4, by - 20, (4, 3, 2, 1), 9, old)
+        if old:
+            s.line((16, by - 12), (26, by - 17), "w1")
+            return
+        log_pile(s, 22, by - 26, (2, 1), 7)
+        # caballete
+        for x in (17, 23):
+            s.line((x - 1, by - 11), (x + 1, by - 16), "w1")
+            s.line((x + 2, by - 11), (x, by - 16), "w1")
+        s.poly([(15, by - 16), (27, by - 22), (27, by - 20), (15, by - 14)], "w3")
+        s.ellipse(15, by - 15, 1, 1, "st3")
+        # tocon con hacha
+        s.rect(26, by - 10, 29, by - 7, "w3")
+        s.rect(26, by - 10, 29, by - 10, "st3")
+        s.line((28, by - 10), (31, by - 15), "w4")
+        s.rect(31, by - 16, 32, by - 15, "iron1")
+        for (x, y) in ((24, by - 7), (31, by - 8), (22, by - 9)):
+            s.px(x, y, "st2")
     elif material == "stone":
-        # frente de cantera con cara cortada y sillares apilados
-        s.poly([(1, by - 7), (2, by - 14), (6, by - 17), (11, by - 14), (12, by - 7)], "r2")
-        s.poly([(4, by - 8), (5, by - 13), (9, by - 14), (10, by - 8)], "r3" if old else "r4")
-        s.line((5, by - 11), (10, by - 11), "r2")
-        if not old:
-            s.box(13, by - 5, 2, 2, "r3", "r2", "r4")
-            s.box(13, by - 8, 2, 2, "r3", "r2", "r4")
+        # pena oscura con musgo y, cortada en ella, una cara clara de sillares (pared izquierda) y
+        # su costado en sombra: se lee como un bloque sacado de la roca
+        s.poly([(1, by - 16), (2, by - 30), (10, by - 41), (24, by - 42), (33, by - 32), (33, by - 17)], "r0")
+        s.poly([(4, by - 31), (11, by - 39), (22, by - 40), (15, by - 34)], "r1")
+        for x in range(6, 26, 3):
+            s.px(x, by - 40 + abs(x - 16) // 3, "l2")
+        face = [(5, by - 18), (21, by - 10), (21, by - 26), (5, by - 34)]
+        s.poly(face, "r3" if old else "r4")
+        s.poly([(21, by - 10), (30, by - 15), (30, by - 31), (21, by - 26)], "r2")
+        for k, z in enumerate(range(4, 16, 4)):
+            s.line((5, by - 18 - z), (21, by - 10 - z), "r2")
+            for x in range(7 + (k % 2) * 3, 21, 6):
+                y0 = by - 18 - z + (x - 5) // 2
+                s.line((x, y0), (x, y0 + 3), "r2")
+        s.line((21, by - 10), (21, by - 26), "r1")
+        if old:
+            s.line((8, by - 30), (16, by - 18), "r1")
+            for (x, y) in ((22, by - 6), (27, by - 9)):
+                s.ellipse(x, y, 2, 1, "r2")
+            return
+        # sillares apilados delante
+        for (x, y) in ((22, by - 7), (27, by - 9), (24, by - 11)):
+            s.box(x, y, 3, 3, "r3", "r2", "r4")
+        # cabria de madera con su polea y un bloque colgando
+        s.line((29, by - 14), (32, by - 34), "w2")
+        s.line((35, by - 15), (32, by - 34), "w2")
+        s.line((32, by - 34), (24, by - 38), "w3")
+        s.line((24, by - 38), (24, by - 31), "cream0")
+        s.box(24, by - 27, 2, 3, "r3", "r2", "r4")
     else:
-        # boca de mina entibada en un monticulo, carril y vagoneta con mineral
-        s.poly([(0, by - 7), (1, by - 13), (6, by - 17), (12, by - 14), (13, by - 7)], "r1")
-        s.poly([(3, by - 13), (6, by - 16), (10, by - 13)], "r2")
-        s.rect(4, by - 12, 8, by - 7, "#141612")
-        s.rect(3, by - 13, 9, by - 13, "w2")
-        s.rect(3, by - 13, 3, by - 7, "w2")
-        s.rect(9, by - 13, 9, by - 7, "w2")
-        if not old:
-            s.line((7, by - 6), (14, by - 3), "iron1")
-            s.box(13, by - 4, 3, 2, "iron1", "iron", "r0")
-            s.px(12, by - 7, "r3")
-            s.px(14, by - 7, "r0")
+        # monte con la boca de mina entibada
+        s.poly([(0, by - 15), (3, by - 28), (12, by - 38), (24, by - 36), (32, by - 26), (33, by - 15)], "r1")
+        s.poly([(4, by - 27), (12, by - 36), (22, by - 34), (14, by - 30)], "r2")
+        for (x, y) in ((8, by - 22), (26, by - 24), (18, by - 33), (28, by - 18)):
+            s.px(x, y, "r0")
+            s.px(x + 1, y, "r3")
+        s.rect(12, by - 25, 20, by - 15, "#141612")
+        s.rect(11, by - 26, 21, by - 25, "w2")
+        s.rect(11, by - 26, 12, by - 15, "w2")
+        s.rect(20, by - 26, 21, by - 15, "w2")
+        if old:
+            # tapiada con tablas en aspa
+            s.line((13, by - 24), (19, by - 16), "w3")
+            s.line((19, by - 24), (13, by - 16), "w3")
+            return
+        # farol, carriles que salen de la boca y vagoneta con mineral
+        s.px(22, by - 23, "glow")
+        s.px(22, by - 22, "iron")
+        s.line((14, by - 15), (30, by - 7), "iron1")
+        s.line((18, by - 15), (34, by - 7), "iron1")
+        for k in range(0, 16, 4):
+            s.line((14 + k, by - 15 + k // 2), (18 + k, by - 15 + k // 2), "w1")
+        s.box(27, by - 8, 4, 4, "iron1", "iron", "r0")
+        for (x, y, c) in ((26, by - 14, "cl1"), (28, by - 15, "r3"), (29, by - 14, "cl0"), (27, by - 15, "r2")):
+            s.px(x, y, c)
+        # monton de mineral
+        s.ellipse(6, by - 12, 4, 2, "r0")
+        s.px(5, by - 13, "cl1")
+        s.px(7, by - 13, "cl0")
+
+
+def village_well(s: Spr, x, y):
+    """Pozo de piedra con su tejadillo a dos aguas y el cubo colgando."""
+    b = s.box(x, y, 4, 4, "r3", "r2", "r2")
+    s.wall(x, y, 4, "l", x - 2, x - 2, 0, 4, "r2")
+    s.wall(x, y, 4, "r", x + 2, x + 2, 0, 4, "r1")
+    s.poly([(x - 2, y - 6), (x, y - 5), (x + 2, y - 6), (x, y - 7)], "#1d2a2e")
+    s.rect(x - 4, y - 12, x - 4, y - 4, "w1")
+    s.rect(x + 3, y - 13, x + 3, y - 5, "w1")
+    s.poly([(x - 6, y - 11), (x - 1, y - 16), (x + 1, y - 15), (x - 4, y - 10)], "sh2")
+    s.poly([(x - 1, y - 16), (x + 5, y - 13), (x + 4, y - 11), (x + 1, y - 15)], "sh0")
+    s.line((x, y - 12), (x, y - 9), "cream0")
+    s.rect(x - 1, y - 9, x + 1, y - 8, "w3")
+
+
+def kitchen_garden(s: Spr, x, y, rnd):
+    """Huerto con hileras de coles y una cerca baja."""
+    for r in range(3):
+        for k in range(4):
+            px, py = x + k * 2 + r * 2, y - k + r
+            s.px(px, py, rnd.choice(["cab", "cab1", "l3"]))
+    s.line((x - 2, y + 4), (x + 8, y - 1), "w3")
 
 
 def hamlet(material: str, stage: int) -> Spr:
-    """Aldea vasalla en una casilla. 0 abandonada (casas sin tejado y su recurso echado a perder);
-    1 dos casas; 2 tres casas y pozo; 3 capilla, casa de piedra y estandarte.
-    Cada cosa tiene su sitio y se dibuja de atras adelante para que no se tapen."""
+    """Aldea vasalla en un bloque de 2x2 casillas.
+
+    Al fondo a la izquierda, lo que produce (troncos, cantera o mina); a la derecha y delante, las
+    casas. 0 abandonada (casas sin tejado, recurso echado a perder); 1 dos casas; 2 tres casas, pozo
+    y huerto; 3 capilla con espadana y estandarte, y la casa de delante de piedra. Cada cosa tiene su
+    sitio y se dibuja de atras adelante, asi que nada tapa a otra."""
     rnd = random.Random(80 + stage * 7 + len(material))
-    s = Spr(TW, 42)
-    g = Spr(TW, 42)
-    by = 40
-    # suelo pisado entre las casas
-    for (x, y) in tile_cells(by - 16):
-        if rnd.random() < (0.45 if stage else 0.2):
+    W, H = 64, 66
+    s = Spr(W, H)
+    g = Spr(W, H)
+    by = H - 2
+    cx = 32
+    # suelo pisado: plaza y sendas entre las casas
+    for (x, y) in block_cells(by):
+        d = abs(x - 38) / 22 + abs(y - (by - 12)) / 9
+        if rnd.random() < (0.55 if stage else 0.25) * max(0.0, 1.2 - d):
             g.px(x, y, rnd.choice(["s2", "s3", "p1"] if stage else ["s2", "g1"]))
-    back, right, front = (20, by - 11), (26, by - 6), (18, by - 1)
-    items = [("res", 0, by - 7)]
+    if stage:
+        ground_shadow(g, cx + 6, by, 24, 6)
+    big = dict(al=10, ar=6, h=6)
+    back, right, front = (44, by - 20), (56, by - 11), (36, by - 3)
+    items = [("res", 0, by - 16)]
     if stage == 0:
         items += [("ruin", *right), ("ruin", *front)]
     else:
         items += [("c", *right), ("s" if stage == 3 else "c", *front)]
         if stage >= 2:
-            items += [("k" if stage == 3 else "c", *back), ("well", 7, by - 2)]
+            items += [("k" if stage == 3 else "c", *back), ("well", 20, by - 7), ("garden", 4, by - 12)]
     top = None
+    chimney_at = None
     for (kind, x, y) in sorted(items, key=lambda it: it[2]):
         if kind == "res":
-            resource_site(s, material, by, stage)
+            resource_site(s, material, by, stage, rnd)
         elif kind == "ruin":
-            cottage(s, x, y, ruined=True)
-        elif kind == "c":
-            cottage(s, x, y, rnd=rnd)
-        elif kind == "s":
-            cottage(s, x, y, stone=True, rnd=rnd, h=5)
+            cottage(s, x, y, ruined=True, **big)
+        elif kind in ("c", "s"):
+            b = cottage(s, x, y, stone=kind == "s", rnd=rnd, **big)
+            if kind == "c" and (x, y) == right:
+                chimney_at = (b["cx"] - 5, b["by"] - b["h"] - 6)
         elif kind == "k":
             b = chapel(s, x, y, rnd)
-            top = (int(b["B"][0]) - 1, int(b["B"][1]) - 1)
+            top = (int(b["B"][0]) + 1, int(b["B"][1]) - 4)
+        elif kind == "well":
+            village_well(s, x, y)
         else:
-            # pozo con su tejadillo
-            s.ellipse(x, y - 2, 3, 2, "r2")
-            s.rect(x - 3, y - 4, x + 3, y - 2, "r2")
-            s.ellipse(x, y - 4, 2, 1, "#141612")
-            s.rect(x - 3, y - 9, x - 3, y - 3, "w1")
-            s.rect(x + 3, y - 9, x + 3, y - 3, "w1")
-            s.line((x - 4, y - 9), (x, y - 11), "sh2")
-            s.line((x, y - 11), (x + 4, y - 9), "sh0")
+            kitchen_garden(s, x, y, rnd)
     if stage == 0:
-        for (x, y) in ((16, by - 6), (27, by - 1), (10, by - 2)):
+        for (x, y) in ((30, by - 10), (52, by - 4), (22, by - 6), (46, by - 15)):
             s.px(x, y, "l2")
             s.px(x + 1, y - 1, "l3")
+            s.px(x - 1, y - 1, "l1")
+    if chimney_at and stage >= 2:
+        chimney(s, chimney_at[0], chimney_at[1], 4)
+        smoke(s, chimney_at[0] + 1, chimney_at[1] - 6)
     if top:
-        banner(s, top[0], top[1], 7, flip=True)
+        banner(s, top[0], top[1], 8, flip=True)
     return finish(s, g)
 
 

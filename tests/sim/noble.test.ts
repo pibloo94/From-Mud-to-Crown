@@ -105,6 +105,8 @@ describe('carta de nobleza', () => {
     expect(interact(s, manor.x, manor.y)).toEqual({ kind: 'manor', hamlet: null });
     const q = NOBILITY.hamlets.quarry;
     expect(interact(s, q.x, q.y)).toEqual({ kind: 'manor', hamlet: 'quarry' });
+    // la aldea ocupa 2x2: cualquiera de sus casillas lleva a ella
+    expect(interact(s, q.x + 1, q.y + 1)).toEqual({ kind: 'manor', hamlet: 'quarry' });
   });
 });
 
