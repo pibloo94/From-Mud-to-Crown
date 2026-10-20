@@ -1224,6 +1224,7 @@ button.level-box:hover .rank-text {
 
 .sheet.building > .btn,
 .sheet.progress > .btn,
+.sheet.menu > .btn,
 .sheet.season-card > .btn,
 .villager-list > .btn {
   width: 100%;
@@ -1463,13 +1464,15 @@ button.level-box:hover .rank-text {
 
 /* ------------------------------------------------------------ arbol de progreso */
 
-.sheet.progress {
+.sheet.progress,
+.sheet.menu {
   display: flex;
   flex-direction: column;
   max-height: calc(100dvh - 40px);
 }
 
-.progress-body {
+.progress-body,
+.scroll-body {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
@@ -1477,6 +1480,10 @@ button.level-box:hover .rank-text {
   padding: 0 8px;
   text-align: left;
   overscroll-behavior: contain;
+}
+
+.sheet.menu .scroll-body {
+  text-align: center;
 }
 
 .tree {

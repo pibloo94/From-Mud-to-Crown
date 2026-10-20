@@ -127,6 +127,16 @@ class Spr:
             self.poly([(cx - a, by - hb - h), (cx, by - h), (cx + a - 1, by - hb - h), (cx, by - a - h)], top)
         return {"L": (cx - a, by - hb - h), "F": (cx, by - h), "R": (cx + a - 1, by - hb - h), "B": (cx, by - a - h), "h": h, "a": a, "cx": cx, "by": by}
 
+    def box2(self, cx, by, al, ar, h, left, right, top=None):
+        """Caja de planta rectangular: pared izquierda de al px de ancho y derecha de ar (pares)."""
+        self.poly([(cx - al, by - al // 2), (cx - 1, by), (cx - 1, by - h), (cx - al, by - al // 2 - h)], left)
+        self.poly([(cx, by), (cx + ar - 1, by - ar // 2), (cx + ar - 1, by - ar // 2 - h), (cx, by - h)], right)
+        B = (cx - al + ar, by - al // 2 - ar // 2 - h)
+        if top:
+            self.poly([(cx - al, by - al // 2 - h), (cx, by - h), (cx + ar - 1, by - ar // 2 - h), B], top)
+        return {"L": (cx - al, by - al // 2 - h), "F": (cx, by - h), "R": (cx + ar - 1, by - ar // 2 - h), "B": B,
+                "h": h, "a": al, "al": al, "ar": ar, "cx": cx, "by": by}
+
     def wall(self, cx, by, a, side, x0, x1, z0, z1, c):
         """Rellena en una pared (side 'l' o 'r') entre las columnas x0..x1 y alturas z0..z1."""
         for x in range(int(x0), int(x1) + 1):
@@ -211,8 +221,13 @@ def timber_texture(s: Spr, cx, by, a, h, low=0):
         s.wall(cx, by, a, side, x0, x1, h - 1, h, "w1")
 
 
+def side_width(b, side):
+    """Ancho en pixeles de una pared de la caja (las cajas cuadradas solo traen `a`)."""
+    return b.get("al" if side == "l" else "ar", b["a"])
+
+
 def door(s: Spr, b, side, f, w=3, hgt=5, c="w1"):
-    a, cx, by = b["a"], b["cx"], b["by"]
+    a, cx, by = side_width(b, side), b["cx"], b["by"]
     if side == "l":
         x0 = cx - a + int((a - w) * f)
     else:
@@ -222,7 +237,7 @@ def door(s: Spr, b, side, f, w=3, hgt=5, c="w1"):
 
 
 def window(s: Spr, b, side, f, z, lit=True, w=2, hgt=2):
-    a, cx, by = b["a"], b["cx"], b["by"]
+    a, cx, by = side_width(b, side), b["cx"], b["by"]
     x0 = (cx - a + int((a - w) * f)) if side == "l" else (cx + int((a - w) * f))
     s.wall(cx, by, a, side, x0, x0 + w - 1, z, z + hgt, "glow" if lit else "w0")
 
@@ -559,66 +574,147 @@ def well() -> Spr:
 
 # ================================================================== edificios de la granja
 
+def frame_walls(s: Spr, b, z0, z1, c="w1"):
+    """Entramado en una caja rectangular: postes en esquinas y cada ~6 px, solera y viga alta."""
+    cx, by = b["cx"], b["by"]
+    for side in ("l", "r"):
+        a = side_width(b, side)
+        x0, x1 = (cx - a, cx - 1) if side == "l" else (cx, cx + a - 1)
+        n = max(1, round(a / 6))
+        for k in range(n + 1):
+            x = round(x0 + (x1 - x0) * k / n)
+            s.wall(cx, by, a, side, x, x, z0, z1, c)
+        s.wall(cx, by, a, side, x0, x1, z0, z0 + 1, c)
+        s.wall(cx, by, a, side, x0, x1, z1 - 1, z1, c)
+
+
+def shutters(s: Spr, b, side, f, z, w=2, hgt=3):
+    """Ventana iluminada con dos postigos abiertos y alfeizar."""
+    a, cx, by = side_width(b, side), b["cx"], b["by"]
+    x0 = (cx - a + int((a - w) * f)) if side == "l" else (cx + int((a - w) * f))
+    s.wall(cx, by, a, side, x0, x0 + w - 1, z, z + hgt, "glow")
+    s.wall(cx, by, a, side, x0 - 1, x0 - 1, z, z + hgt, "w2")
+    s.wall(cx, by, a, side, x0 + w, x0 + w, z, z + hgt, "w2")
+    s.wall(cx, by, a, side, x0 - 1, x0 + w, z - 1, z, "w1")
+
+
+def smoke(s: Spr, x, y):
+    """Penacho de humo sobre una chimenea."""
+    for (dx, dy, c) in ((0, 0, "r3"), (1, -1, "r4"), (0, -2, "r3"), (1, -3, "r4"), (2, -4, "r3")):
+        s.px(x + dx, y + dy, c, 200)
+
+
 def house(stage: int) -> Spr:
-    """Casa: 1 choza de entramado con paja, 2 casa mas grande con chimenea, 3 planta de piedra y tejas."""
+    """Vivienda de planta alargada, mas grande que el gallinero y con fachada de enlucido.
+
+    1 casa de entramado con paja; 2 mas larga y alta, con chimenea y banco; 3 planta baja de
+    piedra, piso de entramado y tejado de tejas."""
     rnd = random.Random(30 + stage)
-    s = Spr(TW, 46)
-    by = 44
-    cx = 16
-    ground_shadow(s, cx, by, 13, 4)
-    a = {1: 10, 2: 12, 3: 13}[stage]
-    a -= a % 2
-    h = {1: 8, 2: 10, 3: 13}[stage]
+    s = Spr(TW, 54)
+    by = 51
+    al, ar, h, rise = {1: (14, 10, 10, 10), 2: (16, 10, 12, 11), 3: (16, 12, 17, 11)}[stage]
+    cx = 16 + (al - ar) // 2
+    ground_shadow(s, 16, by + 1, 14, 4)
     if stage < 3:
-        b = s.box(cx, by - 1, a, h, "pl2", "pl0")
-        timber_texture(s, cx, by - 1, a, h)
-        door(s, b, "r", 0.3, 3, 5)
-        window(s, b, "l", 0.4, 4)
+        b = s.box2(cx, by, al, ar, h, "pl2", "pl0")
+        frame_walls(s, b, 0, h)
+        # diagonales de refuerzo en el hastial
+        s.line((cx + 1, by - 1 - 2), (cx + ar - 2, by - ar // 2 - h + 2), "w1")
+        door(s, b, "l", 0.62, 3, 6, "w2")
+        shutters(s, b, "l", 0.22, 4)
         if stage == 2:
-            window(s, b, "r", 0.8, 5)
-        rise = {1: 7, 2: 9}[stage]
+            shutters(s, b, "l", 0.92, 5)
+        shutters(s, b, "r", 0.5, h - 5)
         m1, m2 = s.gable_roof(b, rise, "st2", "st1", "pl1", 1, straw_texture, rnd)
         if stage == 2:
-            chimney(s, int(m2[0]) - 3, int(m2[1]) + 2, 5)
+            cxh = int(m1[0] + (m2[0] - m1[0]) * 0.3)
+            cyh = int(m1[1] + (m2[1] - m1[1]) * 0.3) + 1
+            chimney(s, cxh, cyh, 5)
+            smoke(s, cxh + 1, cyh - 7)
+            # banco junto a la puerta
+            s.line((cx - 6, by - 1), (cx - 3, by + 0), "w3")
+        else:
+            # leña apilada en el hastial
+            for k in range(3):
+                s.ellipse(cx + ar - 4 - k * 2, by - ar // 2 + 3 + k, 1, 1, "w3")
     else:
-        b = s.box(cx, by - 1, a, h, "r2", "r1")
-        stone_texture(s, cx, by - 1, a, 6, rnd)
-        # piso alto de entramado
-        s.wall(cx, by - 1, a, "l", cx - a, cx - 1, 6, h, "pl2")
-        s.wall(cx, by - 1, a, "r", cx, cx + a - 1, 6, h, "pl0")
-        timber_texture(s, cx, by - 1, a, h, 6)
-        door(s, b, "r", 0.25, 3, 5, "red0")
-        window(s, b, "l", 0.3, 8)
-        window(s, b, "l", 0.75, 8)
-        window(s, b, "r", 0.75, 8)
-        m1, m2 = s.gable_roof(b, 9, "sh2", "sh0", "pl1", 1, shingle_texture("sh1", "sh2"), rnd)
-        chimney(s, int(m2[0]) - 3, int(m2[1]) + 2, 6)
-        banner(s, int(m1[0]) + 1, int(m1[1]) + 1, 8)
+        b = s.box2(cx, by, al, ar, h, "r2", "r1")
+        stone_low = 7
+        for side in ("l", "r"):
+            a = side_width(b, side)
+            x0, x1 = (cx - a, cx - 1) if side == "l" else (cx, cx + a - 1)
+            for row, z in enumerate(range(0, stone_low, 3)):
+                off = 0 if row % 2 else 2
+                for x in range(x0 + off, x1 + 1, 4):
+                    s.wall(cx, by, a, side, x, x, z, min(stone_low, z + 3), "r1" if side == "l" else "r0")
+            s.wall(cx, by, a, side, x0, x1, stone_low, h, "pl2" if side == "l" else "pl0")
+        frame_walls(s, b, stone_low, h)
+        door(s, b, "l", 0.6, 3, 6, "red0")
+        shutters(s, b, "l", 0.2, 3)
+        shutters(s, b, "l", 0.2, 10)
+        shutters(s, b, "l", 0.9, 10)
+        shutters(s, b, "r", 0.5, 10)
+        m1, m2 = s.gable_roof(b, rise, "sh2", "sh0", "pl1", 1, shingle_texture("sh1", "sh2"), rnd)
+        cxh = int(m1[0] + (m2[0] - m1[0]) * 0.3)
+        cyh = int(m1[1] + (m2[1] - m1[1]) * 0.3) + 1
+        chimney(s, cxh, cyh, 6)
+        smoke(s, cxh + 1, cyh - 8)
+        banner(s, int(m2[0]), int(m2[1]) + 1, 8)
     return finish(s)
 
 
+def tent_awning(s: Spr, cx, ey, a, rise, light, dark, n=6, valance=True):
+    """Toldo a cuatro aguas visto en isometrico: faldones delanteros a rayas que bajan del vertice
+    a los aleros y un faldon festoneado colgando del borde. `light` y `dark` son pares de colores
+    (cara iluminada, cara en sombra)."""
+    L = (cx - a, ey - a / 2)
+    F = (cx, ey)
+    R = (cx + a - 1, ey - a / 2)
+    B = (cx, ey - a)
+    top = (cx, ey - a / 2 - rise)
+    s.poly([L, B, top], dark[1])
+    s.poly([B, R, top], dark[1])
+
+    def lerp(p, q, f):
+        return (p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f)
+
+    for k in range(n):
+        s.poly([lerp(L, F, k / n), lerp(L, F, (k + 1) / n), top], light[k % 2])
+        s.poly([lerp(F, R, k / n), lerp(F, R, (k + 1) / n), top], dark[k % 2])
+    if valance:
+        for k in range(n):
+            for (p, q, cols) in ((L, F, light), (F, R, dark)):
+                p0, p1 = lerp(p, q, k / n), lerp(p, q, (k + 1) / n)
+                mid = lerp(p, q, (k + 0.5) / n)
+                s.poly([p0, p1, (p1[0], p1[1] + 2), (mid[0], mid[1] + 3), (p0[0], p0[1] + 2)], cols[k % 2])
+    return top
+
+
 def market() -> Spr:
-    """Puesto del camino: mostrador con generos y toldo a rayas granate y crema."""
-    s = Spr(TW, 36)
-    by = 34
+    """Mercado de la villa: mostrador con generos bajo un toldo a cuatro aguas granate y crema."""
+    s = Spr(TW, 44)
+    by = 42
     cx = 16
-    ground_shadow(s, cx, by, 13, 4)
-    b = s.box(cx, by - 1, 12, 6, "w3", "w2", "w4")
-    for (x, y, c) in ((11, by - 13, "st3"), (14, by - 12, "carrot"), (17, by - 13, "cab"), (20, by - 14, "cream"), (16, by - 15, "milk")):
+    a = 14
+    ground_shadow(s, cx, by, 14, 4)
+    post_h = 14
+    # poste trasero (detras del mostrador)
+    s.rect(cx, by - a - post_h, cx, by - a, "w1")
+    # mostrador
+    s.box(cx, by - 2, 11, 6, "w3", "w2", "w4")
+    for x in range(cx - 10, cx, 3):
+        s.wall(cx, by - 2, 11, "l", x, x, 0, 6, "w2")
+    # generos sobre el mostrador: cestas de trigo, zanahorias, coles, quesos y una jarra
+    goods = ((cx - 6, by - 13, "st3"), (cx - 3, by - 12, "carrot"), (cx, by - 11, "cab"),
+             (cx + 3, by - 12, "cream"), (cx + 5, by - 14, "milk"), (cx - 1, by - 15, "st2"))
+    for (x, y, c) in goods:
         s.rect(x, y, x + 1, y + 1, c)
-    for x in (5, 27):
-        s.rect(x, by - 24, x, by - 6, "w1")
-    s.rect(16, by - 26, 16, by - 1, "w1")
-    # toldo a rayas
-    top = by - 26
-    for k in range(12):
-        c = "red1" if k % 2 == 0 else "cream"
-        x0 = 4 + k * 2
-        s.poly([(x0, top + 6), (x0 + 2, top + 6), (16 if k < 6 else x0 + 2, top), (16 if k < 6 else x0, top)], c)
-    s.poly([(3, top + 6), (16, top + 12), (29, top + 6), (29, top + 7), (16, top + 13), (3, top + 7)], "red0")
-    for k in range(0, 26, 4):
-        s.px(3 + k, top + 7 + (k if k < 13 else 26 - k) // 2, "cream0")
-    banner(s, 16, top, 6)
+        s.px(x, y + 2, "w1")
+    # postes delanteros
+    for (x, y) in ((cx - a + 1, by - a // 2), (cx, by - 1), (cx + a - 2, by - a // 2)):
+        s.rect(x, y - post_h, x, y, "w1")
+    top = tent_awning(s, cx, by - 1 - post_h, a, 8, ("red1", "cream"), ("red0", "cream0"))
+    banner(s, cx, int(top[1]), 6)
     return finish(s)
 
 
@@ -654,35 +750,59 @@ def granary(stage: int) -> Spr:
     return finish(s)
 
 
+def shed_roof(s: Spr, b, rise, top, side, over=1, texture=None):
+    """Tejado de una sola agua que sube hacia atras (cobertizos y gallineros)."""
+    L, F, R, B = b["L"], b["F"], b["R"], b["B"]
+    Lr = (L[0] - over, L[1] - rise / 2)
+    Rr = (R[0] + over, R[1] - rise / 2)
+    Br = (B[0], B[1] - rise)
+    Fo = (F[0], F[1] + over)
+    s.poly([L, F, Lr], side)
+    s.poly([F, R, Rr], side)
+    s.poly([Fo, Rr, Br, Lr], top)
+    if texture:
+        for k in range(1, 4):
+            f = k / 4
+            p = (Lr[0] + (Fo[0] - Lr[0]) * f, Lr[1] + (Fo[1] - Lr[1]) * f)
+            q = (Br[0] + (Rr[0] - Br[0]) * f, Br[1] + (Rr[1] - Br[1]) * f)
+            s.line(p, q, texture)
+    return Br
+
+
 def coop(stage: int) -> Spr:
-    """Gallinero: caseta con rampa; crece con nidales y un cercado."""
-    rnd = random.Random(50 + stage)
-    s = Spr(TW, 36)
-    by = 34
+    """Gallinero: caseta baja de tablas sobre patas, con tejado de una sola agua, trampilla y
+    rampa con travesanos. Crece con nidales y un corralito de estacas."""
+    s = Spr(TW, 34)
+    by = 32
     cx = 16
-    ground_shadow(s, cx, by, 11, 4)
-    a = {1: 8, 2: 9, 3: 10}[stage]
-    a -= a % 2
-    h = {1: 6, 2: 7, 3: 8}[stage]
-    lift = 2
-    s.rect(cx - a + 1, by - a // 2 - lift, cx - a + 1, by - a // 2, "w1")
-    s.rect(cx, by - lift, cx, by, "w1")
-    b = s.box(cx, by - lift, a, h, "w4", "w2")
-    for x in range(cx - a + 1, cx, 3):
-        s.wall(cx, by - lift, a, "l", x, x, 0, h, "w3")
-    door(s, b, "r", 0.5, 2, 3, "w0")
-    # rampa
-    s.line((cx + a // 2 + 1, by - a // 4 - lift), (cx + a // 2 + 4, by - a // 4 + 2), "w3")
-    s.gable_roof(b, 5 + stage, "st2" if stage < 3 else "sh2", "st1" if stage < 3 else "sh0", "w3", 1,
-                 straw_texture if stage < 3 else shingle_texture("sh1", "sh2"), rnd)
+    ground_shadow(s, cx, by, 11, 3)
+    a = {1: 8, 2: 8, 3: 10}[stage]
+    h = {1: 5, 2: 6, 3: 6}[stage]
+    lift = 4
+    for (x, y) in ((cx - a + 1, by - a // 2), (cx, by), (cx + a - 2, by - a // 2)):
+        s.rect(x, y - lift, x, y, "w1")
+    b = s.box(cx, by - lift, a, h, "w3", "w2")
+    for x in range(cx - a + 1, cx, 2):
+        s.wall(cx, by - lift, a, "l", x, x, 0, h, "w2")
+    for x in range(cx + 1, cx + a, 2):
+        s.wall(cx, by - lift, a, "r", x, x, 0, h, "w1")
+    # trampilla y rampa con travesanos hasta el suelo
+    door(s, b, "r", 0.35, 2, 3, "w0")
+    x0, y0 = cx + 3, by - lift - 1
+    s.line((x0, y0), (x0 + 5, y0 + 5), "w4")
+    s.line((x0 + 1, y0), (x0 + 6, y0 + 5), "w3")
+    for k in (1, 3):
+        s.px(x0 + k + 1, y0 + k, "w1")
+    shed_roof(s, b, 5, "st2" if stage < 3 else "sh2", "w3", 1, "st1" if stage < 3 else "sh1")
     if stage >= 2:
-        # nidales en el lateral
-        s.wall(cx, by - lift, a, "l", cx - a, cx - a + 3, 1, 4, "st3")
+        # nidales con paja asomando en el lateral
+        s.wall(cx, by - lift, a, "l", cx - a, cx - a + 3, 1, 4, "w4")
+        s.wall(cx, by - lift, a, "l", cx - a + 1, cx - a + 2, 2, 3, "st3")
     if stage == 3:
-        # cercado de estacas delante
-        for k in range(0, 12, 2):
-            s.rect(2 + k, by - 4 + k // 2 - 3, 2 + k, by - 4 + k // 2, "w2")
-        s.line((2, by - 6), (12, by - 1), "w3")
+        # corralito de estacas delante, a la izquierda
+        for k in range(0, 12, 3):
+            s.rect(1 + k, by - 7 + k // 2, 1 + k, by - 4 + k // 2, "w2")
+        s.line((1, by - 6), (10, by - 1), "w3")
     return finish(s)
 
 
@@ -701,21 +821,20 @@ def pen_shed() -> Spr:
 
 
 def stall() -> Spr:
-    """Puesto propio: mostrador con toldo verde y ocre."""
-    s = Spr(TW, 30)
-    by = 28
+    """Puesto propio: mostrador pequeno con toldo a cuatro aguas verde y ocre."""
+    s = Spr(TW, 36)
+    by = 34
     cx = 16
-    ground_shadow(s, cx, by, 11, 4)
-    s.box(cx, by - 1, 10, 5, "w3", "w2", "w4")
-    for (x, y, c) in ((12, by - 11, "gold"), (16, by - 10, "cream"), (19, by - 11, "carrot")):
+    a = 11
+    ground_shadow(s, cx, by, 12, 4)
+    post_h = 11
+    s.rect(cx, by - a - post_h, cx, by - a, "w1")
+    s.box(cx, by - 2, 9, 5, "w3", "w2", "w4")
+    for (x, y, c) in ((cx - 4, by - 11, "gold"), (cx, by - 10, "cream"), (cx + 3, by - 11, "carrot")):
         s.rect(x, y, x + 1, y + 1, c)
-    for x in (7, 25):
-        s.rect(x, by - 19, x, by - 5, "w1")
-    top = by - 21
-    for k in range(10):
-        c = "l2" if k % 2 == 0 else "st2"
-        s.poly([(6 + k * 2, top + 5), (8 + k * 2, top + 5), (16, top), (16, top)], c)
-    s.poly([(5, top + 5), (16, top + 10), (27, top + 5), (27, top + 6), (16, top + 11), (5, top + 6)], "l1")
+    for (x, y) in ((cx - a + 1, by - a // 2), (cx, by - 1), (cx + a - 2, by - a // 2)):
+        s.rect(x, y - post_h, x, y, "w1")
+    tent_awning(s, cx, by - 1 - post_h, a, 6, ("l3", "st3"), ("l1", "st1"), 4)
     return finish(s)
 
 
