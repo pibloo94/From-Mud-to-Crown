@@ -488,7 +488,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       tip: () => tipView(sim, (modal as Extract<Modal, { kind: 'tip' }>).id, () => closeModal()),
     };
     // Al repintar la misma ventana se conserva el desplazamiento (p. ej. al mejorar algo de la lista).
-    const prevBody = overlay.querySelector<HTMLElement>('.progress-body');
+    const prevBody = overlay.querySelector<HTMLElement>('.progress-body, .scroll-body');
     const keepScroll = overlay.dataset.view === viewKey(modal) ? { overlay: overlay.scrollTop, body: prevBody?.scrollTop ?? 0 } : null;
     const view = views[modal.kind]();
     if (history.length > 0 && view.classList.contains('sheet')) {
@@ -500,7 +500,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     overlay.dataset.view = viewKey(modal);
     if (keepScroll) {
       overlay.scrollTop = keepScroll.overlay;
-      const body = overlay.querySelector<HTMLElement>('.progress-body');
+      const body = overlay.querySelector<HTMLElement>('.progress-body, .scroll-body');
       if (body) body.scrollTop = keepScroll.body;
     } else if (modal.kind === 'progress' && modal.tab === 'levels') {
       scrollTreeToCurrent(overlay);
@@ -590,52 +590,57 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
 
   function menuView(): HTMLElement {
     if (confirmingNew) return confirmNewView();
+    // Como en Progreso: el titulo y «Continuar» quedan fijos y lo de en medio se desplaza.
     return h(
       'div',
-      { class: 'sheet' },
+      { class: 'sheet menu' },
       h('h2', {}, t('menu.title')),
       h(
         'div',
-        { class: 'stack' },
-        h('button', { class: 'btn primary', onclick: () => closeModal() }, t('menu.resume')),
-        h('button', { class: 'btn', onclick: () => void saveFlow(false) }, t('menu.save')),
-        supportsFilePicker() && hasLinkedFile() && h('button', { class: 'btn', onclick: () => void saveFlow(true) }, t('menu.saveAs')),
-        h('button', { class: 'btn', onclick: () => void loadFlow(false) }, t('menu.load')),
-        h('button', { class: 'btn danger', onclick: () => ((confirmingNew = true), renderModal()) }, t('menu.newGame')),
+        { class: 'scroll-body' },
         h(
-          'button',
-          {
-            class: 'btn',
-            onclick: () => {
-              sim.restartTutorial();
-              closeModal();
-              tipShown = null;
-              // La bienvenida espera, en pausa, a que se pulse Empezar.
-              sim.setSpeed(0);
+          'div',
+          { class: 'stack' },
+          h('button', { class: 'btn', onclick: () => void saveFlow(false) }, t('menu.save')),
+          supportsFilePicker() && hasLinkedFile() && h('button', { class: 'btn', onclick: () => void saveFlow(true) }, t('menu.saveAs')),
+          h('button', { class: 'btn', onclick: () => void loadFlow(false) }, t('menu.load')),
+          h('button', { class: 'btn danger', onclick: () => ((confirmingNew = true), renderModal()) }, t('menu.newGame')),
+          h(
+            'button',
+            {
+              class: 'btn',
+              onclick: () => {
+                sim.restartTutorial();
+                closeModal();
+                tipShown = null;
+                // La bienvenida espera, en pausa, a que se pulse Empezar.
+                sim.setSpeed(0);
+              },
             },
-          },
-          t('menu.tutorialAgain'),
-        ),
-        h(
-          'button',
-          {
-            class: 'btn',
-            'aria-pressed': String(sim.state.tutorial.tips),
-            onclick: () => {
-              sim.setTips(!sim.state.tutorial.tips);
-              renderModal();
+            t('menu.tutorialAgain'),
+          ),
+          h(
+            'button',
+            {
+              class: 'btn',
+              'aria-pressed': String(sim.state.tutorial.tips),
+              onclick: () => {
+                sim.setTips(!sim.state.tutorial.tips);
+                renderModal();
+              },
             },
-          },
-          t(sim.state.tutorial.tips ? 'menu.tipsOn' : 'menu.tipsOff'),
+            t(sim.state.tutorial.tips ? 'menu.tipsOn' : 'menu.tipsOff'),
+          ),
         ),
+        h('h3', { class: 'market-section' }, t('menu.sound')),
+        volumeRow(t('menu.music'), music.getVolume(), (v) => music.setVolume(v)),
+        volumeRow(t('menu.fanfares'), fanfare.getVolume(), (v) => fanfare.setVolume(v), () => fanfare.play('level')),
+        h('p', { class: 'hint' }, t(supportsFilePicker() ? 'menu.saveHintFile' : 'menu.saveHintDownload')),
+        h('p', { class: 'howto' }, t('menu.howTo')),
+        h('p', { class: 'hint keys' }, t('menu.keys')),
+        langSwitch(),
       ),
-      h('h3', { class: 'market-section' }, t('menu.sound')),
-      volumeRow(t('menu.music'), music.getVolume(), (v) => music.setVolume(v)),
-      volumeRow(t('menu.fanfares'), fanfare.getVolume(), (v) => fanfare.setVolume(v), () => fanfare.play('level')),
-      h('p', { class: 'hint' }, t(supportsFilePicker() ? 'menu.saveHintFile' : 'menu.saveHintDownload')),
-      h('p', { class: 'howto' }, t('menu.howTo')),
-      h('p', { class: 'hint keys' }, t('menu.keys')),
-      langSwitch(),
+      h('button', { class: 'btn primary', onclick: () => closeModal() }, t('menu.resume')),
     );
   }
 
