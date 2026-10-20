@@ -54,6 +54,9 @@ P = {
     "hen": "#8a5b3a", "hen0": "#5f3d26", "comb": "#8c2a1d", "beak": "#c08a35",
     "carrot": "#b8652c", "cab": "#6f8a52", "cab1": "#8aa36a", "cab0": "#4e6a3c",
     "iron": "#2f2e2b", "iron1": "#4a4843", "milk": "#e4dcc8",
+    # nieve (fria y apagada, no blanca pura) y barro cocido del horno
+    "sn0": "#7f8a8e", "sn1": "#a3abac", "sn2": "#c3c8c4", "sn3": "#dcdfd8",
+    "cl0": "#5c3424", "cl1": "#7e4a31", "cl2": "#9c613d", "fire": "#d0702a",
 }
 
 
@@ -821,20 +824,35 @@ def pen_shed() -> Spr:
 
 
 def stall() -> Spr:
-    """Puesto propio: mostrador pequeno con toldo a cuatro aguas verde y ocre."""
+    """Puesto propio: mostrador con genero bajo un toldo a cuatro aguas verde y ocre, con un tonel,
+    una caja de fruta y ristras colgando del alero."""
     s = Spr(TW, 36)
     by = 34
     cx = 16
     a = 11
-    ground_shadow(s, cx, by, 12, 4)
+    ground_shadow(s, cx, by, 13, 4)
     post_h = 11
     s.rect(cx, by - a - post_h, cx, by - a, "w1")
     s.box(cx, by - 2, 9, 5, "w3", "w2", "w4")
-    for (x, y, c) in ((cx - 4, by - 11, "gold"), (cx, by - 10, "cream"), (cx + 3, by - 11, "carrot")):
+    for x in range(cx - 8, cx, 3):
+        s.wall(cx, by - 2, 9, "l", x, x, 0, 5, "w2")
+    for (x, y, c) in ((cx - 5, by - 11, "gold"), (cx - 2, by - 10, "cream"), (cx + 1, by - 11, "carrot"),
+                      (cx + 3, by - 12, "cab"), (cx - 1, by - 13, "milk")):
         s.rect(x, y, x + 1, y + 1, c)
     for (x, y) in ((cx - a + 1, by - a // 2), (cx, by - 1), (cx + a - 2, by - a // 2)):
         s.rect(x, y - post_h, x, y, "w1")
-    tent_awning(s, cx, by - 1 - post_h, a, 6, ("l3", "st3"), ("l1", "st1"), 4)
+    ey = by - 1 - post_h
+    tent_awning(s, cx, ey, a, 6, ("l3", "st3"), ("l1", "st1"), 4)
+    # ristras de ajos y cebollas colgando del alero
+    for x in (cx - 6, cx + 5):
+        y0 = ey - abs(x - cx) // 2 + 3
+        s.rect(x, y0, x, y0 + 3, "cream0" if x < cx else "st3")
+    # tonel a la izquierda y caja de fruta a la derecha, delante
+    s.rect(2, by - 10, 6, by - 4, "w3")
+    s.rect(2, by - 8, 6, by - 8, "iron")
+    s.rect(2, by - 5, 6, by - 5, "iron")
+    s.rect(3, by - 10, 5, by - 10, "w4")
+    s.box(26, by - 2, 4, 3, "w4", "w3", "carrot")
     return finish(s)
 
 
@@ -890,29 +908,48 @@ def windmill() -> Spr:
 
 
 def bakery() -> Spr:
-    """Horno: casa de piedra con horno abombado al lado y humo."""
+    """Horno de pan: obrador de piedra con tejado de paja, gran horno de barro abombado con la boca
+    encendida, chimenea con humo, muestra con una hogaza, sacos de harina y lena."""
     rnd = random.Random(61)
-    s = Spr(TW, 42)
-    by = 40
-    cx = 15
-    ground_shadow(s, 16, by, 12, 4)
-    b = s.box(cx, by - 1, 10, 10, "r2", "r1")
-    stone_texture(s, cx, by - 1, 10, 10, rnd)
-    door(s, b, "r", 0.3, 3, 5, "w1")
-    window(s, b, "l", 0.5, 5)
-    s.gable_roof(b, 7, "st2", "st1", "r2", 1, straw_texture, rnd)
-    # horno abombado a la derecha, delante
-    s.ellipse(26, by - 6, 5, 4, "r3")
-    s.ellipse(25, by - 7, 3, 2, "r4")
-    s.ellipse(27, by - 4, 2, 2, "#e07a2a")
-    s.px(27, by - 4, "glow")
-    # humo
-    for k, (x, y) in enumerate(((22, 4), (21, 2), (23, 0))):
-        s.px(x, y + 6, "r4")
-        s.px(x + 1, y + 6, "r3")
-    # panes
-    s.rect(4, by - 4, 5, by - 3, "st1")
-    s.rect(7, by - 3, 8, by - 2, "st2")
+    s = Spr(TW, 46)
+    by = 43
+    al, ar, h = 12, 8, 9
+    cx = 13
+    ground_shadow(s, 16, by + 1, 14, 4)
+    # lena apilada contra la pared del fondo, a la izquierda
+    for k in range(3):
+        for j in range(3 - k):
+            s.ellipse(3 + j * 2 + k, by - 11 - k * 2, 1, 1, "w3")
+            s.px(3 + j * 2 + k, by - 11 - k * 2, "w4")
+    b = s.box2(cx, by, al, ar, h, "r2", "r1")
+    stone_texture(s, cx, by, min(al, ar), h, rnd)
+    door(s, b, "l", 0.62, 3, 6, "w2")
+    shutters(s, b, "l", 0.18, 4)
+    m1, m2 = s.gable_roof(b, 9, "st2", "st1", "r2", 1, straw_texture, rnd)
+    xh, yh = int(m1[0] + (m2[0] - m1[0]) * 0.35), int(m1[1] + (m2[1] - m1[1]) * 0.35) + 1
+    chimney(s, xh, yh, 5)
+    smoke(s, xh + 1, yh - 7)
+    # muestra colgada de un brazo de hierro con una hogaza
+    sx, sy = cx - 4, by - h - 1
+    s.line((sx, sy), (sx - 4, sy - 2), "iron")
+    s.rect(sx - 5, sy - 1, sx - 3, sy + 2, "w3")
+    s.rect(sx - 5, sy, sx - 3, sy + 1, "st3")
+    # horno de barro delante a la derecha: base de piedra y cupula con la boca encendida
+    ox, oy = 25, by - 3
+    s.ellipse(ox, oy - 1, 6, 3, "r2")
+    s.rect(ox - 6, oy - 4, ox + 6, oy - 1, "r2")
+    s.ellipse(ox, oy - 4, 6, 3, "r3")
+    s.ellipse(ox, oy - 8, 5, 5, "cl1")
+    s.ellipse(ox - 1, oy - 10, 3, 3, "cl2")
+    s.px(ox - 2, oy - 11, "pl1")
+    s.rect(ox - 1, oy - 7, ox + 2, oy - 4, "w0")
+    s.rect(ox, oy - 6, ox + 1, oy - 4, "fire")
+    s.px(ox, oy - 5, "glow")
+    s.rect(ox + 3, oy - 14, ox + 4, oy - 11, "cl0")
+    # sacos de harina y una pala de horno
+    s.ellipse(cx + 3, by - 2, 2, 2, "cream")
+    s.ellipse(cx + 6, by - 3, 2, 2, "cream0")
+    s.line((ox + 6, oy - 2), (ox + 3, oy - 12), "w3")
     return finish(s)
 
 
@@ -1031,42 +1068,193 @@ def manor(stage: int) -> Spr:
     return finish(s)
 
 
+def cottage(s: Spr, cx, by, stone=False, ruined=False, rnd=None, al=6, ar=4, h=4):
+    """Casita de aldea: planta alargada, paja (o pizarra si es de piedra). En ruinas, sin tejado."""
+    walls = ("r3", "r1") if stone else ("pl2", "pl0")
+    if ruined:
+        b = s.box2(cx, by, al, ar, 3, *walls)
+        # muros desmochados y una viga caida
+        s.wall(cx, by, al, "l", cx - al, cx - al + 1, 3, 5, walls[0])
+        s.wall(cx, by, ar, "r", cx + ar - 2, cx + ar - 1, 3, 4, walls[1])
+        s.line((cx - al + 1, by - al // 2 - 4), (cx + 1, by - 1), "w1")
+        return b
+    b = s.box2(cx, by, al, ar, h, *walls)
+    if not stone:
+        frame_walls(s, b, 0, h)
+    door(s, b, "l", 0.7, 2, 3, "w1")
+    window(s, b, "l", 0.1, 2, True, 1, 1)
+    s.gable_roof(b, 4, "sh2" if stone else "st2", "sh0" if stone else "st1", walls[1], 1,
+                 shingle_texture("sh1", "sh2") if stone else straw_texture, rnd or random.Random(1))
+    return b
+
+
+def chapel(s: Spr, cx, by, rnd):
+    """Capilla con espadana: nave pequena de piedra y torrecilla con campana."""
+    b = s.box2(cx, by, 8, 4, 7, "r3", "r1")
+    stone_texture(s, cx, by, 4, 7, rnd)
+    door(s, b, "r", 0.3, 2, 4, "w1")
+    m1, m2 = s.gable_roof(b, 4, "sh2", "sh0", "r2", 1, shingle_texture("sh1", "sh2"), rnd)
+    # espadana sobre el hastial con la campana
+    x, y = int(m2[0]) - 1, int(m2[1])
+    s.rect(x - 1, y - 5, x + 1, y, "r3")
+    s.px(x, y - 3, "gold")
+    s.px(x, y - 6, "r2")
+    return b
+
+
+def resource_site(s: Spr, material: str, by, stage: int):
+    """Lo que da cada aldea, al fondo a la izquierda y sin nada delante: troncos, cantera o mina."""
+    old = stage == 0
+    if material == "wood":
+        # pila de troncos con las testas a la vista y tocon con hacha
+        for k in range(3):
+            for j in range(3 - k):
+                x, y = 3 + j * 3 + k, by - 11 - k * 2 + j
+                s.ellipse(x, y, 1, 1, "w2" if old else "w3")
+                if not old:
+                    s.px(x, y, "st3")
+        s.rect(11, by - 8, 13, by - 6, "w3")
+        s.rect(11, by - 8, 13, by - 8, "st3")
+        if not old:
+            s.line((12, by - 8), (14, by - 11), "w4")
+            s.px(14, by - 11, "iron1")
+            s.px(15, by - 11, "iron1")
+    elif material == "stone":
+        # frente de cantera con cara cortada y sillares apilados
+        s.poly([(1, by - 7), (2, by - 14), (6, by - 17), (11, by - 14), (12, by - 7)], "r2")
+        s.poly([(4, by - 8), (5, by - 13), (9, by - 14), (10, by - 8)], "r3" if old else "r4")
+        s.line((5, by - 11), (10, by - 11), "r2")
+        if not old:
+            s.box(13, by - 5, 2, 2, "r3", "r2", "r4")
+            s.box(13, by - 8, 2, 2, "r3", "r2", "r4")
+    else:
+        # boca de mina entibada en un monticulo, carril y vagoneta con mineral
+        s.poly([(0, by - 7), (1, by - 13), (6, by - 17), (12, by - 14), (13, by - 7)], "r1")
+        s.poly([(3, by - 13), (6, by - 16), (10, by - 13)], "r2")
+        s.rect(4, by - 12, 8, by - 7, "#141612")
+        s.rect(3, by - 13, 9, by - 13, "w2")
+        s.rect(3, by - 13, 3, by - 7, "w2")
+        s.rect(9, by - 13, 9, by - 7, "w2")
+        if not old:
+            s.line((7, by - 6), (14, by - 3), "iron1")
+            s.box(13, by - 4, 3, 2, "iron1", "iron", "r0")
+            s.px(12, by - 7, "r3")
+            s.px(14, by - 7, "r0")
+
+
 def hamlet(material: str, stage: int) -> Spr:
-    """Aldea vasalla: 0 abandonada; 1-3 con mas casas. Cada una lleva lo suyo (troncos, piedra, mina)."""
+    """Aldea vasalla en una casilla. 0 abandonada (casas sin tejado y su recurso echado a perder);
+    1 dos casas; 2 tres casas y pozo; 3 capilla, casa de piedra y estandarte.
+    Cada cosa tiene su sitio y se dibuja de atras adelante para que no se tapen."""
     rnd = random.Random(80 + stage * 7 + len(material))
-    s = Spr(TW, 36)
-    g = Spr(TW, 36)
-    by = 34
-    huts = [(12, by - 8), (22, by - 6), (15, by - 1), (26, by - 2)][: {0: 2, 1: 2, 2: 3, 3: 4}[stage]]
+    s = Spr(TW, 42)
+    g = Spr(TW, 42)
+    by = 40
+    # suelo pisado entre las casas
     for (x, y) in tile_cells(by - 16):
-        if rnd.random() < 0.3:
-            g.px(x, y, rnd.choice(["s2", "s3"]))
-    # lo propio de cada aldea, al fondo
-    if stage > 0:
-        if material == "wood":
-            for k in range(3):
-                s.rect(3, by - 10 - k * 2, 8, by - 9 - k * 2, "w3")
-                s.px(8, by - 10 - k * 2, "w4")
-        elif material == "stone":
-            s.rect(2, by - 12, 6, by - 9, "r3")
-            s.rect(5, by - 14, 8, by - 11, "r2")
+        if rnd.random() < (0.45 if stage else 0.2):
+            g.px(x, y, rnd.choice(["s2", "s3", "p1"] if stage else ["s2", "g1"]))
+    back, right, front = (20, by - 11), (26, by - 6), (18, by - 1)
+    items = [("res", 0, by - 7)]
+    if stage == 0:
+        items += [("ruin", *right), ("ruin", *front)]
+    else:
+        items += [("c", *right), ("s" if stage == 3 else "c", *front)]
+        if stage >= 2:
+            items += [("k" if stage == 3 else "c", *back), ("well", 7, by - 2)]
+    top = None
+    for (kind, x, y) in sorted(items, key=lambda it: it[2]):
+        if kind == "res":
+            resource_site(s, material, by, stage)
+        elif kind == "ruin":
+            cottage(s, x, y, ruined=True)
+        elif kind == "c":
+            cottage(s, x, y, rnd=rnd)
+        elif kind == "s":
+            cottage(s, x, y, stone=True, rnd=rnd, h=5)
+        elif kind == "k":
+            b = chapel(s, x, y, rnd)
+            top = (int(b["B"][0]) - 1, int(b["B"][1]) - 1)
         else:
-            s.ellipse(5, by - 10, 5, 4, "s1")
-            s.rect(4, by - 11, 6, by - 8, "#141612")
-            s.rect(3, by - 12, 7, by - 12, "w2")
-    for i, (x, y) in enumerate(sorted(huts, key=lambda p: p[1])):
-        if stage == 0:
-            h = s.box(x, y, 6, 3, "pl0", "w2")
-            s.line((h["L"][0], h["L"][1]), (h["F"][0] + 2, h["F"][1] - 3), "w1")
-            s.line((h["F"][0], h["F"][1]), (h["R"][0] - 1, h["R"][1] - 3), "w1")
-            continue
-        stone = stage == 3 and i == len(huts) - 1
-        h = s.box(x, y, 6, 5, "r3" if stone else "pl2", "r1" if stone else "pl0")
-        door(s, h, "r", 0.4, 2, 3, "w1")
-        s.gable_roof(h, 5, "sh2" if stone else "st2", "sh0" if stone else "st1", "w2", 1)
-    if stage > 0:
-        banner(s, 28, by - 12, 8)
+            # pozo con su tejadillo
+            s.ellipse(x, y - 2, 3, 2, "r2")
+            s.rect(x - 3, y - 4, x + 3, y - 2, "r2")
+            s.ellipse(x, y - 4, 2, 1, "#141612")
+            s.rect(x - 3, y - 9, x - 3, y - 3, "w1")
+            s.rect(x + 3, y - 9, x + 3, y - 3, "w1")
+            s.line((x - 4, y - 9), (x, y - 11), "sh2")
+            s.line((x, y - 11), (x + 4, y - 9), "sh0")
+    if stage == 0:
+        for (x, y) in ((16, by - 6), (27, by - 1), (10, by - 2)):
+            s.px(x, y, "l2")
+            s.px(x + 1, y - 1, "l3")
+    if top:
+        banner(s, top[0], top[1], 7, flip=True)
     return finish(s, g)
+
+
+# ================================================================== invierno
+
+def recolor(src: Spr, mapping, rnd) -> Spr:
+    """Copia de un sprite cambiando cada color por uno de los dados con su peso (None = se queda)."""
+    out = Spr(src.w, src.h)
+    out.im = src.im.copy()
+    lookup = {rgba(k)[:3]: v for k, v in mapping.items() if k != "*"}
+    default = mapping.get("*")
+    for y in range(src.h):
+        for x in range(src.w):
+            c = src.im.getpixel((x, y))
+            if c[3] == 0:
+                continue
+            opts = lookup.get(c[:3], default)
+            if not opts:
+                continue
+            r, acc = rnd.random(), 0.0
+            for (target, w) in opts:
+                acc += w
+                if r <= acc:
+                    if target:
+                        out.im.putpixel((x, y), rgba(target, c[3]))
+                    break
+    return out
+
+
+SNOW_GROUND = {
+    # pocas briznas asomando: la nieve tiene que leerse como una capa uniforme
+    "grass": {"g0": [("sn1", 1)], "g1": [("sn2", 0.7), ("sn1", 0.3)], "g3": [("sn3", 0.8), ("sn2", 0.2)],
+              "g4": [(None, 0.35), ("sn3", 0.65)], "*": [("sn2", 0.95), ("sn3", 0.05)]},
+    "soil": {"s1": [("sn0", 0.6), (None, 0.4)], "s3": [("sn3", 1)], "*": [("sn2", 0.92), ("sn1", 0.08)]},
+    "path": {"p0": [("sn0", 0.5), (None, 0.5)], "p1": [("sn1", 1)], "*": [("sn1", 0.5), ("sn2", 0.4), (None, 0.1)]},
+    "wild": {"l1": [(None, 0.5), ("sn1", 0.5)], "l2": [("sn3", 1)], "g0": [("sn1", 1)], "*": [("sn2", 0.92), ("sn1", 0.08)]},
+}
+
+
+def snow_ground(name: str, spr: Spr, seed: int) -> Spr:
+    """Version nevada de un suelo: nieve con matices y lo de debajo asomando a ratos."""
+    return recolor(spr, SNOW_GROUND[name.split("_")[0]], random.Random(seed))
+
+
+def snow_tree(spr: Spr, seed: int) -> Spr:
+    """Copia de un arbol con nieve sobre las copas: en cada pixel de hoja que da al cielo."""
+    rnd = random.Random(seed)
+    out = Spr(spr.w, spr.h)
+    out.im = spr.im.copy()
+    out_c = rgba("out")[:3]
+    leaves = {rgba(k)[:3] for k in ("l1", "l2", "l3", "l4", "pi1", "pi2", "pi3")}
+    edge = {out_c, rgba("l0")[:3], rgba("pi0")[:3]}
+    for y in range(1, spr.h):
+        for x in range(spr.w):
+            c = spr.im.getpixel((x, y))
+            if c[3] == 0 or c[:3] not in leaves:
+                continue
+            above = spr.im.getpixel((x, y - 1))
+            # cielo encima, o el borde oscuro de la copa o del piso de pino de encima
+            if above[3] == 0 or above[:3] in edge:
+                out.im.putpixel((x, y), rgba("sn3"))
+                for dy, p in ((1, 0.85), (2, 0.35)):
+                    if y + dy < spr.h and spr.im.getpixel((x, y + dy))[:3] in leaves and rnd.random() < p:
+                        out.im.putpixel((x, y + dy), rgba("sn2" if dy == 1 else "sn1"))
+    return out
 
 
 # ================================================================== personas y animales
@@ -1525,7 +1713,7 @@ def generate_ui() -> dict:
 # ================================================================== salida
 
 def generate() -> dict:
-    return {
+    out = {
         "grass_a": grass(1), "grass_b": grass(2), "grass_c": grass(3),
         "soil": soil(), "path": path(), "wild": wild(),
         "cliff_l": cliff("l"), "cliff_r": cliff("r"),
@@ -1543,6 +1731,12 @@ def generate() -> dict:
         **{f"villager_{j}": villager(j) for j in ("farmer", "herder", "carter", "artisan", "soldier")},
         "cow": cow(), "chicken": chicken(),
     }
+    # variantes de invierno de lo que cambia con la estacion: suelos y arboles
+    for i, k in enumerate(("grass_a", "grass_b", "grass_c", "soil", "path", "wild")):
+        out[f"{k}_snow"] = snow_ground(k, out[k], 90 + i)
+    out["tree_a_snow"] = snow_tree(out["tree_a"], 3)
+    out["tree_b_snow"] = snow_tree(out["tree_b"], 4)
+    return out
 
 
 def main() -> None:
