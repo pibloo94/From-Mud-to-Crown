@@ -100,8 +100,9 @@ src/
   save/      formato del archivo de partida y guardado en disco
 public/assets/pixel/     arte del mapa en pixel art (PNG, generado con tools/gen_pixel.py)
 public/assets/ui/        marcos, botones, sellos e iconos de la interfaz en pixel art (tools/gen_pixel.py)
+public/assets/fonts/     cifras 0-9 propias, más legibles que las de Pixelify (tools/gen_digits.py)
 tests/       tests de la simulación, el guardado y el contenido
-tools/       generador del pixel art (gen_pixel.py) y bot de equilibrio (balance/)
+tools/       generadores del pixel art (gen_pixel.py) y de las cifras (gen_digits.py), y bot de equilibrio (balance/)
 ```
 
 **Regla principal:** la simulación no sabe nada del dibujo. La interfaz y la escena llaman a `Game` (`src/sim/game.ts`), que aplica las reglas y avisa de los cambios.
@@ -126,3 +127,4 @@ Cada cambio va en una rama con su pull request. La CI de GitHub instala dependen
 - Código del juego: MIT (ver `LICENSE`).
 - [Phaser](https://phaser.io): MIT. Las skills de `.claude/skills/phaser-*` proceden del repositorio de Phaser (ver `.claude/skills/PHASER-LICENSE.md`).
 - Arte: propio, generado por `tools/gen_pixel.py` (mapa e interfaz).
+- Cifras: fuente propia generada por `tools/gen_digits.py`; el resto del texto, Pixelify Sans y Jacquard 24 (Google Fonts).
