@@ -66,6 +66,9 @@ body {
   /* Todo el arte de la interfaz es pixel art: se amplia sin suavizar. */
   image-rendering: pixelated;
   -webkit-font-smoothing: none;
+  /* Pixelify trae ligaduras (fl, fi) que a este tamano se leen como otra letra. */
+  font-variant-ligatures: none;
+  font-feature-settings: 'liga' 0, 'clig' 0;
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   user-select: none;
