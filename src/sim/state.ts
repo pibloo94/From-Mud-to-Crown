@@ -5,11 +5,12 @@ import { newSeed } from './random';
 import { addVillager } from './villagers';
 import { defaultNoble } from './noble';
 import { startReps } from './estates';
+import { createCharacter, type CharacterAnswers } from './character';
 import type { AnimalId, BuildingId, Difficulty, GameState, Herd, Plot, ProductId, Tile } from './types';
 
 export const plotKey = (x: number, y: number): string => `${x},${y}`;
 
-export function createNewGame(seed: number = newSeed(), difficulty: Difficulty = 'normal'): GameState {
+export function createNewGame(seed: number = newSeed(), difficulty: Difficulty = 'normal', character?: CharacterAnswers): GameState {
   const rows = START.map.rows;
   const tiles: Tile[] = [];
   const plots: Record<string, Plot> = {};
@@ -66,6 +67,8 @@ export function createNewGame(seed: number = newSeed(), difficulty: Difficulty =
     weather: 'normal',
     rankWarning: false,
     difficulty,
+    // Sin cuestionario (tests, bot, partidas antiguas): sin rasgos. La interfaz lo rellena.
+    character: { name: '', traits: [], ambition: null },
     buildings,
     villagers: [],
     nextVillagerId: 1,
@@ -82,6 +85,7 @@ export function createNewGame(seed: number = newSeed(), difficulty: Difficulty =
   };
   for (let i = 0; i < (START.villagers ?? 0); i++) addVillager(state);
   rollPrices(state);
+  if (character) createCharacter(state, character);
   return state;
 }
 

@@ -1,6 +1,10 @@
 // Efectos temporales: penalizaciones (tributo mas alto, cultivos lentos) y ventajas (descuentos).
 import { DAYS_PER_SEASON } from './calendar';
-import type { GameState, Modifier, ModifierKind } from './types';
+import { traitMult } from './character';
+import type { GameState, Modifier, ModifierKind, TraitEffect } from './types';
+
+/** Efectos de los rasgos que se suman a los modificadores del mismo tipo. */
+const TRAIT_KINDS: TraitEffect[] = ['growth', 'animal', 'food', 'priceAll', 'tribute'];
 
 export function activeModifiers(state: GameState, kind?: ModifierKind): Modifier[] {
   return state.modifiers.filter((m) => m.untilDay > state.day && (!kind || m.kind === kind));
@@ -8,7 +12,9 @@ export function activeModifiers(state: GameState, kind?: ModifierKind): Modifier
 
 /** Producto de los multiplicadores activos de un tipo (1 si no hay ninguno). */
 export function multiplier(state: GameState, kind: ModifierKind): number {
-  return activeModifiers(state, kind).reduce((acc, m) => acc * m.value, 1);
+  // Los rasgos del personaje cuentan como un efecto permanente mas.
+  const trait = TRAIT_KINDS.includes(kind as TraitEffect) ? traitMult(state, kind as TraitEffect) : 1;
+  return activeModifiers(state, kind).reduce((acc, m) => acc * m.value, trait);
 }
 
 export function isIdle(state: GameState): boolean {

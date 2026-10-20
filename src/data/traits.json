@@ -1,0 +1,26 @@
+{
+  "names": ["Sancho", "Elvira", "Rodrigo", "Urraca", "Fernán", "Jimena", "Nuño", "Sancha", "Gonzalo", "Mencía"],
+  "questions": [
+    { "id": "origin", "options": ["peasantBorn", "craftBorn", "nobleBastard", "cloisterRaised"] },
+    { "id": "nature", "options": ["pious", "generous", "greedy", "diligent", "shrewd"] },
+    { "id": "ambition", "options": ["crown", "faith", "craft", "trade", "people"] }
+  ],
+  "traits": {
+    "peasantBorn": { "kind": "origin", "icon": "icon_wheat", "startRep": { "commoners": 15, "nobles": -10 }, "effects": { "hire": 0.8 } },
+    "craftBorn": { "kind": "origin", "icon": "icon_hammer", "startRep": { "artisans": 15, "nobles": -5 }, "effects": { "materials": 0.9 } },
+    "nobleBastard": { "kind": "origin", "icon": "icon_banner", "startRep": { "nobles": 15, "commoners": -10, "church": -5 }, "effects": { "tribute": 0.9 } },
+    "cloisterRaised": { "kind": "origin", "icon": "icon_scroll", "startRep": { "church": 15, "artisans": -5 }, "effects": { "xp": 1.1, "priceAll": 0.95 } },
+
+    "pious": { "kind": "nature", "icon": "icon_scroll", "repGain": { "church": 1.5 }, "effects": { "tithe": 0.9, "priceAll": 0.97 } },
+    "generous": { "kind": "nature", "icon": "icon_bread", "repGain": { "commoners": 1.5 }, "effects": { "wages": 1.1 } },
+    "greedy": { "kind": "nature", "icon": "icon_coin", "repGain": { "commoners": 0.7, "church": 0.7 }, "effects": { "wages": 0.85, "priceAll": 1.05 } },
+    "diligent": { "kind": "nature", "icon": "icon_wheat", "effects": { "growth": 1.1, "animal": 1.05, "food": 1.1 } },
+    "shrewd": { "kind": "nature", "icon": "icon_cart", "repGain": { "church": 0.75, "commoners": 0.85 }, "effects": { "priceAll": 1.07, "tolls": 0.9 } },
+
+    "crown": { "kind": "ambition", "icon": "icon_crown", "repGain": { "king": 1.25, "nobles": 1.25, "commoners": 0.8 } },
+    "faith": { "kind": "ambition", "icon": "icon_scroll", "repGain": { "church": 1.5, "artisans": 0.8 } },
+    "craft": { "kind": "ambition", "icon": "icon_hammer", "repGain": { "artisans": 1.5, "nobles": 0.8 } },
+    "trade": { "kind": "ambition", "icon": "icon_cart", "repGain": { "church": 0.8 }, "effects": { "tolls": 0.85, "priceAll": 1.03 } },
+    "people": { "kind": "ambition", "icon": "icon_worker", "repGain": { "commoners": 1.5, "nobles": 0.8 } }
+  }
+}

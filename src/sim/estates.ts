@@ -3,6 +3,7 @@
 // No se puede contentar a todos: lo que agrada a uno disgusta un poco a su rival, y cada estacion
 // las relaciones vuelven algo hacia el punto medio si no se cuidan.
 import { ESTATES } from './data';
+import { repGainMult, traitMult } from './character';
 import type { EstateEffect, EstateId, GameState } from './types';
 
 export const ESTATE_IDS = ESTATES.ids as EstateId[];
@@ -19,6 +20,8 @@ export function rivalsOf(estate: EstateId): EstateId[] {
  * que sube, salvo que se pida lo contrario (p. ej. al restaurar o al reiniciar con un senor nuevo).
  */
 export function changeRep(state: GameState, estate: EstateId, delta: number, rivals = true): void {
+  // Los rasgos cambian cuanto se gana (no cuanto se pierde).
+  if (delta > 0) delta = Math.round(delta * repGainMult(state, estate));
   if (!delta) return;
   state.rep[estate] = clampRep(state.rep[estate] + delta);
   if (rivals && delta > 0) {
@@ -51,7 +54,9 @@ export function tierEffects(state: GameState, estate: EstateId): Partial<Record<
 
 /** Multiplicador total de un efecto (tributo, diezmo, salarios...) por todos los estamentos. */
 export function estateMult(state: GameState, effect: EstateEffect): number {
-  return ESTATE_IDS.reduce((m, e) => m * (tierEffects(state, e)[effect] ?? 1), 1);
+  // El tributo de los rasgos ya va en multiplier('tribute'): aqui no se aplica dos veces.
+  const trait = effect === 'tribute' ? 1 : traitMult(state, effect);
+  return ESTATE_IDS.reduce((m, e) => m * (tierEffects(state, e)[effect] ?? 1), trait);
 }
 
 /** Cada estacion, las relaciones vuelven `drift` puntos hacia 50 si no se cuidan. */

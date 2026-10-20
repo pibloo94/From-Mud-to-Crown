@@ -13,8 +13,9 @@ import tradeJson from '../data/trade.json';
 import nobilityJson from '../data/nobility.json';
 import tutorialJson from '../data/tutorial.json';
 import estatesJson from '../data/estates.json';
+import traitsJson from '../data/traits.json';
 import layoutJson from '../data/layout.json';
-import type { AnimalId, BuildingId, CropId, Difficulty, EstateEffect, EstateId, JobId, LiegeId, MaterialId, ModifierKind, ProductId, ProtectionId, RankId, TileKind, WorkshopId } from './types';
+import type { AnimalId, BuildingId, CropId, Difficulty, EstateEffect, EstateId, JobId, LiegeId, MaterialId, ModifierKind, ProductId, ProtectionId, RankId, TileKind, TraitEffect, WorkshopId } from './types';
 import type { Season } from './calendar';
 
 export interface ProductDef {
@@ -158,6 +159,22 @@ export interface ProgressionDef {
     perManorLevel: number;
     neglect: { days: number; growth: number; animal: number };
   };
+}
+
+/** Un rasgo del personaje: de donde sale y que cambia (ver character.ts). */
+export interface TraitDef {
+  kind: 'origin' | 'nature' | 'ambition' | 'earned';
+  icon: string;
+  startRep?: Partial<Record<EstateId, number>>;
+  repGain?: Partial<Record<EstateId, number>>;
+  effects?: Partial<Record<TraitEffect, number>>;
+}
+
+/** Cuestionario de origen, caracter y ambicion, y los rasgos que da cada respuesta. */
+export interface TraitsDef {
+  names: string[];
+  questions: { id: 'origin' | 'nature' | 'ambition'; options: string[] }[];
+  traits: Record<string, TraitDef>;
 }
 
 /** Estamentos: relaciones, tramos, rivalidades y lo que mueve cada cosa (ver estates.ts). */
@@ -479,6 +496,7 @@ export const TOWN_IDS = Object.keys(TRADE.towns);
 export const NOBILITY = nobilityJson as unknown as NobilityDef;
 export const TUTORIAL = tutorialJson as unknown as TutorialDef;
 export const ESTATES = estatesJson as unknown as EstatesDef;
+export const TRAITS = traitsJson as unknown as TraitsDef;
 export const LAYOUT = layoutJson as unknown as LayoutDef;
 export const HAMLET_IDS = Object.keys(NOBILITY.hamlets);
 export const PATRONAGE_IDS = Object.keys(NOBILITY.patronage);

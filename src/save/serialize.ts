@@ -12,7 +12,7 @@ import { renownProgress } from '../sim/progress';
 import { startReps } from '../sim/estates';
 
 export const SAVE_FORMAT = 'from-mud-to-crown-save';
-export const SAVE_VERSION = 14;
+export const SAVE_VERSION = 15;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;
@@ -112,6 +112,8 @@ export function migrate(state: Record<string, unknown>, from: number): GameState
     const old = (s.rep ?? {}) as { baron?: number; village?: number };
     s = { ...s, rep: { ...startReps(), nobles: old.baron ?? ESTATES.start, commoners: old.village ?? ESTATES.start } };
   }
+  // v14 -> v15: personaje. Las partidas de antes no pasaron por el cuestionario: sin rasgos.
+  if (from < 15) s = { ...s, character: { name: '', traits: [], ambition: null } };
   return s as GameState;
 }
 

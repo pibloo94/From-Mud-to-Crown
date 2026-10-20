@@ -143,6 +143,16 @@ export type EstateId = 'king' | 'nobles' | 'artisans' | 'commoners' | 'church';
 /** Lo que cambia segun el tramo de una relacion (multiplicadores). */
 export type EstateEffect = 'tribute' | 'tithe' | 'tolls' | 'materials' | 'wages' | 'hire';
 
+/** Lo que puede cambiar un rasgo (multiplicadores). */
+export type TraitEffect = 'growth' | 'animal' | 'food' | 'priceAll' | 'tribute' | 'xp' | 'tithe' | 'tolls' | 'materials' | 'wages' | 'hire';
+
+/** El personaje del jugador: nombre, rasgos y ambicion (ver character.ts). */
+export interface Character {
+  name: string;
+  traits: string[];
+  ambition: string | null;
+}
+
 /** Dificultad elegida al crear la partida. */
 export type Difficulty = 'easy' | 'normal' | 'hard';
 
@@ -213,6 +223,8 @@ export interface GameState {
   rankWarning: boolean;
   /** Dificultad elegida al crear la partida (no cambia despues). */
   difficulty: Difficulty;
+  /** El personaje: nombre, rasgos y ambicion. */
+  character: Character;
   /** Mejoras compradas de cada edificio (se compran en orden). */
   buildings: Record<BuildingId, number>;
   villagers: Villager[];
