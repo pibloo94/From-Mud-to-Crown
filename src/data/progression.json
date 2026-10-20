@@ -148,18 +148,18 @@
       "id": "landowner",
       "level": 8,
       "days": 240,
-      "baron": 60,
-      "keep": { "baron": 40 }
+      "nobles": 60,
+      "keep": { "nobles": 35 }
     },
     {
       "id": "lord",
       "level": 20,
       "days": 600,
-      "baron": 70,
-      "village": 60,
+      "nobles": 60,
+      "commoners": 50,
       "branches": 1,
       "charter": true,
-      "keep": { "baron": 45, "village": 30 }
+      "keep": { "nobles": 40, "commoners": 30 }
     },
     {
       "id": "baron",
@@ -169,7 +169,8 @@
       "hamlets": 3,
       "soldiers": 6,
       "prestige": 800,
-      "keep": { "baron": 50 }
+      "nobles": 60,
+      "keep": { "nobles": 45 }
     },
     {
       "id": "count",
@@ -179,8 +180,9 @@
       "hamletLevels": 9,
       "soldiers": 10,
       "prestige": 3000,
-      "baron": 80,
-      "keep": { "baron": 55 }
+      "king": 70,
+      "nobles": 60,
+      "keep": { "king": 50, "nobles": 45 }
     },
     {
       "id": "artisan",
@@ -221,8 +223,6 @@
     "titheRate": 0.1,
     "tributeBase": 5,
     "tributePerPlot": 2,
-    "lowBaron": 30,
-    "lowBaronMult": 1.25,
     "unpaidBaron": -10,
     "graceSeasons": 1,
     "debtInterest": 0.1,
@@ -239,8 +239,7 @@
     }
   },
   "reputation": {
-    "start": 50,
-    "highVillage": 70
+    "start": 50
   },
   "lands": {
     "eastFrom": 10,

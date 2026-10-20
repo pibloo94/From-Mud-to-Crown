@@ -8,6 +8,7 @@ import { storageFree, store } from './buildings';
 import { surplus } from './pantry';
 import { isIdle } from './modifiers';
 import { efficiency } from './villagers';
+import { repFrom } from './estates';
 import type { CommandResult, GameState, Notice, ProductId, Villager, WorkshopId } from './types';
 
 export interface WorkOutcome {
@@ -47,6 +48,7 @@ export function buildWorkshop(state: GameState, id: WorkshopId, x: number, y: nu
   tile.kind = 'workshop';
   state.workshops[id] = { x, y, level: 0, progress: 0, made: 0 };
   const levelUps = addXp(state, 40);
+  repFrom(state, 'workshopBuilt');
   return { result: { ok: true, msg: 'msg.workshopBuilt', params: { workshop: id, cost: def.cost } }, levelUps };
 }
 
@@ -68,6 +70,7 @@ export function upgradeWorkshop(state: GameState, id: WorkshopId): WorkOutcome {
   state.coins -= up.cost;
   payMaterials(state, up.materials);
   w.level++;
+  repFrom(state, 'workshopUpgraded');
   const levelUps = addXp(state, 15);
   return { result: { ok: true, msg: 'msg.workshopUpgraded', params: { workshop: id, wsUpgrade: `${id}.${up.id}`, cost: up.cost } }, levelUps };
 }

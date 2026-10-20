@@ -35,11 +35,12 @@ import { workshopProduct, workshopTreeSection } from './workshops';
 import { buildingStat, nextUpgrade, storageCapacity, storageUsed } from '../sim/buildings';
 import { beds, dailyFood, efficiency, farmerPlots, foodDays, freeBeds, hireCost, toolCost, toolMaterials } from '../sim/villagers';
 import { activeModifiers } from '../sim/modifiers';
+import { ESTATE_IDS, rivalsOf, tierEffects, tierOf } from '../sim/estates';
 import { buildingUpkeep, upkeepBill } from '../sim/upkeep';
 import { branchCount, branchRanks, hamletLevelSum, hamletsTaken, hasRank, levelDef, levelOnlyRank, mainRanks, rankDef, unlocksAt, workshopCount } from '../sim/progress';
 import { charterReady, liegeBefore, liegeOf } from '../sim/noble';
 import { buildingOf } from '../sim/rules';
-import type { AnimalId, BuildingId, CropId, JobId, Modifier, RankId, Villager, WorkshopId } from '../sim/types';
+import type { AnimalId, BuildingId, CropId, EstateId, GameState, JobId, Modifier, RankId, Villager, WorkshopId } from '../sim/types';
 import { t } from '../i18n/i18n';
 import { artUrl, h, icon } from './dom';
 
@@ -135,7 +136,7 @@ export function materialChips(ctx: PanelCtx, need: MaterialAmounts = {}, check =
 export function buyMissingButton(ctx: PanelCtx, need: MaterialAmounts | undefined, onBuy: () => void): HTMLElement | null {
   const missing = missingMaterials(ctx.sim.state, need);
   if (Object.keys(missing).length === 0) return null;
-  const cost = materialsPrice(missing);
+  const cost = materialsPrice(ctx.sim.state, missing);
   return h('button', { class: 'btn small', disabled: ctx.sim.state.coins < cost, onclick: onBuy }, t('panel.buyMissing', { cost }));
 }
 
@@ -543,8 +544,7 @@ function rankReqText(id: RankId): string {
   const r = PROGRESSION.ranks.find((x) => x.id === id)!;
   const parts = [t('progress.req.level', { n: r.level })];
   if (r.days) parts.push(t('progress.req.daysShort', { n: r.days }));
-  if (r.baron) parts.push(t('progress.req.baronShort', { n: r.baron, liege: liegeBefore(r.id) }));
-  if (r.village) parts.push(t('progress.req.villageShort', { n: r.village }));
+  for (const e of ESTATE_IDS) if (r[e]) parts.push(t('progress.req.estateShort', { estate: e, n: r[e]! }));
   if (r.branches) parts.push(t('progress.req.branchesShort'));
   if (r.workshops) parts.push(t('progress.req.workshopsShort', { n: r.workshops }));
   if (r.trades) parts.push(t('progress.req.tradesShort', { n: r.trades }));
@@ -665,13 +665,20 @@ export function modifierText(m: Modifier, day: number): { text: string; days: st
   return { text, days: t('modifier.days', { n: left }) };
 }
 
-function repBar(label: string, value: number, desc: string): HTMLElement {
+/** Relacion con un estamento: barra, tramo, lo que da ahora, como sube y quien es su rival. */
+function estateBar(s: GameState, e: EstateId): HTMLElement {
+  const value = s.rep[e];
+  const tier = tierOf(value);
+  const fx = Object.entries(tierEffects(s, e)).map(([k, v]) => t(`estateEffect.${k}`, { pct: pct(v ?? 1) }));
+  const rivals = rivalsOf(e);
   return h(
     'div',
-    { class: 'rep' },
-    h('div', { class: 'rep-head' }, h('b', {}, label), h('span', {}, `${value} / 100`)),
+    { class: `rep tier-${tier}` },
+    h('div', { class: 'rep-head' }, h('b', {}, t(`estate.${e}`)), h('span', {}, `${t(`tier.${tier}`)} · ${value} / 100`)),
     h('span', { class: 'rep-bar' }, h('span', { class: 'rep-fill', style: `width:${value}%` })),
-    h('small', {}, desc),
+    fx.length > 0 && h('small', { class: 'rep-effect' }, fx.join(' · ')),
+    h('small', {}, t(`estate.${e}.desc`)),
+    rivals.length > 0 && h('small', { class: 'rep-rivals' }, t('progress.rivals', { names: rivals.map((r) => t(`estate.${r}`)).join(', ') })),
   );
 }
 
@@ -687,8 +694,12 @@ function ranksTab(ctx: PanelCtx): HTMLElement {
     const liege = liegeBefore(r.id);
     // El favor solo cuenta con el senor feudal de ahora: el del siguiente aun no te conoce.
     const repOk = liege === liegeOf(s);
-    if (r.baron) reqs.push([t('progress.req.baron', { n: r.baron, have: repOk ? s.rep.baron : 0, liege, liegeTitle: liege }), repOk && s.rep.baron >= r.baron]);
-    if (r.village) reqs.push([t('progress.req.village', { n: r.village, have: s.rep.village }), s.rep.village >= r.village]);
+    for (const e of ESTATE_IDS) {
+      if (!r[e]) continue;
+      // Con la nobleza cuenta el senor de ahora: con uno nuevo se empieza de cero.
+      const have = e === 'nobles' && !repOk ? 0 : s.rep[e];
+      reqs.push([t('progress.req.estate', { estate: e, n: r[e]!, have }), have >= r[e]!]);
+    }
     if (r.branches) reqs.push([t('progress.req.branches'), branchCount(s) >= r.branches]);
     if (r.workshops) reqs.push([t('progress.req.workshops', { n: r.workshops, have: workshopCount(s) }), workshopCount(s) >= r.workshops]);
     if (r.trades) reqs.push([t('progress.req.trades', { n: r.trades, have: s.stats.trades }), s.stats.trades >= r.trades]);
@@ -731,8 +742,8 @@ function ranksTab(ctx: PanelCtx): HTMLElement {
     h('p', { class: 'hint left' }, t('progress.branchesHint')),
     ...branchRanks().map(rankCard),
     h('h3', { class: 'market-section' }, t('progress.reputation')),
-    repBar(t(`liege.title.${liegeOf(s)}`), s.rep.baron, t('rep.baron.desc', { low: tx.lowBaron })),
-    repBar(t('rep.village'), s.rep.village, t('rep.village.desc', { high: PROGRESSION.reputation.highVillage })),
+    h('p', { class: 'hint left' }, t('progress.estatesHint')),
+    ...ESTATE_IDS.map((e) => estateBar(s, e)),
     h('h3', { class: 'market-section' }, t('progress.modifiers')),
     mods.length === 0
       ? h('p', { class: 'hint' }, t('progress.noModifiers'))

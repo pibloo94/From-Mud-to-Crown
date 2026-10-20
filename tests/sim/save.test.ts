@@ -106,7 +106,7 @@ describe('archivo de partida', () => {
     expect(buildingStat(s, 'coop', 'maxAnimals')).toBeGreaterThanOrEqual(8);
     expect(buildingStat(s, 'pen', 'maxAnimals')).toBeGreaterThanOrEqual(2);
     expect(s.rank).toBe('freeFarmer');
-    expect(s.rep).toEqual({ baron: 50, village: 50 });
+    expect(s.rep).toEqual({ king: 50, nobles: 50, artisans: 50, commoners: 50, church: 50 });
     days(s, 40); // se sigue jugando y pasa por unas cuentas de estacion
     expect(s.day).toBe(120);
   });

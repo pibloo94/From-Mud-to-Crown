@@ -25,7 +25,7 @@ function manorFx(up: ManorUpgradeDef): string {
   const parts: string[] = [];
   if (fx.soldiers) parts.push(t('noble.fx.soldiers', { n: fx.soldiers }));
   if (fx.titheMult) parts.push(t('noble.fx.titheMult', { pct: pct(1 - fx.titheMult) }));
-  if (fx.villageRep) parts.push(t('noble.fx.villageRep', { n: fx.villageRep }));
+  if (fx.churchRep) parts.push(t('noble.fx.churchRep', { n: fx.churchRep }));
   if (fx.prestigeSeason) parts.push(t('noble.fx.prestigeSeason', { n: fx.prestigeSeason }));
   parts.push(t('noble.fx.prestige', { n: up.prestige }));
   return parts.join(' · ');

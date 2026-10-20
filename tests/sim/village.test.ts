@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { ESTATES } from '../../src/sim/data';
 import { priceOf } from '../../src/sim/market';
 import { createNewGame, tileAt } from '../../src/sim/state';
 import { advanceDay, buyLand, collect, interact, lease, leaseCost, plant, sell } from '../../src/sim/rules';
@@ -118,10 +119,14 @@ describe('aldeanos', () => {
     expect(hireVillager(s).msg).toBe('msg.noFreeBed');
   });
 
-  it('con buena fama en la aldea contratar cuesta la mitad', () => {
+  it('con el pueblo llano devoto contratar cuesta la mitad, y favorable, tres cuartos', () => {
     const s = newGame();
-    s.rep.village = PROGRESSION.reputation.highVillage;
-    expect(hireCost(s)).toBe(Math.ceil(VILLAGERS.hireCost / 2));
+    s.rep.commoners = 80;
+    expect(hireCost(s)).toBe(Math.ceil(VILLAGERS.hireCost * 0.5));
+    s.rep.commoners = 60;
+    expect(hireCost(s)).toBe(Math.ceil(VILLAGERS.hireCost * 0.75));
+    s.rep.commoners = 50;
+    expect(hireCost(s)).toBe(VILLAGERS.hireCost);
   });
 
   it('los labradores aceleran los cultivos y mas con mejores herramientas', () => {
@@ -210,7 +215,7 @@ describe('aldeanos', () => {
     expect(s.villagers.length).toBe(1);
     expect(days(s, 1).map((n) => n.msg)).toContain('msg.villagerLeftHunger');
     expect(s.villagers.length).toBe(0);
-    expect(s.rep.village).toBe(45);
+    expect(s.rep.commoners).toBe(45);
   });
 
   it('el pastor recoge solo lo que producen los animales', () => {
@@ -297,15 +302,23 @@ describe('impuestos', () => {
     const n = settleSeason(s, 'spring');
     expect(s.coins).toBe(0);
     expect(n.params?.unpaid).toBeGreaterThan(0);
-    expect(s.rep.baron).toBe(40);
+    // pierde el favor por no pagar y, en las mismas cuentas, vuelve un poco hacia el punto medio
+    expect(s.rep.nobles).toBe(50 + PROGRESSION.taxes.unpaidBaron + ESTATES.drift);
   });
 
-  it('con el baron enfadado el tributo es mas alto', () => {
+  it('el tributo sigue el tramo de la relacion con la nobleza', () => {
     const s = newGame();
     s.day = 2 * DAYS_PER_SEASON;
-    const normal = seasonBill(s).tribute;
-    s.rep.baron = 20;
-    expect(seasonBill(s).tribute).toBe(Math.round(normal * 1.25));
+    s.rep.nobles = 50;
+    const neutral = seasonBill(s);
+    const base = neutral.tribute / neutral.tributeMult;
+    s.rep.nobles = 30; // fria
+    expect(seasonBill(s).tributeMult).toBeCloseTo(1.15);
+    s.rep.nobles = 10; // hostil
+    expect(seasonBill(s).tributeMult).toBeCloseTo(1.3);
+    expect(seasonBill(s).tribute).toBe(Math.round(base * 1.3));
+    s.rep.nobles = 85; // devota
+    expect(seasonBill(s).tributeMult).toBeCloseTo(0.8);
   });
 
   it('el tributo crece con el rango', () => {
@@ -330,7 +343,8 @@ describe('Terrateniente y tierras del este', () => {
     const s = newGame();
     s.level = 8;
     s.day = 239;
-    s.rep.baron = 60;
+    // el dia de las cuentas las relaciones vuelven algo hacia 50: se deja margen
+    s.rep.nobles = 60 + ESTATES.drift;
     s.coins = 500;
     s.inventory.wheat = 100;
     s.buildings.granary = 5;
@@ -371,7 +385,7 @@ describe('nueva partida', () => {
     const s = createNewGame(1);
     expect(s.villagers).toEqual([]);
     expect(s.buildings).toEqual({ house: 0, granary: 0, coop: 0, pen: 0 });
-    expect(s.rep).toEqual({ baron: 50, village: 50 });
+    expect(s.rep).toEqual({ king: 50, nobles: 50, artisans: 50, commoners: 50, church: 50 });
     expect(buildingStat(s, 'coop', 'maxAnimals')).toBeGreaterThanOrEqual(s.herds.chicken.count);
     expect(s.map.tiles.filter((t) => t.kind === 'granary').length).toBe(1);
   });

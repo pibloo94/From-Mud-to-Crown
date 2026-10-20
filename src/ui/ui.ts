@@ -36,7 +36,7 @@ import { fanfare, type FanfareKind } from '../audio/fanfare';
 import { createCoach, tipView } from './coach';
 import { pendingTip } from '../sim/tutorial';
 import { manorView, type ManorTab } from './noble';
-import { isNoble, liegeOf } from '../sim/noble';
+import { isNoble } from '../sim/noble';
 
 const AUTOSAVE_EVERY_DAYS = 3;
 const SPEEDS: Speed[] = [0, 1, 2, 3];
@@ -827,8 +827,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     if (fx.seedVouchers) parts.push(t('fx.vouchers', { n: fx.seedVouchers }));
     const signed = (n: number) => (n > 0 ? `+${n}` : `${n}`);
     if (fx.prestige) parts.push(t('fx.prestige', { n: signed(fx.prestige) }));
-    if (fx.rep?.baron) parts.push(t('fx.repBaron', { n: signed(fx.rep.baron), liegeTitle: liegeOf(sim.state) }));
-    if (fx.rep?.village) parts.push(t('fx.repVillage', { n: signed(fx.rep.village) }));
+    for (const [e, n] of Object.entries(fx.rep ?? {})) if (n) parts.push(t('fx.rep', { estate: e, n: signed(n) }));
     if (fx.modifier) {
       const m = fx.modifier;
       if (m.kind === 'idle') parts.push(t('fx.away', { n: m.days ?? 0 }));

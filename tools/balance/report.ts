@@ -1,6 +1,7 @@
 // Informe de texto del bot de equilibrio: una columna por semilla y la mediana al final.
 import { DAY_MS } from '../../src/sim/calendar';
 import type { BalanceReport } from './bot';
+import type { EstateId } from '../../src/sim/types';
 
 const RANKS = ['freeFarmer', 'artisan', 'landowner', 'burgher', 'lord', 'baron', 'count'];
 const RANK_NAMES: Record<string, string> = {
@@ -13,6 +14,7 @@ const RANK_NAMES: Record<string, string> = {
   count: 'Conde',
 };
 const LEVELS = [2, 5, 8, 10, 12, 15, 17, 20];
+const ESTATE_NAMES: Record<EstateId, string> = { king: 'Rey', nobles: 'Nobleza', artisans: 'Artesanos', commoners: 'Pueblo llano', church: 'Iglesia' };
 
 type Cell = number | null;
 
@@ -55,8 +57,7 @@ export function formatReport(reports: BalanceReport[]): string {
   add('Caravanas', (r) => r.caravans);
   add('Ganado con caravanas', (r) => r.caravanEarnings);
   add('Experiencia sobrante (> nivel 20)', (r) => r.spareXp);
-  add('Favor del barón al final', (r) => r.final.baron);
-  add('Favor de la aldea al final', (r) => r.final.village);
+  for (const [e, name] of Object.entries(ESTATE_NAMES)) add(`${name} al final`, (r) => r.final.rep[e as EstateId]);
   add('Prestigio al final', (r) => r.final.prestige);
   add('Monedas al final', (r) => r.final.coins);
 

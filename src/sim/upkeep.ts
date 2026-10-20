@@ -3,7 +3,7 @@
 // los aldeanos que no cobran se van y lo que no se mantiene rinde menos la estacion siguiente.
 import { BUILDING_IDS, PROGRESSION, VILLAGERS, WORKSHOP_IDS } from './data';
 import { addModifier } from './modifiers';
-import { clampRep } from './villagers';
+import { changeRep, estateMult, repFrom } from './estates';
 import { difficulty } from './difficulty';
 import type { GameState, Villager } from './types';
 
@@ -19,7 +19,8 @@ export interface UpkeepBill {
 /** Lo que cuesta cada cosa segun la dificultad. */
 const scaled = (state: GameState, n: number): number => Math.round(n * difficulty(state).upkeep);
 
-export const wageOf = (state: GameState, v: Villager): number => scaled(state, VILLAGERS.wages[v.job] ?? 0);
+/** Salario de un aldeano: segun su oficio, la dificultad y como te vea el pueblo llano. */
+export const wageOf = (state: GameState, v: Villager): number => scaled(state, (VILLAGERS.wages[v.job] ?? 0) * estateMult(state, 'wages'));
 
 export const buildingUpkeep = (state: GameState, b: (typeof BUILDING_IDS)[number]): number => scaled(state, state.buildings[b] * PROGRESSION.upkeep.perBuildingLevel);
 
@@ -68,7 +69,8 @@ export function payUpkeep(state: GameState, grace: boolean): UpkeepPaid {
     left.push(v.name);
     wages -= wageOf(state, v);
   }
-  if (left.length > 0) state.rep.village = clampRep(state.rep.village - 3 * left.length);
+  if (left.length > 0) changeRep(state, 'commoners', -3 * left.length);
+  else if (wages > 0) repFrom(state, 'wagesPaid');
   state.coins -= wages;
 
   const { maintenance } = upkeepBill(state);

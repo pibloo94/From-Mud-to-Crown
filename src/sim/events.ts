@@ -2,6 +2,7 @@
 // Ofertas: rechazar no castiga. Obligaciones: incumplir penaliza. Percances: se juega el riesgo.
 import {
   ANIMAL_IDS,
+  ESTATES,
   EVENTS,
   EVENT_IDS,
   PRODUCT_IDS,
@@ -16,10 +17,11 @@ import { addXp } from './progress';
 import { priceOf } from './market';
 import { addModifier } from './modifiers';
 import { buildingStat, store } from './buildings';
-import { addVillager, clampRep, freeBeds } from './villagers';
+import { addVillager, freeBeds } from './villagers';
+import { applyRep } from './estates';
 import { preventedBy } from './risk';
 import { difficulty } from './difficulty';
-import type { AnimalId, CommandResult, GameState, MaterialId, Notice, ProductId, RankId, WorkshopId } from './types';
+import type { AnimalId, CommandResult, EstateId, GameState, MaterialId, Notice, ProductId, RankId, WorkshopId } from './types';
 import { delayCaravans } from './trade';
 import { hasRank, mainRanks } from './progress';
 
@@ -29,7 +31,7 @@ import { hasRank, mainRanks } from './progress';
  * - "chicken", "cow": tener al menos esos animales; "chickenBelow", "cowBelow": tener menos
  * - "chickenRoom", "cowRoom": que quepan mas animales en el gallinero o el corral
  * - "villagers": tener al menos esos aldeanos; "freeBed": tener al menos esas camas libres
- * - "baron", "village": reputacion minima
+ * - "king", "nobles", "artisans", "commoners", "church": relacion minima con ese estamento
  * - "flag:<nombre>": que haya pasado algo antes (1) o que no (0)
  * - "workshop:<taller>": que el taller este construido (1) o no (0)
  * - "caravans": caravanas en camino (minimo)
@@ -56,8 +58,7 @@ function meets(state: GameState, key: string, value: number): boolean {
   if (key === 'cowRoom') return state.herds.cow.count + value <= buildingStat(state, 'pen', 'maxAnimals');
   if (key === 'villagers') return state.villagers.length >= value;
   if (key === 'freeBed') return freeBeds(state) >= value;
-  if (key === 'baron') return state.rep.baron >= value;
-  if (key === 'village') return state.rep.village >= value;
+  if ((ESTATES.ids as string[]).includes(key)) return state.rep[key as EstateId] >= value;
   if (key === 'level') return state.level >= value;
   if (key.startsWith('flag:')) return state.flags.includes(key.slice(5)) === value > 0;
   if (key === 'caravans') return state.caravans.length >= value;
@@ -168,8 +169,7 @@ function applyEffects(state: GameState, source: string, fx: EventEffects = {}, p
     herd.count = Math.max(0, herd.count + (n ?? 0));
   }
   if (fx.villagers) for (let i = 0; i < fx.villagers; i++) addVillager(state);
-  if (fx.rep?.baron) state.rep.baron = clampRep(state.rep.baron + fx.rep.baron);
-  if (fx.rep?.village) state.rep.village = clampRep(state.rep.village + fx.rep.village);
+  applyRep(state, fx.rep);
   if (fx.modifier) {
     const m = fx.modifier;
     addModifier(state, source, m.kind, m.value, { days: m.days, seasons: m.seasons });

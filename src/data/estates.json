@@ -1,0 +1,60 @@
+{
+  "ids": ["king", "nobles", "artisans", "commoners", "church"],
+  "start": 50,
+  "drift": 1,
+  "rivals": [
+    ["nobles", "commoners"],
+    ["king", "nobles"],
+    ["church", "artisans"]
+  ],
+  "rivalShare": 0.3,
+  "tiers": [
+    { "id": "hostile", "below": 20 },
+    { "id": "cold", "below": 40 },
+    { "id": "neutral", "below": 60 },
+    { "id": "favorable", "below": 80 },
+    { "id": "devoted", "below": 101 }
+  ],
+  "effects": {
+    "king": {
+      "hostile": { "tolls": 1.5 },
+      "cold": { "tolls": 1.25 },
+      "favorable": { "tolls": 0.75 },
+      "devoted": { "tolls": 0.5 }
+    },
+    "nobles": {
+      "hostile": { "tribute": 1.3 },
+      "cold": { "tribute": 1.15 },
+      "favorable": { "tribute": 0.9 },
+      "devoted": { "tribute": 0.8 }
+    },
+    "artisans": {
+      "hostile": { "materials": 1.25 },
+      "cold": { "materials": 1.1 },
+      "favorable": { "materials": 0.9 },
+      "devoted": { "materials": 0.8 }
+    },
+    "commoners": {
+      "hostile": { "wages": 1.3 },
+      "cold": { "wages": 1.15 },
+      "favorable": { "hire": 0.75 },
+      "devoted": { "hire": 0.5, "wages": 0.9 }
+    },
+    "church": {
+      "hostile": { "tithe": 1.25 },
+      "cold": { "tithe": 1.1 },
+      "favorable": { "tithe": 0.9 },
+      "devoted": { "tithe": 0.8 }
+    }
+  },
+  "sources": {
+    "workshopBuilt": { "artisans": 4 },
+    "workshopUpgraded": { "artisans": 2 },
+    "charter": { "king": 10 },
+    "titheProblem": { "church": -5 },
+    "tithePaid": { "church": 1 },
+    "tributePaid": { "nobles": 2 },
+    "manorWork": { "nobles": 3 },
+    "wagesPaid": { "commoners": 1 }
+  }
+}

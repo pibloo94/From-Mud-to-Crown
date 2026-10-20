@@ -8,7 +8,7 @@ import { mainRanks, rankDef } from './progress';
 import { weightedPick } from './random';
 import { plotKey, tileAt } from './state';
 import { difficulty } from './difficulty';
-import type { CommandResult, GameState, ProtectionId, RankId } from './types';
+import type { CommandResult, EstateId, GameState, ProtectionId, RankId } from './types';
 
 // ------------------------------------------------------------------ tiempo de la estacion
 
@@ -126,7 +126,7 @@ export function seizeForDebt(state: GameState): DebtResult['seized'] {
 export function failsRankKeep(state: GameState): boolean {
   const keep = rankDef(state.rank)?.keep;
   if (!keep) return false;
-  return state.rep.baron < (keep.baron ?? 0) || state.rep.village < (keep.village ?? 0);
+  return Object.entries(keep).some(([e, min]) => state.rep[e as EstateId] < (min ?? 0));
 }
 
 /**

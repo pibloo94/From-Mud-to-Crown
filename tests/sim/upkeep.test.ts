@@ -66,14 +66,14 @@ describe('gastos fijos', () => {
 
   it('si no llega para los salarios, se van los ultimos en llegar hasta que el resto cobra', () => {
     const s = farm();
-    const village = s.rep.village;
+    const village = s.rep.commoners;
     const [first, second, last] = s.villagers;
     s.coins = wageOf(s, first) + wageOf(s, second);
     const out = payUpkeep(s, false);
     expect(out.left).toEqual([last.name]);
     expect(s.villagers.map((v) => v.id)).toEqual([first.id, second.id]);
     expect(s.coins).toBe(0);
-    expect(s.rep.village).toBeLessThan(village);
+    expect(s.rep.commoners).toBeLessThan(village);
   });
 
   it('sin dinero para el mantenimiento, cultivos y animales rinden menos una estacion', () => {

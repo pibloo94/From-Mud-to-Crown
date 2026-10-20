@@ -32,7 +32,7 @@ function candidate(): GameState {
   s.titles = ['artisan'];
   s.day = 600;
   s.coins = 100_000;
-  s.rep = { baron: 80, village: 70 };
+  s.rep = { ...s.rep, nobles: 80, commoners: 70 };
   s.materials = { wood: 2000, stone: 2000, iron: 2000 };
   s.buildings.granary = 5;
   return s;
@@ -53,9 +53,10 @@ describe('carta de nobleza', () => {
     expect(charterReady(s)).toBe(false);
     expect(buyCharter(s).msg).toBe('noble.charterNotReady');
     s.titles = ['burgher'];
-    s.rep.village = 50;
+    // Senor pide Pueblo llano 50
+    s.rep.commoners = 49;
     expect(charterReady(s)).toBe(false);
-    s.rep.village = 70;
+    s.rep.commoners = 70;
     s.day = 500;
     expect(charterReady(s)).toBe(false);
     s.day = 600;
@@ -191,14 +192,15 @@ describe('aldeas vasallas', () => {
     const dues = hamletDues(s);
     expect(dues.materials).toEqual({ stone: lvl.amount, iron: NOBILITY.hamlets.mine.levels[0].amount });
     const loyal = hamletDues(s).coins;
-    s.rep.village = 20;
+    s.rep.commoners = 20;
     expect(hamletDues(s).coins).toBeLessThan(loyal);
     const stone = s.materials.stone;
     const coins = s.coins;
     s.day = DAYS_PER_SEASON * 30 - 1;
+    const expected = hamletDues(s).coins;
     const card = advanceDay(s).find((n) => n.card === 'season')!;
     expect(s.materials.stone).toBe(stone + lvl.amount);
-    expect(Number(card.params!.dues)).toBe(hamletDues(s).coins);
+    expect(Number(card.params!.dues)).toBe(expected);
     expect(card.params!.duesMats).toContain('stone:');
     expect(s.coins).toBeGreaterThan(coins - 1000);
   });
@@ -246,10 +248,11 @@ describe('escalera noble', () => {
     s.noble.prestige = 800;
     expect(checkRank(s).find((n) => n.card === 'rank')?.params?.rank).toBe('baron');
     expect(liegeOf(s)).toBe('count');
-    expect(s.rep.baron).toBe(NOBILITY.newLiegeRep);
+    // la Nobleza es un estamento: no se empieza de cero con cada senor nuevo (las obras la suben)
+    expect(s.rep.nobles).toBeGreaterThanOrEqual(80);
   });
 
-  it('Conde pide todo al maximo y el favor del conde; despues se sirve al rey', () => {
+  it('Conde pide todo al maximo y el favor del rey; despues se sirve al rey', () => {
     const s = readyForBaron();
     checkRank(s);
     s.day = 1260;
@@ -257,10 +260,12 @@ describe('escalera noble', () => {
     for (const id of HAMLET_IDS) while (upgradeHamlet(s, id).ok);
     while (hireSoldier(s).ok);
     s.noble.prestige = 3000;
-    s.rep.baron = 79;
+    // Conde sirve al rey: pide su favor ademas del de la nobleza
+    s.rep.nobles = 60;
+    s.rep.king = 69;
     checkRank(s);
     expect(s.rank).toBe('baron');
-    s.rep.baron = 80;
+    s.rep.king = 70;
     checkRank(s);
     expect(s.rank).toBe('count');
     expect(liegeOf(s)).toBe('king');

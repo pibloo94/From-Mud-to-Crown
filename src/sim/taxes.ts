@@ -2,7 +2,7 @@
 import { PROGRESSION } from './data';
 import { multiplier } from './modifiers';
 import { DAYS_PER_SEASON } from './calendar';
-import { clampRep } from './villagers';
+import { changeRep, driftReps, estateMult, repFrom } from './estates';
 import { claimRenown } from './progress';
 import { payUpkeep } from './upkeep';
 import { chargeDebt, checkRankKeep, rollWeather, seasonNow, seizeForDebt, seizeLimit } from './risk';
@@ -37,14 +37,14 @@ export function inGrace(state: GameState): boolean {
 
 export function seasonBill(state: GameState): SeasonBill {
   const t = PROGRESSION.taxes;
-  let tributeMult = multiplier(state, 'tribute');
-  if (state.rep.baron < t.lowBaron) tributeMult *= t.lowBaronMult;
+  // Penalizaciones de eventos y el tramo de la relacion con la nobleza (estates.json).
+  const tributeMult = multiplier(state, 'tribute') * estateMult(state, 'tribute');
   const grace = inGrace(state);
   const base = (t.tributeBase + t.tributePerPlot * plotsForTribute(state)) * (t.rankTribute[state.rank] ?? 1);
   return {
     grace,
     earned: state.stats.seasonEarned,
-    tithe: grace ? 0 : Math.round(state.stats.seasonEarned * t.titheRate * manorStat(state, 'titheMult') * difficulty(state).taxes),
+    tithe: grace ? 0 : Math.round(state.stats.seasonEarned * t.titheRate * manorStat(state, 'titheMult') * estateMult(state, 'tithe') * difficulty(state).taxes),
     tribute: grace ? 0 : Math.round(base * tributeMult * difficulty(state).taxes),
     tributeMult,
     rent: state.leases * PROGRESSION.lands.rentPerSeason,
@@ -66,8 +66,12 @@ export function settleSeason(state: GameState, endedSeason: string): Notice {
   const paid = Math.min(due, state.coins);
   state.coins -= paid;
   const unpaid = due - paid;
+  // La Iglesia agradece el diezmo pagado y no perdona el que falta.
+  if (bill.tithe > 0) repFrom(state, unpaid > 0 ? 'titheProblem' : 'tithePaid');
+  // Y tu senor, el tributo pagado entero.
+  if (bill.tribute > 0 && unpaid === 0) repFrom(state, 'tributePaid');
   if (unpaid > 0) {
-    state.rep.baron = clampRep(state.rep.baron + PROGRESSION.taxes.unpaidBaron);
+    changeRep(state, 'nobles', PROGRESSION.taxes.unpaidBaron);
     state.debt += unpaid;
   }
   // Soldada: los soldados que no cobran se marchan.
@@ -81,6 +85,8 @@ export function settleSeason(state: GameState, endedSeason: string): Notice {
   state.stats.seasonEarned = 0;
   state.stats.seasonFood = 0;
   const renown = claimRenown(state);
+  // Las relaciones vuelven algo hacia el punto medio si no se cuidan.
+  driftReps(state);
   // Riesgo: embargo si la deuda pasa del limite, aviso o perdida de rango, y tiempo de la estacion.
   const seized = seizeForDebt(state);
   const keep = checkRankKeep(state);

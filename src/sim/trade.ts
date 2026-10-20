@@ -5,7 +5,7 @@ import { priceOf } from './market';
 import { addXp } from './progress';
 import { random } from './random';
 import { hasMaterials, materialsList, missingMaterials, payMaterials } from './materials';
-import { clampRep } from './villagers';
+import { applyRep, estateMult } from './estates';
 import type { CommandResult, GameState, MaterialId, Notice, ProductId } from './types';
 import { freeEscort } from './noble';
 
@@ -70,7 +70,8 @@ export function townPrice(state: GameState, town: string, p: ProductId): number 
 }
 
 export function townToll(state: GameState, town: string): number {
-  return Math.round(TRADE.towns[town].toll * (isBurgher(state) ? TRADE.burgher.tollMult : 1));
+  // El rey cobra los caminos reales: con buena relacion, peajes rebajados (estates.json).
+  return Math.round(TRADE.towns[town].toll * (isBurgher(state) ? TRADE.burgher.tollMult : 1) * estateMult(state, 'tolls'));
 }
 
 export function buyPrice(town: string, m: MaterialId): number | null {
@@ -155,8 +156,7 @@ export function caravansReturn(state: GameState): Notice[] {
     state.stats.tradeEarned += coins;
     state.stats.trades++;
     for (const m of MATERIAL_IDS) state.materials[m] += c.buy[m] ?? 0;
-    if (def.rep?.village) state.rep.village = clampRep(state.rep.village + def.rep.village);
-    if (def.rep?.baron) state.rep.baron = clampRep(state.rep.baron + def.rep.baron);
+    applyRep(state, def.rep);
     notices.push({
       ok: !robbed,
       msg: robbed ? 'trade.back.robbed' : 'trade.back.ok',

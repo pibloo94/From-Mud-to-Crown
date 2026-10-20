@@ -137,6 +137,12 @@ export interface Pantry {
 
 export type ModifierKind = 'tribute' | 'growth' | 'animal' | 'toolDiscount' | 'idle' | 'priceAll' | 'food';
 
+/** Estamentos con los que hay relacion (0 a 100). */
+export type EstateId = 'king' | 'nobles' | 'artisans' | 'commoners' | 'church';
+
+/** Lo que cambia segun el tramo de una relacion (multiplicadores). */
+export type EstateEffect = 'tribute' | 'tithe' | 'tolls' | 'materials' | 'wages' | 'hire';
+
 /** Dificultad elegida al crear la partida. */
 export type Difficulty = 'easy' | 'normal' | 'hard';
 
@@ -214,7 +220,7 @@ export interface GameState {
   /** Comida que los aldeanos deben y aun no han consumido (fracciones de racion). */
   foodDebt: number;
   /** Reputacion de 0 a 100 ante el baron y ante la aldea. */
-  rep: { baron: number; village: number };
+  rep: Record<EstateId, number>;
   modifiers: Modifier[];
   /** Marcas de historia para eventos encadenados (p. ej. "levyRefused"). */
   flags: string[];

@@ -6,7 +6,7 @@ import { boostActive, priceOf, priceTrend } from '../sim/market';
 import { dateFromDay } from '../sim/calendar';
 import { hasFeature } from '../sim/progress';
 import { animalCapacity } from '../sim/rules';
-import { materialUnlocked } from '../sim/materials';
+import { materialPrice, materialUnlocked } from '../sim/materials';
 import { reserved, surplus } from '../sim/pantry';
 import { isProtected, protectionCost } from '../sim/risk';
 import type { AnimalId, MaterialId, ProductId, ProtectionId } from '../sim/types';
@@ -142,7 +142,8 @@ function buyTab(ctx: PanelCtx): HTMLElement[] {
   const materials = MATERIAL_IDS.map((m: MaterialId) => {
     const def = MATERIALS[m];
     const unlocked = materialUnlocked(s, m);
-    const affordable = Math.min(99, Math.floor(s.coins / def.price));
+    const price = materialPrice(s, m);
+    const affordable = Math.min(99, Math.floor(s.coins / price));
     return h(
       'div',
       { class: `trade-row ${unlocked ? '' : 'locked'}` },
@@ -151,14 +152,14 @@ function buyTab(ctx: PanelCtx): HTMLElement[] {
         { class: 'trade-head' },
         icon(def.icon, 'icon big'),
         h('div', { class: 'market-info' }, h('b', {}, t(`material.${m}`)), h('small', {}, t('market.stock', { n: s.materials[m] }))),
-        h('span', { class: 'price nowrap' }, icon('icon_coin', 'icon tiny'), String(def.price)),
+        h('span', { class: 'price nowrap' }, icon('icon_coin', 'icon tiny'), String(price)),
       ),
       unlocked
         ? slider({
             key: `buy:${m}`,
             max: affordable,
             initial: Math.min(affordable, 5),
-            unit: def.price,
+            unit: price,
             label: (n, total) => t('market.buyN', { n, coins: total }),
             onAct: (n) => ctx.sim.buyMaterial(m, n),
           })

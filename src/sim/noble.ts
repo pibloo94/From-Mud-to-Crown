@@ -3,7 +3,7 @@ import { HAMLET_IDS, LAYOUT, MATERIAL_IDS, NOBILITY, START, type ManorStats, typ
 import { DAYS_PER_SEASON } from './calendar';
 import { hasMaterials, payMaterials } from './materials';
 import { hasRank, mainRanks, meetsRank, rankDef } from './progress';
-import { clampRep } from './villagers';
+import { applyRep, changeRep, repFrom } from './estates';
 import type { CommandResult, GameState, LiegeId, MaterialId, NobleState, ProductId, RankId } from './types';
 
 export function defaultNoble(): NobleState {
@@ -58,6 +58,7 @@ export function buyCharter(state: GameState): CommandResult {
   state.coins -= cost;
   state.noble.charter = true;
   state.noble.prestige += NOBILITY.charter.prestige;
+  repFrom(state, 'charter');
   return { ok: true, msg: 'msg.charterBought', params: { cost } };
 }
 
@@ -101,6 +102,8 @@ export function upgradeManor(state: GameState): CommandResult {
   payMaterials(state, up.materials);
   state.noble.manor++;
   state.noble.prestige += up.prestige;
+  // Cada obra de la casa solariega te hace mas igual a los demas nobles.
+  repFrom(state, 'manorWork');
   return { ok: true, msg: 'msg.manorUpgraded', params: { manorUp: up.id, prestige: up.prestige } };
 }
 
@@ -144,7 +147,7 @@ export function upgradeHamlet(state: GameState, id: string): CommandResult {
 /** Parte de las rentas que pagan las aldeas segun la reputacion ante la aldea. */
 export function hamletLoyalty(state: GameState): number {
   const { base, perRep } = NOBILITY.hamletLoyalty;
-  return base + perRep * state.rep.village;
+  return base + perRep * state.rep.commoners;
 }
 
 /** Lo que entregan las aldeas al cambiar de estacion: monedas y materiales. */
@@ -215,8 +218,7 @@ export function doPatronage(state: GameState, id: string): CommandResult {
   }
   state.noble.patronage[id] = seasonIndex(state.day);
   state.noble.prestige += def.prestige;
-  if (def.rep?.baron) state.rep.baron = clampRep(state.rep.baron + def.rep.baron);
-  if (def.rep?.village) state.rep.village = clampRep(state.rep.village + def.rep.village);
+  applyRep(state, def.rep);
   return { ok: true, msg: `noble.patronage.${id}.done`, params: { prestige: def.prestige } };
 }
 
@@ -237,8 +239,8 @@ export function nobleSeasonBill(state: GameState): NobleSeason {
 export function nobleSeasonEffects(state: GameState, bill: NobleSeason): void {
   for (const m of MATERIAL_IDS) state.materials[m as MaterialId] += bill.duesMaterials[m] ?? 0;
   state.noble.prestige += manorStat(state, 'prestigeSeason');
-  const rep = manorStat(state, 'villageRep');
-  if (rep) state.rep.village = clampRep(state.rep.village + rep);
+  const rep = manorStat(state, 'churchRep');
+  if (rep) changeRep(state, 'church', rep);
 }
 
 /** Lista "wood:12,stone:10" para los textos (se traduce sola). */
