@@ -57,6 +57,8 @@ P = {
     # nieve (fria y apagada, no blanca pura) y barro cocido del horno
     "sn0": "#7f8a8e", "sn1": "#a3abac", "sn2": "#c3c8c4", "sn3": "#dcdfd8",
     "cl0": "#5c3424", "cl1": "#7e4a31", "cl2": "#9c613d", "fire": "#d0702a",
+    # agua del caz del aserradero (apagada, como el resto)
+    "wa0": "#2f4a52", "wa1": "#3f5f66", "wa2": "#6f8f92",
 }
 
 
@@ -1121,109 +1123,130 @@ def block_cells(by, n=2, cx=None):
     return out
 
 
-def log_pile(s: Spr, x0, y0, rows=(4, 3, 2), length=10, old=False):
-    """Pila de troncos tumbados hacia el fondo a la derecha, con las testas claras mirando al frente.
+def log_pile(s: Spr, x0, y0, rows=(3, 2, 1), length=6, old=False):
+    """Pila de troncos finos tumbados hacia el fondo a la derecha, con las testas claras al frente.
     Se pinta de atras adelante y cada tronco lleva su borde oscuro para que se lean sueltos."""
     logs = []
     for k, n in enumerate(rows):
         for j in range(n):
-            logs.append((x0 + j * 5 + k * 2 + (k * 1), y0 - k * 4 + j * 0))
-    for (x, y) in sorted(logs, key=lambda p: (p[1], -p[0])):
+            logs.append((x0 + j * 3 + k * 2, y0 - k * 3))
+    # primero la fila de abajo y, en cada fila, de izquierda a derecha: los de arriba se apoyan encima
+    for (x, y) in sorted(logs, key=lambda p: (-p[1], p[0])):
         bark, top = ("w1", "w2") if old else ("w2", "w3")
         ex, ey = x + length, y - length // 2
-        s.poly([(x, y - 2), (ex, ey - 2), (ex, ey + 2), (x, y + 2)], bark)
-        s.line((x, y - 2), (ex, ey - 2), top)
-        s.line((x, y + 2), (ex, ey + 2), "w0")
-        s.line((ex, ey - 2), (ex, ey + 2), "w0")
-        s.ellipse(x, y, 2, 2, "w1")
-        s.ellipse(x, y, 1, 1, "w2" if old else "st3")
-        if not old:
-            s.px(x, y, "st2")
+        s.poly([(x, y - 1), (ex, ey - 1), (ex, ey + 1), (x, y + 1)], bark)
+        s.line((x, y - 1), (ex, ey - 1), top)
+        s.line((x, y + 1), (ex, ey + 1), "w0")
+        s.rect(x - 1, y - 1, x + 1, y + 1, "w1")
+        s.px(x, y, "w2" if old else "st3")
 
 
 def resource_site(s: Spr, material: str, by, stage: int, rnd):
-    """Lo que da cada aldea, al fondo a la izquierda del bloque y sin nada delante."""
+    """Lo que da cada aldea, al fondo a la izquierda del bloque y sin nada delante. A escala de las
+    casas: ni el monte de la mina ni la cantera pasan de la altura de un tejado."""
     old = stage == 0
     if material == "wood":
-        # dos pilas de troncos, caballete con un tronco a medio serrar, tocon con hacha y astillas
-        log_pile(s, 4, by - 20, (4, 3, 2, 1), 9, old)
+        # aserradero medieval: caz de agua con rueda de paletas que mueve la sierra de un cobertizo
+        # abierto (tronco sobre el carro de la sierra), con tablones apilados y troncos al lado
+        cx0, by0 = 20, by - 14
+        # caz: franja de agua que baja hacia el borde izquierdo
+        s.poly([(3, by - 15), (6, by - 17), (16, by - 12), (13, by - 10)], "wa0" if old else "wa1")
+        if not old:
+            s.line((5, by - 15), (14, by - 11), "wa2")
+        # cobertizo abierto: cuatro postes, techo de tablas a dos aguas
+        b = {"L": (cx0 - 8, by0 - 4 - 8), "F": (cx0, by0 - 8), "R": (cx0 + 5, by0 - 3 - 8), "B": (cx0 - 3, by0 - 7 - 8),
+             "a": 8, "al": 8, "ar": 6, "h": 8, "cx": cx0, "by": by0}
+        if not old:
+            # carro de la sierra con un tronco y el bastidor vertical de la sierra
+            s.poly([(cx0 - 7, by0 - 4), (cx0 + 1, by0), (cx0 + 1, by0 - 2), (cx0 - 7, by0 - 6)], "w3")
+            s.poly([(cx0 - 6, by0 - 6), (cx0, by0 - 3), (cx0, by0 - 5), (cx0 - 6, by0 - 8)], "w2")
+            s.rect(cx0 - 6, by0 - 8, cx0 - 5, by0 - 6, "st3")
+            s.rect(cx0 - 3, by0 - 12, cx0 - 3, by0 - 3, "w1")
+            s.rect(cx0 - 1, by0 - 11, cx0 - 1, by0 - 2, "w1")
+            s.line((cx0 - 3, by0 - 12), (cx0 - 1, by0 - 11), "w1")
+            s.line((cx0 - 2, by0 - 11), (cx0 - 2, by0 - 3), "iron1")
+        for (x, y) in ((cx0 - 7, by0 - 4), (cx0, by0), (cx0 + 5, by0 - 3)):
+            s.rect(x, y - 8, x, y, "w1")
         if old:
-            s.line((16, by - 12), (26, by - 17), "w1")
+            # techo hundido: medio tejado caido
+            s.poly([b["L"], b["F"], (cx0 - 2, by0 - 4), (cx0 - 9, by0 - 7)], "w2")
+        else:
+            s.gable_roof(b, 4, "sh2", "sh0", "w2", 1, shingle_texture("sh1", "sh2"), rnd)
+        # rueda de paletas en el costado izquierdo, metida en el caz
+        wx, wy = 10, by - 16
+        s.ellipse(wx, wy, 3, 5, "w1")
+        s.ellipse(wx, wy, 2, 4, "w3" if not old else "w2")
+        s.line((wx, wy - 4), (wx, wy + 4), "w1")
+        s.line((wx - 2, wy), (wx + 2, wy), "w1")
+        s.px(wx, wy, "iron")
+        if old:
+            s.line((wx - 2, wy - 3), (wx + 2, wy + 3), "w0")
             return
-        log_pile(s, 22, by - 26, (2, 1), 7)
-        # caballete
-        for x in (17, 23):
-            s.line((x - 1, by - 11), (x + 1, by - 16), "w1")
-            s.line((x + 2, by - 11), (x, by - 16), "w1")
-        s.poly([(15, by - 16), (27, by - 22), (27, by - 20), (15, by - 14)], "w3")
-        s.ellipse(15, by - 15, 1, 1, "st3")
-        # tocon con hacha
-        s.rect(26, by - 10, 29, by - 7, "w3")
-        s.rect(26, by - 10, 29, by - 10, "st3")
-        s.line((28, by - 10), (31, by - 15), "w4")
-        s.rect(31, by - 16, 32, by - 15, "iron1")
-        for (x, y) in ((24, by - 7), (31, by - 8), (22, by - 9)):
-            s.px(x, y, "st2")
+        # tablones apilados delante y troncos por serrar detras
+        for k in range(3):
+            s.poly([(26, by - 9 - k), (31, by - 11 - k), (31, by - 10 - k), (26, by - 8 - k)], "w4" if k % 2 else "st2")
+        s.line((26, by - 8), (31, by - 10), "w1")
     elif material == "stone":
-        # pena oscura con musgo y, cortada en ella, una cara clara de sillares (pared izquierda) y
-        # su costado en sombra: se lee como un bloque sacado de la roca
-        s.poly([(1, by - 16), (2, by - 30), (10, by - 41), (24, by - 42), (33, by - 32), (33, by - 17)], "r0")
-        s.poly([(4, by - 31), (11, by - 39), (22, by - 40), (15, by - 34)], "r1")
-        for x in range(6, 26, 3):
-            s.px(x, by - 40 + abs(x - 16) // 3, "l2")
-        face = [(5, by - 18), (21, by - 10), (21, by - 26), (5, by - 34)]
-        s.poly(face, "r3" if old else "r4")
-        s.poly([(21, by - 10), (30, by - 15), (30, by - 31), (21, by - 26)], "r2")
-        for k, z in enumerate(range(4, 16, 4)):
-            s.line((5, by - 18 - z), (21, by - 10 - z), "r2")
-            for x in range(7 + (k % 2) * 3, 21, 6):
-                y0 = by - 18 - z + (x - 5) // 2
-                s.line((x, y0), (x, y0 + 3), "r2")
-        s.line((21, by - 10), (21, by - 26), "r1")
+        # pena baja con musgo y, cortada en ella, una cara clara de sillares y su costado en sombra
+        s.poly([(6, by - 13), (7, by - 23), (13, by - 29), (22, by - 29), (28, by - 23), (28, by - 13)], "r0")
+        s.poly([(9, by - 23), (14, by - 27), (21, by - 27), (17, by - 24)], "r1")
+        for x in range(10, 25, 3):
+            s.px(x, by - 28 + abs(x - 17) // 3, "l2")
+        s.poly([(9, by - 15), (19, by - 10), (19, by - 20), (9, by - 25)], "r3" if old else "r4")
+        s.poly([(19, by - 10), (25, by - 13), (25, by - 23), (19, by - 20)], "r2")
+        for k, z in enumerate((3, 6, 9)):
+            s.line((9, by - 15 - z), (19, by - 10 - z), "r2")
+            for x in range(11 + (k % 2) * 2, 19, 4):
+                y0 = by - 15 - z + (x - 9) // 2
+                s.line((x, y0), (x, y0 + 2), "r2")
+        s.line((19, by - 10), (19, by - 20), "r1")
         if old:
-            s.line((8, by - 30), (16, by - 18), "r1")
-            for (x, y) in ((22, by - 6), (27, by - 9)):
-                s.ellipse(x, y, 2, 1, "r2")
+            s.line((11, by - 22), (16, by - 14), "r1")
+            s.ellipse(22, by - 7, 1, 1, "r2")
             return
-        # sillares apilados delante
-        for (x, y) in ((22, by - 7), (27, by - 9), (24, by - 11)):
-            s.box(x, y, 3, 3, "r3", "r2", "r4")
-        # cabria de madera con su polea y un bloque colgando
-        s.line((29, by - 14), (32, by - 34), "w2")
-        s.line((35, by - 15), (32, by - 34), "w2")
-        s.line((32, by - 34), (24, by - 38), "w3")
-        s.line((24, by - 38), (24, by - 31), "cream0")
-        s.box(24, by - 27, 2, 3, "r3", "r2", "r4")
+        # sillares delante y una cabria pequena con su bloque colgando
+        for (x, y) in ((22, by - 6), (25, by - 8)):
+            s.box(x, y, 2, 2, "r3", "r2", "r4")
+        s.line((26, by - 11), (28, by - 24), "w2")
+        s.line((31, by - 12), (28, by - 24), "w2")
+        s.line((28, by - 24), (22, by - 27), "w3")
+        s.line((22, by - 27), (22, by - 23), "cream0")
+        s.rect(21, by - 22, 23, by - 21, "r4")
     else:
-        # monte con la boca de mina entibada
-        s.poly([(0, by - 15), (3, by - 28), (12, by - 38), (24, by - 36), (32, by - 26), (33, by - 15)], "r1")
-        s.poly([(4, by - 27), (12, by - 36), (22, by - 34), (14, by - 30)], "r2")
-        for (x, y) in ((8, by - 22), (26, by - 24), (18, by - 33), (28, by - 18)):
-            s.px(x, y, "r0")
-            s.px(x + 1, y, "r3")
-        s.rect(12, by - 25, 20, by - 15, "#141612")
-        s.rect(11, by - 26, 21, by - 25, "w2")
-        s.rect(11, by - 26, 12, by - 15, "w2")
-        s.rect(20, by - 26, 21, by - 15, "w2")
+        # mina medieval: pozo cuadrado entibado con un torno de madera encima (manivela, soga y cubo),
+        # escombrera detras y monton de mineral al lado
+        # escombrera, pequena y a la izquierda, para que el torno se recorte contra la hierba
+        s.poly([(3, by - 13), (6, by - 19), (11, by - 21), (16, by - 18), (18, by - 13)], "r1")
+        s.poly([(6, by - 18), (11, by - 20), (14, by - 18), (10, by - 17)], "r2")
+        for (x, y) in ((6, by - 15), (10, by - 17), (14, by - 15)):
+            s.px(x, y, "r3")
+        s.px(12, by - 19, "cl1")
+        # brocal del pozo: cuadro de maderos con el hueco negro
+        px_, py_ = 25, by - 11
+        s.box(px_, py_, 6, 2, "w3", "w2", "w4")
+        s.poly([(px_ - 4, py_ - 4), (px_, py_ - 2), (px_ + 3, py_ - 4), (px_, py_ - 6)], "#141612")
         if old:
-            # tapiada con tablas en aspa
-            s.line((13, by - 24), (19, by - 16), "w3")
-            s.line((19, by - 24), (13, by - 16), "w3")
+            # tapado con tablas y el torno caido
+            for k in range(3):
+                s.line((px_ - 4 + k * 3, py_ - 4 + k), (px_ + k * 2 - 1, py_ - 6 + k), "w3")
+            s.line((px_ - 6, py_ - 1), (px_ + 4, py_ - 9), "w1")
             return
-        # farol, carriles que salen de la boca y vagoneta con mineral
-        s.px(22, by - 23, "glow")
-        s.px(22, by - 22, "iron")
-        s.line((14, by - 15), (30, by - 7), "iron1")
-        s.line((18, by - 15), (34, by - 7), "iron1")
-        for k in range(0, 16, 4):
-            s.line((14 + k, by - 15 + k // 2), (18 + k, by - 15 + k // 2), "w1")
-        s.box(27, by - 8, 4, 4, "iron1", "iron", "r0")
-        for (x, y, c) in ((26, by - 14, "cl1"), (28, by - 15, "r3"), (29, by - 14, "cl0"), (27, by - 15, "r2")):
-            s.px(x, y, c)
-        # monton de mineral
-        s.ellipse(6, by - 12, 4, 2, "r0")
-        s.px(5, by - 13, "cl1")
-        s.px(7, by - 13, "cl0")
+        # torno: dos caballetes, rodillo con manivela, soga y cubo
+        for x in (px_ - 6, px_ + 5):
+            s.line((x - 2, py_ - 2), (x, py_ - 13), "w2")
+            s.line((x + 2, py_ - 2), (x, py_ - 13), "w2")
+        s.rect(px_ - 6, py_ - 14, px_ + 5, py_ - 13, "w4")
+        s.line((px_ - 6, py_ - 13), (px_ + 5, py_ - 13), "w2")
+        s.line((px_ + 6, py_ - 13), (px_ + 8, py_ - 10), "iron1")
+        s.px(px_ + 8, py_ - 10, "w4")
+        s.line((px_ - 1, py_ - 12), (px_ - 1, py_ - 7), "cream")
+        s.rect(px_ - 2, py_ - 7, px_, py_ - 6, "w4")
+        # monton de mineral y un cesto junto al pozo
+        s.ellipse(16, by - 9, 3, 1, "r0")
+        for (x, y) in ((15, by - 10), (17, by - 10), (16, by - 11)):
+            s.px(x, y, "cl1")
+        s.rect(20, by - 8, 22, by - 6, "st1")
+        s.rect(20, by - 8, 22, by - 8, "cl0")
 
 
 def village_well(s: Spr, x, y):
@@ -1277,7 +1300,8 @@ def hamlet(material: str, stage: int) -> Spr:
     else:
         items += [("c", *right), ("s" if stage == 3 else "c", *front)]
         if stage >= 2:
-            items += [("k" if stage == 3 else "c", *back), ("well", 20, by - 7), ("garden", 4, by - 12)]
+            # el huerto va entre las casas; delante del recurso no se pone nada
+            items += [("k" if stage == 3 else "c", *back), ("garden", 40, by - 9)]
     top = None
     chimney_at = None
     for (kind, x, y) in sorted(items, key=lambda it: it[2]):
