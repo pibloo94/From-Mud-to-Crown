@@ -3,12 +3,24 @@
     "product": "egg",
     "everyDays": 1,
     "amountPerAnimal": 1,
-    "maxBatches": 5
+    "maxBatches": 5,
+    "building": "coop",
+    "capStat": "maxAnimals"
   },
   "cow": {
     "product": "milk",
     "everyDays": 2,
     "amountPerAnimal": 1,
-    "maxBatches": 3
+    "maxBatches": 3,
+    "building": "pen",
+    "capStat": "maxAnimals"
+  },
+  "sheep": {
+    "product": "wool",
+    "everyDays": 2,
+    "amountPerAnimal": 1,
+    "maxBatches": 3,
+    "building": "pen",
+    "capStat": "maxSheep"
   }
 }

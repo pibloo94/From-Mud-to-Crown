@@ -286,8 +286,7 @@ function farm(game: Game): void {
   }
   for (const kind of ['coop', 'pen'] as const) {
     const tile = s.map.tiles.find((t) => t.kind === kind);
-    const animal = kind === 'coop' ? 'chicken' : 'cow';
-    if (tile && s.herds[animal].stored >= 1) game.interact(tile.x, tile.y);
+    if (tile && R.animalsIn(kind).some((a) => s.herds[a].stored >= 1)) game.interact(tile.x, tile.y);
   }
 }
 
@@ -445,6 +444,7 @@ function spend(game: Game): void {
   // Animales.
   if (spare(s) > 80) game.buyAnimal('chicken');
   if (spare(s) > 150) game.buyAnimal('cow');
+  if (spare(s) > 250) game.buyAnimal('sheep');
 }
 
 function sendBestCaravan(game: Game): void {

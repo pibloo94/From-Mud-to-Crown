@@ -63,7 +63,10 @@
     },
     {
       "xp": 13800,
-      "maxPlots": 22
+      "maxPlots": 22,
+      "unlocks": [
+        "buySheep"
+      ]
     },
     {
       "xp": 16200,
@@ -251,6 +254,10 @@
     "cow": {
       "price": 45,
       "unlock": "buyCow"
+    },
+    "sheep": {
+      "price": 70,
+      "unlock": "buySheep"
     }
   },
   "events": {

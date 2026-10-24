@@ -220,7 +220,8 @@
     "tile": "pen",
     "base": {
       "maxAnimals": 1,
-      "animalBonus": 0
+      "animalBonus": 0,
+      "maxSheep": 2
     },
     "visual": [
       0,
@@ -283,6 +284,32 @@
         "level": 9,
         "effects": {
           "animalBonus": 0.25
+        }
+      },
+      {
+        "id": "shearingShed",
+        "cost": 450,
+        "materials": {
+          "wood": 25,
+          "stone": 10
+        },
+        "level": 15,
+        "effects": {
+          "maxSheep": 2
+        }
+      },
+      {
+        "id": "woolBarn",
+        "cost": 800,
+        "materials": {
+          "wood": 30,
+          "stone": 25,
+          "iron": 4
+        },
+        "level": 17,
+        "effects": {
+          "maxSheep": 2,
+          "animalBonus": 0.1
         }
       }
     ]

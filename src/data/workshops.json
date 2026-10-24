@@ -212,5 +212,48 @@
         "title": "artisan"
       }
     ]
+  },
+  "loom": {
+    "unlockLevel": 15,
+    "cost": 550,
+    "materials": {
+      "wood": 30,
+      "stone": 10,
+      "iron": 4
+    },
+    "recipe": {
+      "in": {
+        "wool": 3
+      },
+      "out": {
+        "cloth": 1
+      }
+    },
+    "batchesPerDay": 1,
+    "xpPerBatch": 5,
+    "upgrades": [
+      {
+        "id": "treadle",
+        "cost": 500,
+        "level": 16,
+        "materials": {
+          "wood": 30,
+          "iron": 5
+        },
+        "batches": 1
+      },
+      {
+        "id": "fullingMill",
+        "cost": 1100,
+        "level": 18,
+        "materials": {
+          "wood": 30,
+          "stone": 30,
+          "iron": 8
+        },
+        "batches": 1,
+        "title": "artisan"
+      }
+    ]
   }
 }

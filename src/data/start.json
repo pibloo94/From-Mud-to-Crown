@@ -7,7 +7,8 @@
   },
   "herds": {
     "chicken": 4,
-    "cow": 1
+    "cow": 1,
+    "sheep": 0
   },
   "map": {
     "legend": {
@@ -33,7 +34,7 @@
       "GRRRRRSSGGXXXXX",
       "GGYGRGGGGGXTXXX",
       "GCGGRGPPGGXXXXX",
-      "GGGGRGPPYGXXXTX",
+      "GGGYRGPPYGXXXTX",
       "TKGGRYGGGTTXXXX",
       "TTGGMGGGTTXXTXX"
     ]

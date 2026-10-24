@@ -122,5 +122,30 @@
     },
     "xpCollect": 0,
     "artisan": true
+  },
+  "wool": {
+    "price": 5,
+    "icon": "icon_wool",
+    "volatility": 0.15,
+    "season": {
+      "spring": 0.9,
+      "summer": 0.95,
+      "autumn": 1.05,
+      "winter": 1.2
+    },
+    "xpCollect": 1
+  },
+  "cloth": {
+    "price": 34,
+    "icon": "icon_cloth",
+    "volatility": 0.1,
+    "season": {
+      "spring": 1.0,
+      "summer": 0.9,
+      "autumn": 1.1,
+      "winter": 1.25
+    },
+    "xpCollect": 0,
+    "artisan": true
   }
 }

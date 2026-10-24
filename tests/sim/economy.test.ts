@@ -90,7 +90,7 @@ describe('materiales', () => {
 describe('despensa', () => {
   it('por defecto se come grano, verdura y huevos, pero no la leche', () => {
     const s = newGame();
-    expect(s.pantry.eat).toEqual({ wheat: true, carrot: true, cabbage: true, barley: false, egg: true, milk: false, flour: false, bread: true, cheese: false, beer: false });
+    expect(s.pantry.eat).toEqual({ wheat: true, carrot: true, cabbage: true, barley: false, egg: true, milk: false, flour: false, bread: true, cheese: false, beer: false, wool: false, cloth: false });
     expect(s.pantry.reserveDays).toBe(VILLAGERS.pantry.reserveDays);
   });
 

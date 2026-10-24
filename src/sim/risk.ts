@@ -2,7 +2,7 @@
 // el senor (que acaba en embargo de tierras) y perder el rango si no se mantiene el favor.
 // Todo se resuelve en las cuentas de la estacion (taxes.ts), salvo comprar prevencion.
 import { DAYS_PER_SEASON, dateFromDay, type Season } from './calendar';
-import { PROGRESSION, START, type WeatherDef } from './data';
+import { ANIMAL_IDS, PROGRESSION, START, type WeatherDef } from './data';
 import { addModifier, nextSeasonStart } from './modifiers';
 import { mainRanks, rankDef } from './progress';
 import { weightedPick } from './random';
@@ -35,7 +35,7 @@ export const isBadWeather = (w: WeatherDef): boolean => (w.growth ?? 1) < 1 || (
 
 const PROTECTION_UNITS: Record<ProtectionId, (s: GameState) => number> = {
   crops: (s) => Object.keys(s.plots).length,
-  animals: (s) => s.herds.chicken.count + s.herds.cow.count,
+  animals: (s) => ANIMAL_IDS.reduce((n, a) => n + s.herds[a].count, 0),
 };
 
 export function protectionCost(state: GameState, kind: ProtectionId): number {

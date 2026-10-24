@@ -1043,6 +1043,38 @@ def brewery() -> Spr:
     return finish(s)
 
 
+def loom() -> Spr:
+    """Telar: casa de entramado con tejado de paja y, al lado, un bastidor con el pano tendido
+    (rojo arriba, crudo abajo) y un cesto de lana."""
+    rnd = random.Random(64)
+    s = Spr(TW, 44)
+    by = 41
+    al, ar, h = 11, 8, 9
+    cx = 13
+    ground_shadow(s, 16, by + 1, 14, 4)
+    b = s.box2(cx, by, al, ar, h, "pl2", "pl0")
+    frame_walls(s, b, 0, h)
+    door(s, b, "l", 0.65, 3, 5, "w2")
+    window(s, b, "l", 0.25, 5, True, 2, 2)
+    window(s, b, "r", 0.5, 5, True, 2, 2)
+    s.gable_roof(b, 8, "st2", "st0", "pl1", 1, straw_texture, rnd)
+    # bastidor (rama de tender): dos postes, travesano y el pano estirado
+    p1, p2 = (21, by - 1), (29, by - 5)
+    for (x, y) in (p1, p2):
+        s.rect(x, y - 12, x, y, "w1")
+    s.line((p1[0], p1[1] - 12), (p2[0], p2[1] - 12), "w2")
+    for k in range(p2[0] - p1[0] - 1):
+        x = p1[0] + 1 + k
+        y = p1[1] + (p2[1] - p1[1]) * (k + 1) / (p2[0] - p1[0])
+        s.rect(x, y - 11, x, y - 7, "red2" if k % 3 else "red1")
+        s.rect(x, y - 6, x, y - 3, "cream" if k % 3 else "cream0")
+    # cesto de lana al pie
+    s.ellipse(18, by - 1, 2, 1, "w3")
+    s.ellipse(18, by - 3, 2, 1, "milk")
+    s.px(19, by - 4, "cream")
+    return finish(s)
+
+
 # ================================================================== nobleza
 
 def crenel_wall(s: Spr, a, b, h, c_face, rnd):
@@ -1784,6 +1816,26 @@ def cow() -> Spr:
     return finish(s)
 
 
+def sheep() -> Spr:
+    s = Spr(16, 12)
+    # vellon con borde ondulado, sombra abajo
+    s.ellipse(7, 6, 6, 3.5, "milk")
+    for x in (3, 6, 9):
+        s.ellipse(x, 3.5, 1.5, 1.2, "milk")
+    s.rect(2, 8, 12, 8, "cream0")
+    s.px(5, 5, "cream")
+    s.px(8, 4, "cream")
+    s.px(10, 6, "cream")
+    # cabeza y patas oscuras
+    s.rect(12, 3, 14, 6, "w1")
+    s.px(15, 5, "w1")
+    s.px(13, 4, "out")
+    s.px(12, 2, "w2")
+    for x in (4, 6, 9, 11):
+        s.rect(x, 9, x, 11, "w1")
+    return finish(s)
+
+
 def chicken() -> Spr:
     s = Spr(8, 8)
     s.rect(1, 3, 5, 6, "hen")
@@ -2023,6 +2075,27 @@ def _beer(s):
     s.px(7, 1, "cream")
 
 
+def _wool(s):
+    # ovillo de lana: vueltas de hebra marcadas y el cabo suelto
+    s.ellipse(5.5, 5.5, 4.5, 4.5, "cream")
+    s.line((2, 3), (8, 9), "pl0")
+    s.line((3, 2), (9, 8), "cream0")
+    s.line((1, 6), (5, 10), "pl0")
+    s.line((6, 1), (10, 5), "pl0")
+    s.px(3, 4, "milk")
+    s.px(4, 3, "milk")
+    s.line((9, 9), (11, 11), "pl0")
+
+
+def _cloth(s):
+    # pieza de pano doblada, roja, con el canto claro
+    s.rect(1, 5, 10, 10, "red1")
+    s.rect(1, 5, 10, 6, "red2")
+    s.rect(2, 2, 11, 4, "red2")
+    s.rect(2, 2, 11, 2, "cream")
+    s.rect(1, 8, 10, 8, "red0")
+
+
 def _cheese(s):
     s.poly([(1, 8), (10, 4), (10, 10), (1, 10)], "gold")
     s.poly([(1, 8), (6, 3), (10, 4)], "glow")
@@ -2170,7 +2243,7 @@ def _menu(s):
 ICONS = {
     "icon_coin": _coin, "icon_wheat": _wheat, "icon_carrot": _carrot, "icon_cabbage": _cabbage,
     "icon_egg": _egg, "icon_milk": _milk, "icon_flour": _flour, "icon_bread": _bread, "icon_cheese": _cheese,
-    "icon_barley": _barley, "icon_beer": _beer,
+    "icon_barley": _barley, "icon_beer": _beer, "icon_wool": _wool, "icon_cloth": _cloth,
     "icon_wood": _wood, "icon_stone": _stone, "icon_iron": _iron, "icon_worker": _worker, "icon_banner": _banner,
     "icon_hammer": _hammer, "icon_granary": _granary, "icon_house": _house, "icon_scroll": _scroll,
     "icon_crown": _crown, "icon_cart": _cart, "icon_charter": _charter, "icon_prestige": _prestige,
@@ -2221,14 +2294,14 @@ def generate() -> dict:
         **{f"granary_{i}": granary(i) for i in (1, 2, 3)},
         **{f"coop_{i}": coop(i) for i in (1, 2, 3)},
         "pen_shed": pen_shed(), "stall": stall(), "cart": cart(),
-        "mill": windmill(), "bakery": bakery(), "cheesery": cheesery(), "brewery": brewery(),
+        "mill": windmill(), "bakery": bakery(), "cheesery": cheesery(), "brewery": brewery(), "loom": loom(),
         **{f"manor_{i}": manor(i) for i in range(4)},
         **{f"hamlet_{m}_{i}": hamlet(m, i) for m in ("wood", "stone", "iron") for i in range(4)},
         "monument_works_1": monument_works(1), "monument_works_2": monument_works(2),
         "monument_castle": castle(), "monument_greatChurch": great_church(), "monument_guildHall": guild_hall(),
         "monument_exchange": exchange(), "monument_council": council(),
         **{f"villager_{j}": villager(j) for j in ("farmer", "herder", "carter", "artisan", "soldier")},
-        "cow": cow(), "chicken": chicken(),
+        "cow": cow(), "sheep": sheep(), "chicken": chicken(),
     }
     # variantes de invierno de lo que cambia con la estacion: suelos y arboles
     for i, k in enumerate(("grass_a", "grass_b", "grass_c", "soil", "path", "wild")):

@@ -281,6 +281,40 @@ describe('animales', () => {
     s.herds.chicken.count = 6;
     expect(buyAnimal(s, 'chicken').result.msg).toBe('msg.animalLimit');
   });
+
+  it('las ovejas se compran desde el nivel 14, viven en el corral con su propio tope y dan lana', () => {
+    const s = newGame();
+    s.coins = 2000;
+    s.level = 13;
+    expect(buyAnimal(s, 'sheep').result.msg).toBe('msg.animalLocked');
+    s.level = 14;
+    for (let i = 0; i < 2; i++) expect(buyAnimal(s, 'sheep').result.ok).toBe(true);
+    expect(buyAnimal(s, 'sheep').result.msg).toBe('msg.animalLimit');
+    // las ovejas no ocupan el sitio de las vacas
+    expect(s.herds.cow.count).toBe(START.herds.cow ?? 0);
+    // el esquiladero (mejora 6 del corral) deja dos mas
+    s.buildings.pen = 6;
+    expect(buyAnimal(s, 'sheep').result.ok).toBe(true);
+    s.herds.cow.stored = 0;
+    s.herds.sheep.timer = 0;
+    advanceDay(s);
+    advanceDay(s);
+    expect(s.herds.sheep.stored).toBeGreaterThanOrEqual(3);
+  });
+
+  it('tocar el corral recoge la leche y la lana a la vez', () => {
+    const s = newGame();
+    s.herds.sheep.count = 2;
+    s.herds.cow.stored = 2;
+    s.herds.sheep.stored = 3;
+    const pen = s.map.tiles.find((t) => t.kind === 'pen')!;
+    const r = interact(s, pen.x, pen.y);
+    expect(r.kind).toBe('done');
+    expect(s.inventory.milk).toBe(2);
+    expect(s.inventory.wool).toBe(3);
+    // sin nada que recoger, se abre el corral
+    expect(interact(s, pen.x, pen.y)).toEqual({ kind: 'building', building: 'pen' });
+  });
 });
 
 describe('mercado', () => {
