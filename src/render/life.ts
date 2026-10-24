@@ -1,6 +1,8 @@
 // Mundo vivo: por donde salen y vuelven las caravanas y en que trabaja cada aldeano en el mapa.
 // Solo lee la partida y no importa Phaser: la escena lo dibuja y los tests lo comprueban.
-import { PROGRESSION, VILLAGERS } from '../sim/data';
+import { NOBILITY, PROGRESSION, VILLAGERS } from '../sim/data';
+import { hamletLevel } from '../sim/noble';
+import { objectSize } from '../sim/layout';
 import { farmerPlots } from '../sim/villagers';
 import { workshopStatus } from '../sim/workshops';
 import type { GameState, Tile } from '../sim/types';
@@ -22,7 +24,22 @@ export interface RoadCaravan {
   t: number;
   returning: boolean;
   escort: boolean;
+  /** Durante el asalto (la caravana parada), de 0 a 1; si no hay asalto, null. */
+  ambush: number | null;
 }
+
+/** Bandido a la vista: posicion en casillas, opacidad y hacia donde mira. */
+export interface BanditSpot extends Spot {
+  alpha: number;
+  flip: boolean;
+}
+
+/**
+ * Asalto en el camino de vuelta: la carreta llega hasta `AMBUSH.at` del camino (contado desde fuera),
+ * se para mientras los bandidos salen, la saquean y huyen, y luego sigue hasta el mercado. Las cifras
+ * son fracciones del tramo de vuelta.
+ */
+export const AMBUSH = { at: 0.4, stop: 0.25 };
 
 const STEPS: [number, number][] = [
   [1, 0],
@@ -100,8 +117,68 @@ export function roadCaravans(state: GameState): RoadCaravan[] {
     if (leg <= 0) continue;
     const gone = now - c.departDay;
     const left = c.returnDay - now;
-    if (gone >= 0 && gone < leg) out.push({ id: c.id, t: gone / leg, returning: false, escort: c.escort });
-    else if (left > 0 && left < leg) out.push({ id: c.id, t: left / leg, returning: true, escort: c.escort });
+    if (gone >= 0 && gone < leg) out.push({ id: c.id, t: gone / leg, returning: false, escort: c.escort, ambush: null });
+    else if (left > 0 && left < leg) {
+      const t = left / leg;
+      if (!c.ambush) out.push({ id: c.id, t, returning: true, escort: c.escort, ambush: null });
+      else {
+        // De vuelta con asalto: avanza hasta el sitio del asalto, se para y despues recupera el paso.
+        const p = 1 - t;
+        const { at, stop } = AMBUSH;
+        const where = 1 - at;
+        if (p < at) out.push({ id: c.id, t: 1 - p, returning: true, escort: c.escort, ambush: null });
+        else if (p < at + stop) out.push({ id: c.id, t: where, returning: true, escort: c.escort, ambush: (p - at) / stop });
+        else out.push({ id: c.id, t: where * (1 - (p - at - stop) / (1 - at - stop)), returning: true, escort: c.escort, ambush: null });
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Los dos bandidos del asalto, segun su avance (`phase`, 0 a 1): salen de los lados del camino,
+ * llegan a la carreta, cogen lo que pueden y huyen por donde vinieron, desvaneciendose.
+ */
+export function ambushBandits(road: Spot[], t: number, phase: number): BanditSpot[] {
+  const here = pointOnRoad(road, t);
+  const ahead = pointOnRoad(road, Math.max(0, t - 0.05));
+  const len = Math.hypot(ahead.x - here.x, ahead.y - here.y) || 1;
+  // Perpendicular al camino: un bandido sale por cada lado.
+  const px = -(ahead.y - here.y) / len;
+  const py = (ahead.x - here.x) / len;
+  const out: BanditSpot[] = [];
+  for (const side of [1, -1]) {
+    const far = { x: here.x + px * side * 1.8, y: here.y + py * side * 1.8 };
+    const near = { x: here.x + px * side * 0.35, y: here.y + py * side * 0.35 };
+    // 0-0,35 se acercan; 0,35-0,6 saquean junto a la carreta; 0,6-1 huyen y se desvanecen.
+    const k = phase < 0.35 ? phase / 0.35 : phase < 0.6 ? 1 : 1 - (phase - 0.6) / 0.4;
+    const x = far.x + (near.x - far.x) * k;
+    const y = far.y + (near.y - far.y) * k;
+    const alpha = phase < 0.1 ? phase / 0.1 : phase > 0.75 ? Math.max(0, 1 - (phase - 0.75) / 0.25) : 1;
+    // Mira hacia la carreta al llegar y hacia fuera al huir (en pantalla, x crece con x - y).
+    const towards = near.x - near.y > far.x - far.y;
+    out.push({ x, y, alpha, flip: phase < 0.6 ? !towards : towards });
+  }
+  return out;
+}
+
+/**
+ * Partida de bandidos en las aldeas (evento «bandits» esperando decision): casillas libres alrededor
+ * de las aldeas tomadas, por donde se ven rondar.
+ */
+export function banditCamp(state: GameState): Spot[] {
+  if (state.events.pending?.id !== 'bandits') return [];
+  const n = objectSize('hamlet');
+  const out: Spot[] = [];
+  for (const [id, h] of Object.entries(NOBILITY.hamlets)) {
+    if (hamletLevel(state, id) === 0) continue;
+    for (let y = h.y - 1; y <= h.y + n; y++) {
+      for (let x = h.x - 1; x <= h.x + n; x++) {
+        const t = x >= 0 && y >= 0 && x < state.map.width && y < state.map.height ? state.map.tiles[y * state.map.width + x] : undefined;
+        const inside = x >= h.x && x < h.x + n && y >= h.y && y < h.y + n;
+        if (!inside && t && (t.kind === 'grass' || t.kind === 'path')) out.push({ x, y });
+      }
+    }
   }
   return out;
 }

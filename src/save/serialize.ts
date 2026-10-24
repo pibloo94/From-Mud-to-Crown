@@ -15,7 +15,7 @@ import { emptyCharacter } from '../sim/character';
 import { achievementMet } from '../sim/achievements';
 
 export const SAVE_FORMAT = 'from-mud-to-crown-save';
-export const SAVE_VERSION = 24;
+export const SAVE_VERSION = 25;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;
@@ -142,6 +142,8 @@ export function migrate(state: Record<string, unknown>, from: number): GameState
   // v22 -> v23: cebada y cerveza (productos nuevos) y un cuarto solar para la cerveceria.
   // v23 trajo la cebada, la cerveza y el cuarto solar; v24, las ovejas, la lana, el pano y el quinto.
   if (from < 24) s = addProductsAndSite(s);
+  // v25: las caravanas deciden al salir si las asaltan (`ambush`). Las que ya iban de camino no lo
+  // traen y se sortean al volver, como antes: no hace falta tocarlas.
   return s as GameState;
 }
 

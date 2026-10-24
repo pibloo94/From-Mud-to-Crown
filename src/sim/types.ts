@@ -116,6 +116,11 @@ export interface Caravan {
   value: number;
   departDay: number;
   returnDay: number;
+  /**
+   * Si los bandidos la asaltan a la vuelta. Se decide al salir para que el mapa pueda ensenar el
+   * asalto en el camino; las caravanas de partidas antiguas no lo traen y se sortea al volver.
+   */
+  ambush?: boolean;
 }
 
 /** Taller construido en un solar. */

@@ -156,7 +156,7 @@ class Spr:
             for z in range(int(z0), int(z1)):
                 self.px(x, base - z, c)
 
-    def gable_roof(self, b, rise, front, back, gable, over=1, texture=None, rnd=None):
+    def gable_roof(self, b, rise, front, back, gable, over=1, texture=None, rnd=None, gable_texture=True):
         """Tejado a dos aguas con la cumbrera paralela a la pared izquierda."""
         L, F, R, B = b["L"], b["F"], b["R"], b["B"]
         L = (L[0] - over, L[1] + over / 2)
@@ -166,6 +166,14 @@ class Spr:
         self.poly([m1, (B[0], B[1]), (R[0] + over, R[1]), m2], back)
         self.poly([F, (R[0] + over, R[1]), m2], gable)
         self.poly([L, F, m2, m1], front)
+        # el hastial no queda liso: sillares si es de piedra, tablas si es de madera
+        tri = [F, (R[0] + over, R[1]), m2]
+        if not gable_texture:
+            pass
+        elif gable in STONE_DARKER:
+            masonry(self, tri, gable, rnd)
+        elif gable in WOOD:
+            planks(self, tri, gable)
         if texture and rnd:
             texture(self, L, F, m2, m1, rnd)
         return m1, m2
@@ -264,6 +272,59 @@ def banner(s: Spr, x, y, h=9, flip=False):
         s.px(x + d * (k + 1), y - h + 2, "red2" if k < 3 else "red1")
         if k < 3:
             s.px(x + d * (k + 1), y - h + 3, "red0")
+
+
+# Tonos de piedra: la junta va un tono mas oscura y alguna piedra suelta, uno mas clara.
+STONE_DARKER = {"r4": "r3", "r3": "r2", "r2": "r1", "r1": "r0", "r0": "#2c2a25"}
+STONE_LIGHTER = {"r0": "r1", "r1": "r2", "r2": "r3", "r3": "r4", "r4": "r4"}
+WOOD = {"w1", "w2", "w3", "w4"}
+
+
+def masonry(s: Spr, pts, base, rnd=None):
+    """Sillares sobre lo pintado de color `base` dentro del recuadro de `pts`: hiladas de 3 px con
+    juntas verticales alternas. Asi ningun pano de piedra queda liso."""
+    col = rgba(base)
+    joint, light = STONE_DARKER[base], STONE_LIGHTER[base]
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    for y in range(max(0, int(min(ys))), min(s.h, int(max(ys)) + 1)):
+        for x in range(max(0, int(min(xs))), min(s.w, int(max(xs)) + 1)):
+            if s.im.getpixel((x, y)) != col:
+                continue
+            if y % 3 == 2 or (x + (y // 3 % 2) * 2) % 4 == 0:
+                s.px(x, y, joint)
+            elif rnd is not None and rnd.random() < 0.07:
+                s.px(x, y, light)
+
+
+def planks(s: Spr, pts, base):
+    """Tablas horizontales sobre lo pintado de color `base` (hastiales de madera)."""
+    col = rgba(base)
+    dark = {"w4": "w3", "w3": "w2", "w2": "w1", "w1": "w0"}[base]
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    for y in range(max(0, int(min(ys))), min(s.h, int(max(ys)) + 1)):
+        if y % 3 != 2:
+            continue
+        for x in range(max(0, int(min(xs))), min(s.w, int(max(xs)) + 1)):
+            if s.im.getpixel((x, y)) == col:
+                s.px(x, y, dark)
+
+
+def fill_holes(s: Spr, c="r0"):
+    """Rellena los huecos transparentes encerrados por el dibujo (no se ve hierba a traves de un muro)."""
+    seen = set()
+    stack = [(x, y) for x in range(s.w) for y in (0, s.h - 1)] + [(x, y) for y in range(s.h) for x in (0, s.w - 1)]
+    while stack:
+        x, y = stack.pop()
+        if (x, y) in seen or not (0 <= x < s.w and 0 <= y < s.h) or s.im.getpixel((x, y))[3] >= 128:
+            continue
+        seen.add((x, y))
+        stack += [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+    for y in range(s.h):
+        for x in range(s.w):
+            if (x, y) not in seen and s.im.getpixel((x, y))[3] < 128:
+                s.px(x, y, c)
 
 
 def touching_border(s: Spr):
@@ -1140,8 +1201,13 @@ def crenel_wall(s: Spr, a, b, h, c_face, rnd):
         s.rect(x, y - h, x, y, c_face)
         if k % 4 < 2:
             s.rect(x, y - h - 2, x, y - h - 1, c_face)
-        if rnd.random() < 0.15:
-            s.px(x, y - rnd.randint(1, h - 1), "r0")
+        # sillares que siguen la pendiente del muro: hiladas de 3 px y juntas alternas
+        joint = STONE_DARKER.get(c_face, "r0")
+        for z in range(h):
+            if z % 3 == 2 or (k + (z // 3 % 2) * 2) % 4 == 0:
+                s.px(x, y - z, joint)
+            elif rnd.random() < 0.06:
+                s.px(x, y - z, STONE_LIGHTER.get(c_face, c_face))
 
 
 def manor(stage: int) -> Spr:
@@ -1170,6 +1236,11 @@ def manor(stage: int) -> Spr:
         for (x, y) in ((cx - 28, by - 16), (cx, by - 31), (cx + 28, by - 16)):
             s.rect(x - 2, y - 11, x + 2, y, "r2")
             s.rect(x + 1, y - 11, x + 2, y, "r1")
+            for z in (2, 5, 8):
+                s.rect(x - 2, y - z, x, y - z, "r1")
+                s.rect(x + 1, y - z, x + 2, y - z, "r0")
+            for z, dx in ((1, -1), (4, 0), (7, -1), (10, 0)):
+                s.px(x + dx, y - z, "r1")
             s.px(x - 2, y - 12, "r3")
             s.px(x + 2, y - 12, "r3")
     if stage >= 3:
@@ -1211,7 +1282,7 @@ def manor(stage: int) -> Spr:
     dy = by - 2 - (dx - cx) // 2 - 9
     s.rect(dx, dy - 2, dx + 2, dy, "red1")
     s.px(dx + 1, dy - 1, "gold")
-    m1, m2 = s.gable_roof(b, 14 if stage < 3 else 16, "sl2", "sl0", "r2", 2, shingle_texture("sl1", "sl2"), rnd)
+    m1, m2 = s.gable_roof(b, 14 if stage < 3 else 16, "sl2", "sl0", "r2", 2, shingle_texture("sl1", "sl2"), rnd, gable_texture=stage >= 2)
     chimney(s, int(m2[0]) - 4, int(m2[1]) + 3, 6)
     chimney(s, int(m1[0]) + 2, int(m1[1]) + 3, 5)
     banner(s, int((m1[0] + m2[0]) / 2), int((m1[1] + m2[1]) / 2), 10)
@@ -1219,6 +1290,7 @@ def manor(stage: int) -> Spr:
         # tramos delanteros de la muralla, bajos
         crenel_wall(s, (cx - 30, by - 16), (cx - 18, by - 10), 4, "r2", rnd)
         crenel_wall(s, (cx + 19, by - 10), (cx + 30, by - 16), 4, "r1", rnd)
+    fill_holes(s)
     return finish(s)
 
 
@@ -1352,6 +1424,12 @@ def resource_site(s: Spr, material: str, by, stage: int, rnd):
                 y0 = by - 15 - z + (x - 9) // 2
                 s.line((x, y0), (x, y0 + 2), "r2")
         s.line((19, by - 10), (19, by - 20), "r1")
+        masonry(s, [(19, by - 23), (25, by - 10)], "r2", rnd)
+        # vetas y grietas en la pena
+        for _ in range(14):
+            x, y = rnd.randint(7, 27), rnd.randint(by - 28, by - 14)
+            if s.im.getpixel((x, y)) == rgba("r0"):
+                s.px(x, y, "r1")
         if old:
             s.line((11, by - 22), (16, by - 14), "r1")
             s.ellipse(22, by - 7, 1, 1, "r2")
@@ -1627,11 +1705,13 @@ def great_church() -> Spr:
         s.wall(cx, by - 2, al, "l", x - 1, x, 0, h - 3, "r4")
     for f in (0.17, 0.5, 0.83):
         window(s, nave, "l", f, 7, True, 2, 7)
-    door(s, nave, "r", 0.45, 4, 9, "w1")
-    # roseton sobre la puerta
-    rx, ry = cx + 5, by - 2 - 3 - 14
+    door(s, nave, "r", 0.5, 4, 9, "w1")
+    # roseton sobre la puerta, en el centro de la fachada: 4 px de ancho para quedar centrado en una
+    # pared de 12 (como la puerta), a la altura del arranque del hastial
+    rx = cx + (ar - 1) / 2
+    ry = by - 2 - 3 - 14
     s.ellipse(rx, ry, 2, 2, "glow")
-    s.px(rx, ry, "red1")
+    s.rect(rx - 0.5, ry, rx + 0.5, ry, "red1")
     s.gable_roof(nave, 12, "sl2", "sl0", "r2", 1, shingle_texture("sl1", "sl2"), rnd)
     # campanario a la derecha
     tb = by - 14
@@ -1814,7 +1894,7 @@ def snow_tree(spr: Spr, seed: int) -> Spr:
 # ================================================================== personas y animales
 
 def villager(job: str) -> Spr:
-    cloth = {"farmer": ("w3", "w2"), "herder": ("l2", "l1"), "carter": ("red0", "#431812"), "artisan": ("r1", "r0"), "soldier": ("red1", "red0")}[job]
+    cloth = {"farmer": ("w3", "w2"), "herder": ("l2", "l1"), "carter": ("red0", "#431812"), "artisan": ("r1", "r0"), "soldier": ("red1", "red0"), "bandit": ("pi2", "pi1")}[job]
     s = Spr(9, 14)
     # piernas
     s.px(3, 13, "w0")
@@ -1842,6 +1922,14 @@ def villager(job: str) -> Spr:
     elif job == "artisan":
         s.rect(3, 7, 5, 11, "cream0")
         s.rect(3, 2, 5, 2, "red1")
+    elif job == "bandit":
+        # capucha calada (la cara en sombra), panuelo y garrote
+        s.rect(2, 2, 6, 5, cloth[1])
+        s.rect(3, 4, 5, 5, "skin0")
+        s.rect(3, 5, 5, 5, "out")
+        s.px(4, 1, cloth[1])
+        s.rect(8, 6, 8, 11, "w2")
+        s.rect(7, 5, 8, 6, "w3")
     else:  # soldado
         s.rect(2, 2, 6, 3, "iron1")
         s.rect(1, 3, 7, 3, "iron1")
@@ -2427,7 +2515,7 @@ def generate() -> dict:
         "monument_works_1": monument_works(1), "monument_works_2": monument_works(2),
         "monument_castle": castle(), "monument_greatChurch": great_church(), "monument_guildHall": guild_hall(),
         "monument_exchange": exchange(), "monument_council": council(),
-        **{f"villager_{j}": villager(j) for j in ("farmer", "herder", "carter", "artisan", "soldier")},
+        **{f"villager_{j}": villager(j) for j in ("farmer", "herder", "carter", "artisan", "soldier", "bandit")},
         "cow": cow(), "sheep": sheep(), "chicken": chicken(),
     }
     # variantes de invierno de lo que cambia con la estacion: suelos y arboles
