@@ -17,6 +17,7 @@ import traitsJson from '../data/traits.json';
 import pathsJson from '../data/paths.json';
 import commissionsJson from '../data/commissions.json';
 import monumentsJson from '../data/monuments.json';
+import achievementsJson from '../data/achievements.json';
 import layoutJson from '../data/layout.json';
 import type { AnimalId, BuildingId, CropId, Difficulty, EstateEffect, EstateId, JobId, LiegeId, MaterialId, ModifierKind, PathId, ProductId, ProtectionId, RankId, TileKind, TraitEffect, WorkshopId } from './types';
 import type { Season } from './calendar';
@@ -173,6 +174,30 @@ export interface ProgressionDef {
     perManorLevel: number;
     neglect: { days: number; growth: number; animal: number };
   };
+}
+
+/** Un logro: se consigue al cumplir todas sus condiciones (las que tenga). */
+export interface AchievementDef {
+  id: string;
+  icon: string;
+  stat?: 'harvested' | 'trades' | 'commissionsDone' | 'commissionSeasons' | 'earned';
+  min?: number;
+  coins?: number;
+  villagers?: number;
+  rank?: RankId;
+  batches?: number;
+  noHungerDays?: number;
+  devoted?: number;
+  earnedTraits?: number;
+  pathLevel?: number;
+  years?: number;
+  monument?: boolean;
+}
+
+export interface AchievementsDef {
+  /** Estaciones que guarda el libro de cuentas. */
+  historyMax: number;
+  achievements: AchievementDef[];
 }
 
 /** Monumento final de un camino: rango que pide, prestigio y lo que da al terminarlo. */
@@ -568,6 +593,7 @@ export const TRAITS = traitsJson as unknown as TraitsDef;
 export const PATHS = pathsJson as unknown as PathsDef;
 export const COMMISSIONS = commissionsJson as unknown as CommissionsDef;
 export const MONUMENTS = monumentsJson as unknown as MonumentsDef;
+export const ACHIEVEMENTS = achievementsJson as unknown as AchievementsDef;
 export const LAYOUT = layoutJson as unknown as LayoutDef;
 export const HAMLET_IDS = Object.keys(NOBILITY.hamlets);
 export const PATRONAGE_IDS = Object.keys(NOBILITY.patronage);

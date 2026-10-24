@@ -2879,6 +2879,72 @@ img[src^='assets/pixel/'] {
   display: inline-block;
 }
 
+/* Libro de cuentas */
+.book-chart {
+  margin: 4px 0 12px;
+}
+
+.book-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: rgba(110, 80, 40, 0.08);
+  border: 1px solid rgba(110, 80, 40, 0.35);
+}
+
+.book-chart .grid {
+  stroke: rgba(110, 80, 40, 0.3);
+  stroke-width: 1;
+}
+
+.book-chart .axis {
+  font: 400 9px var(--font-body);
+  fill: var(--ink-soft);
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.chart-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  vertical-align: -1px;
+}
+
+.achievement {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 6px;
+  border-top: 1px solid rgba(110, 80, 40, 0.3);
+}
+
+.achievement:not(.got) {
+  opacity: 0.5;
+}
+
+.achievement:not(.got) > .icon {
+  filter: grayscale(1);
+}
+
+.achievement .up-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.achievement-day {
+  color: #2f5a1f;
+}
+
 /* Monumentos */
 .monument-art {
   display: block;

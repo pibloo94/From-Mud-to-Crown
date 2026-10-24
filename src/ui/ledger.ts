@@ -71,6 +71,7 @@ export function ledgerView(ctx: PanelCtx): HTMLElement {
       { class: 'row-btns' },
       h('button', { class: 'btn', onclick: () => ctx.openMarket('sell') }, t('ledger.toMarket')),
       h('button', { class: 'btn', onclick: () => ctx.openBuilding('granary', 'pantry') }, t('ledger.toPantry')),
+      h('button', { class: 'btn', onclick: () => ctx.openBook('money') }, t('book.title')),
     ),
     h('button', { class: 'btn primary', onclick: () => ctx.close() }, t('panel.close')),
   );

@@ -84,6 +84,8 @@ export function completeCommission(state: GameState, index: number): CommandResu
   applyRep(state, rep);
   recordDeeds(state, rep);
   o.done = true;
+  state.stats.commissionsDone++;
+  if (state.commissions.offers.every((x) => x.done)) state.stats.commissionSeasons++;
   return { ok: true, msg: 'msg.commissionDone', params: { estate: c.estate, rep: c.rep, coins: pay } };
 }
 

@@ -279,7 +279,24 @@ export interface GameState {
   events: EventsState;
   /** Semilla del generador aleatorio: la partida es reproducible y se guarda con ella. */
   rng: number;
-  stats: { harvested: number; earned: number; seasonEarned: number; seasonFood: number; trades: number; tradeEarned: number; leftHunger: number };
+  stats: {
+    harvested: number;
+    earned: number;
+    seasonEarned: number;
+    seasonFood: number;
+    trades: number;
+    tradeEarned: number;
+    leftHunger: number;
+    /** Encargos cumplidos y estaciones con todos los encargos cumplidos. */
+    commissionsDone: number;
+    commissionSeasons: number;
+    /** Ultimo dia con aldeanos pasando hambre. */
+    lastHungerDay: number;
+  };
+  /** Libro de cuentas: una fila por estacion cerrada (ver achievements.ts). */
+  history: { day: number; income: number; costs: number; coins: number; food: number; villagers: number; rep: Record<EstateId, number> }[];
+  /** Logros conseguidos: id -> dia. */
+  achievements: Record<string, number>;
 }
 
 /** Resultado de una orden del jugador; `msg` es una clave de traduccion. */

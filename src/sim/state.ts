@@ -85,7 +85,9 @@ export function createNewGame(seed: number = newSeed(), difficulty: Difficulty =
     marketBoost: null,
     events: { pending: null, lastDay: 0, cooldowns: {} },
     rng: seed >>> 0,
-    stats: { harvested: 0, earned: 0, seasonEarned: 0, seasonFood: 0, trades: 0, tradeEarned: 0, leftHunger: 0 },
+    stats: { harvested: 0, earned: 0, seasonEarned: 0, seasonFood: 0, trades: 0, tradeEarned: 0, leftHunger: 0, commissionsDone: 0, commissionSeasons: 0, lastHungerDay: 0 },
+    history: [],
+    achievements: {},
   };
   for (let i = 0; i < (START.villagers ?? 0); i++) addVillager(state);
   rollPrices(state);

@@ -9,6 +9,7 @@ import { chargeDebt, checkRankKeep, rollWeather, seasonNow, seizeForDebt, seizeL
 import { manorStat, nobleSeasonBill, nobleSeasonEffects, amountsList, liegeOf } from './noble';
 import { difficulty } from './difficulty';
 import type { GameState, Notice } from './types';
+import { recordSeason } from './achievements';
 
 export interface SeasonBill {
   earned: number;
@@ -91,7 +92,7 @@ export function settleSeason(state: GameState, endedSeason: string): Notice {
   const seized = seizeForDebt(state);
   const keep = checkRankKeep(state);
   const weather = rollWeather(state, seasonNow(state));
-  return {
+  const card: Notice = {
     ok: unpaid === 0,
     msg: 'report.season',
     card: 'season',
@@ -127,4 +128,6 @@ export function settleSeason(state: GameState, endedSeason: string): Notice {
       weather: `${seasonNow(state)}.${weather}`,
     },
   };
+  recordSeason(state, card.params!);
+  return card;
 }
