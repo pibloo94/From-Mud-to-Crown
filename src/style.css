@@ -2879,6 +2879,12 @@ img[src^='assets/pixel/'] {
   display: inline-block;
 }
 
+.plant-soil {
+  margin: -2px 0 8px;
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+
 /* Libro de cuentas */
 .book-chart {
   margin: 4px 0 12px;

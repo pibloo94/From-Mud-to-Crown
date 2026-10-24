@@ -867,10 +867,20 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
   function plantView(): HTMLElement {
     const m = modal as Extract<Modal, { kind: 'plant' }>;
     const s = sim.state;
+    const plot = s.plots[`${m.x},${m.y}`];
+    const fert = plot?.fertility ?? 1;
+    const tired = fert < PROGRESSION.fertility.tiredBelow;
     return h(
       'div',
       { class: 'sheet compact' },
       h('h2', {}, t('plant.title')),
+      plot &&
+        h(
+          'p',
+          { class: `plant-soil ${tired ? 'warn-text' : ''}` },
+          t(tired ? 'plant.soilTired' : 'plant.soil', { pct: Math.round(fert * 100) }),
+          plot.last ? ` ${t('plant.last', { crop: plot.last })}` : '',
+        ),
       h(
         'div',
         { class: 'choice-list' },
@@ -887,7 +897,13 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
               },
             },
             icon(PRODUCTS[def.product].icon, 'icon big'),
-            h('span', { class: 'choice-text' }, h('b', {}, t(`product.${def.product}`)), h('small', {}, t('plant.detail', { days: def.growDays, yield: def.yield }))),
+            h(
+              'span',
+              { class: 'choice-text' },
+              h('b', {}, t(`product.${def.product}`)),
+              h('small', {}, t('plant.detail', { days: def.growDays, yield: Math.max(1, Math.round(def.yield * fert)) })),
+              plot?.last === c && h('small', { class: 'warn-text' }, t('plant.repeat')),
+            ),
             h('span', { class: 'choice-cost' }, icon('icon_coin'), String(def.seedCost)),
           );
         }),

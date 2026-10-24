@@ -2,7 +2,7 @@
   "wheat": {
     "seedCost": 2,
     "growDays": 4,
-    "product": "wheat",
+    "product": "wheat", "drain": 0.04,
     "yield": 3,
     "xp": 4,
     "unlockLevel": 1,
@@ -12,7 +12,7 @@
   "carrot": {
     "seedCost": 3,
     "growDays": 3,
-    "product": "carrot",
+    "product": "carrot", "drain": 0.02,
     "yield": 3,
     "xp": 5,
     "unlockLevel": 3,
@@ -22,7 +22,7 @@
   "cabbage": {
     "seedCost": 6,
     "growDays": 6,
-    "product": "cabbage",
+    "product": "cabbage", "drain": 0.05,
     "yield": 3,
     "xp": 9,
     "unlockLevel": 6,

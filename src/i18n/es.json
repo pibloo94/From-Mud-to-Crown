@@ -1248,5 +1248,10 @@
   "achievement.tenYears": "Diez años",
   "achievement.tenYears.desc": "Juega diez años en la misma partida.",
   "achievement.legacy": "Legado",
-  "achievement.legacy.desc": "Termina un monumento."
+  "achievement.legacy.desc": "Termina un monumento.",
+  "plant.soil": "Tierra al {pct} %.",
+  "plant.soilTired": "Tierra cansada: al {pct} %. Rota de cultivo o déjala descansar.",
+  "plant.last": "Antes: {crop}.",
+  "plant.repeat": "Repetir cansa más la tierra",
+  "msg.harvestedTired": "+{amount} {product} · tierra al {pct} %"
 }
