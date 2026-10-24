@@ -156,7 +156,7 @@ class Spr:
             for z in range(int(z0), int(z1)):
                 self.px(x, base - z, c)
 
-    def gable_roof(self, b, rise, front, back, gable, over=1, texture=None, rnd=None):
+    def gable_roof(self, b, rise, front, back, gable, over=1, texture=None, rnd=None, gable_texture=True):
         """Tejado a dos aguas con la cumbrera paralela a la pared izquierda."""
         L, F, R, B = b["L"], b["F"], b["R"], b["B"]
         L = (L[0] - over, L[1] + over / 2)
@@ -168,7 +168,9 @@ class Spr:
         self.poly([L, F, m2, m1], front)
         # el hastial no queda liso: sillares si es de piedra, tablas si es de madera
         tri = [F, (R[0] + over, R[1]), m2]
-        if gable in STONE_DARKER:
+        if not gable_texture:
+            pass
+        elif gable in STONE_DARKER:
             masonry(self, tri, gable, rnd)
         elif gable in WOOD:
             planks(self, tri, gable)
@@ -1280,7 +1282,7 @@ def manor(stage: int) -> Spr:
     dy = by - 2 - (dx - cx) // 2 - 9
     s.rect(dx, dy - 2, dx + 2, dy, "red1")
     s.px(dx + 1, dy - 1, "gold")
-    m1, m2 = s.gable_roof(b, 14 if stage < 3 else 16, "sl2", "sl0", "r2", 2, shingle_texture("sl1", "sl2"), rnd)
+    m1, m2 = s.gable_roof(b, 14 if stage < 3 else 16, "sl2", "sl0", "r2", 2, shingle_texture("sl1", "sl2"), rnd, gable_texture=stage >= 2)
     chimney(s, int(m2[0]) - 4, int(m2[1]) + 3, 6)
     chimney(s, int(m1[0]) + 2, int(m1[1]) + 3, 5)
     banner(s, int((m1[0] + m2[0]) / 2), int((m1[1] + m2[1]) / 2), 10)
@@ -1703,11 +1705,13 @@ def great_church() -> Spr:
         s.wall(cx, by - 2, al, "l", x - 1, x, 0, h - 3, "r4")
     for f in (0.17, 0.5, 0.83):
         window(s, nave, "l", f, 7, True, 2, 7)
-    door(s, nave, "r", 0.45, 4, 9, "w1")
-    # roseton sobre la puerta
-    rx, ry = cx + 5, by - 2 - 3 - 14
+    door(s, nave, "r", 0.5, 4, 9, "w1")
+    # roseton sobre la puerta, en el centro de la fachada: 4 px de ancho para quedar centrado en una
+    # pared de 12 (como la puerta), a la altura del arranque del hastial
+    rx = cx + (ar - 1) / 2
+    ry = by - 2 - 3 - 14
     s.ellipse(rx, ry, 2, 2, "glow")
-    s.px(rx, ry, "red1")
+    s.rect(rx - 0.5, ry, rx + 0.5, ry, "red1")
     s.gable_roof(nave, 12, "sl2", "sl0", "r2", 1, shingle_texture("sl1", "sl2"), rnd)
     # campanario a la derecha
     tb = by - 14
