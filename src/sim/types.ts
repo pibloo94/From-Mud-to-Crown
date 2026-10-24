@@ -75,6 +75,10 @@ export interface Plot {
   crop: CropId | null;
   /** Dias de crecimiento acumulados (puede tener decimales con labradores). */
   growth: number;
+  /** Fertilidad de la tierra (1 = descansada): la cosecha rinde en proporcion. */
+  fertility: number;
+  /** Ultimo cultivo cosechado: repetirlo cansa mas que rotar. */
+  last: CropId | null;
 }
 
 /** Grupo de animales de una especie. */

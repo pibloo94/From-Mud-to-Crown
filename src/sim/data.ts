@@ -40,6 +40,8 @@ export interface CropDef {
   growDays: number;
   product: ProductId;
   yield: number;
+  /** Cuanto cansa la tierra cada cosecha (fertilidad que se pierde). */
+  drain: number;
   xp: number;
   unlockLevel: number;
   /** Estaciones en las que se puede sembrar y en las que crece. */
@@ -130,6 +132,13 @@ export interface ProgressionDef {
   animalsForSale: Record<AnimalId, { price: number; unlock: Feature }>;
   events: { firstDay: number; minGap: number; dailyChance: number };
   priceDays: number;
+  /**
+   * Fertilidad del suelo: cada cosecha cansa la parcela segun el cultivo (drain en crops.json), menos
+   * si se rota de cultivo. Cada dia se recupera una parte de lo que le falta hasta max (regen), mas en
+   * barbecho y en invierno. La cosecha rinde segun la fertilidad: rotando se queda hacia 1; sembrando
+   * siempre lo mismo, por debajo.
+   */
+  fertility: { min: number; max: number; regen: number; rotation: number; fallowPerDay: number; winterPerDay: number; tiredBelow: number };
   /** Avisos del parte de la estacion: dias antes de las cuentas y dias de comida. */
   forecast: { warnDays: number[]; foodWarnDays: number };
   taxes: {

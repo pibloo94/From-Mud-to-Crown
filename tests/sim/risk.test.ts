@@ -105,7 +105,7 @@ describe('deuda con el senor', () => {
     s.leases = 1;
     const bought = grass[1];
     bought.kind = 'soil';
-    s.plots[plotKey(bought.x, bought.y)] = { crop: null, growth: 0 };
+    s.plots[plotKey(bought.x, bought.y)] = { crop: null, growth: 0, fertility: 1, last: null };
     s.landBought = 1;
     s.debt = PROGRESSION.taxes.seizeDebt * 3;
     expect(seizeForDebt(s)).toBe('lease');

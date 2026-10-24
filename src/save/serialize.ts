@@ -15,7 +15,7 @@ import { emptyCharacter } from '../sim/character';
 import { achievementMet } from '../sim/achievements';
 
 export const SAVE_FORMAT = 'from-mud-to-crown-save';
-export const SAVE_VERSION = 21;
+export const SAVE_VERSION = 22;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;
@@ -137,6 +137,8 @@ export function migrate(state: Record<string, unknown>, from: number): GameState
     s = { ...s, history: [], achievements: {}, stats: { ...s.stats, commissionsDone: 0, commissionSeasons: 0, lastHungerDay: s.day ?? 0 } };
     for (const a of ACHIEVEMENTS.achievements) if (achievementMet(s as GameState, a)) s.achievements[a.id] = s.day;
   }
+  // v21 -> v22: fertilidad del suelo. Todas las parcelas empiezan descansadas.
+  if (from < 22) s = { ...s, plots: Object.fromEntries(Object.entries(s.plots ?? {}).map(([k, p]) => [k, { ...(p as object), fertility: 1, last: null }])) };
   return s as GameState;
 }
 

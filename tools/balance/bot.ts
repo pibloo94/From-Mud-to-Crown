@@ -6,8 +6,7 @@ import { Game } from '../../src/sim/game';
 import { createNewGame } from '../../src/sim/state';
 import * as R from '../../src/sim/rules';
 import { optionAvailable } from '../../src/sim/events';
-import { BUILDING_IDS, CROPS, EVENTS, HAMLET_IDS, NOBILITY, PATHS, PATRONAGE_IDS, PRODUCT_IDS, PROGRESSION, TOWN_IDS, TRADE, WORKSHOPS, WORKSHOP_IDS } from '../../src/sim/data';
-import { priceOf } from '../../src/sim/market';
+import { BUILDING_IDS, EVENTS, HAMLET_IDS, NOBILITY, PATHS, PATRONAGE_IDS, PRODUCT_IDS, PROGRESSION, TOWN_IDS, TRADE, WORKSHOPS, WORKSHOP_IDS } from '../../src/sim/data';
 import { nextUpgrade } from '../../src/sim/buildings';
 import { materialsPrice, missingMaterials } from '../../src/sim/materials';
 import { freeBeds, toolMaterials } from '../../src/sim/villagers';
@@ -19,7 +18,7 @@ import { mainRanks, rankDef } from '../../src/sim/progress';
 import { seasonBill } from '../../src/sim/taxes';
 import { upkeepBill } from '../../src/sim/upkeep';
 import { isProtected, protectionCost } from '../../src/sim/risk';
-import type { CropId, Difficulty, EstateId, GameState, JobId, MaterialId, PathId, ProductId } from '../../src/sim/types';
+import type { Difficulty, EstateId, GameState, JobId, MaterialId, PathId, ProductId } from '../../src/sim/types';
 import { PATH_IDS, canChoosePath, pathLevel } from '../../src/sim/paths';
 import { commissionDef, commissionProgress } from '../../src/sim/commissions';
 import { MONUMENT_IDS, monumentDone, monumentUnlocked, nextStage } from '../../src/sim/monuments';
@@ -280,7 +279,8 @@ function farm(game: Game): void {
     const [x, y] = key.split(',').map(Number);
     if (plot.crop && R.isRipe(plot)) game.interact(x, y);
     if (!s.plots[key].crop) {
-      const best = R.plantableCrops(s).sort((a, b) => cropValue(s, b) - cropValue(s, a))[0];
+      // Como los labradores: lo que mas deja, valorando los talleres y rotando para no cansar la tierra.
+      const best = R.bestCrop(s, s.plots[key]);
       if (best) game.plant(x, y, best);
     }
   }
@@ -289,21 +289,6 @@ function farm(game: Game): void {
     const animal = kind === 'coop' ? 'chicken' : 'cow';
     if (tile && s.herds[animal].stored >= 1) game.interact(tile.x, tile.y);
   }
-}
-
-const cropValue = (s: GameState, c: CropId): number => (CROPS[c].yield * unitValue(s, CROPS[c].product)) / CROPS[c].growDays;
-
-/** Lo que vale una unidad: su precio o, si un taller con artesano la transforma sola, lo que sale. */
-function unitValue(s: GameState, p: ProductId): number {
-  let best = priceOf(s, p);
-  for (const id of builtWorkshops(s)) {
-    const { in: inputs, out } = WORKSHOPS[id].recipe;
-    const keys = Object.keys(inputs);
-    if (artisansOf(s, id).length === 0 || keys.length !== 1 || keys[0] !== p) continue;
-    const made = Object.entries(out).reduce((sum, [q, n]) => sum + (n ?? 0) * priceOf(s, q as ProductId), 0);
-    best = Math.max(best, made / (inputs[p] ?? 1));
-  }
-  return best;
 }
 
 /** Levanta el monumento del camino en cuanto se puede pagar la etapa sin tocar la reserva. */

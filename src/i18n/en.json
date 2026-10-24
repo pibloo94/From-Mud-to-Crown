@@ -1248,5 +1248,10 @@
   "achievement.tenYears": "Ten years",
   "achievement.tenYears.desc": "Play ten years in the same game.",
   "achievement.legacy": "Legacy",
-  "achievement.legacy.desc": "Finish a monument."
+  "achievement.legacy.desc": "Finish a monument.",
+  "plant.soil": "Soil at {pct} %.",
+  "plant.soilTired": "Tired soil: at {pct} %. Rotate crops or let it rest.",
+  "plant.last": "Before: {crop}.",
+  "plant.repeat": "Repeating tires the soil more",
+  "msg.harvestedTired": "+{amount} {product} · soil at {pct} %"
 }

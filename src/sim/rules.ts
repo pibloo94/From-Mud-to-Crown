@@ -21,6 +21,7 @@ import { updateEarnedTraits } from './character';
 import { offerCommissions } from './commissions';
 import { monumentAt } from './monuments';
 import { checkAchievements } from './achievements';
+import { cropUnitValue, harvestYield, newPlot, restSoil, tireSoil } from './soil';
 
 /** Avance maximo por fotograma, para que una pausa del navegador no salte muchos dias de golpe. */
 export const MAX_FRAME_MS = 250;
@@ -90,6 +91,7 @@ export function advanceDay(state: GameState): Notice[] {
 
   const foodBefore = foodDays(state);
   notices.push(...feedVillagers(state));
+  restSoil(state);
   // Aviso de comida: cuando quedan pocos dias (solo al cruzar el umbral, no cada dia).
   const foodAfter = foodDays(state);
   const foodWarn = PROGRESSION.forecast.foodWarnDays;
@@ -126,9 +128,17 @@ export function advanceDay(state: GameState): Notice[] {
   return notices;
 }
 
-/** Cultivo que conviene sembrar ahora: el que mas deja por dia de los que se pueden sembrar. */
-export function bestCrop(state: GameState): CropId | null {
-  const value = (c: CropId) => (CROPS[c].yield * priceOf(state, CROPS[c].product) - CROPS[c].seedCost) / CROPS[c].growDays;
+/**
+ * Cultivo que conviene sembrar ahora: el que mas deja por dia de los que se pueden sembrar.
+ * Lo que un taller con artesano necesita vale lo que saca el taller de ello (el trigo, por la harina
+ * del molino), y en una parcela concreta se prefiere rotar si el cultivo anterior cansaria la tierra.
+ */
+export function bestCrop(state: GameState, plot?: Plot): CropId | null {
+  const value = (c: CropId) => {
+    const def = CROPS[c];
+    const v = (def.yield * cropUnitValue(state, def.product) - def.seedCost) / def.growDays;
+    return plot && plot.last === c ? v * (1 - def.drain) : v;
+  };
   return plantableCrops(state).sort((a, b) => value(b) - value(a))[0] ?? null;
 }
 
@@ -153,7 +163,7 @@ export function farmersWork(state: GameState): Notice[] {
         for (const level of out.levelUps) notices.push({ ok: true, msg: 'levelup', card: 'levelup', params: { level } });
       }
       if (!plot.crop && v.crop) {
-        const crop = v.crop === 'auto' ? bestCrop(state) : v.crop;
+        const crop = v.crop === 'auto' ? bestCrop(state, plot) : v.crop;
         if (crop && plantableCrops(state).includes(crop)) plant(state, x, y, crop);
       }
     }
@@ -229,14 +239,18 @@ export function harvest(state: GameState, x: number, y: number): Outcome {
   if (!plot || !plot.crop) return fail('msg.nothingPlanted');
   if (!isRipe(plot)) return done(growingInfo(state, plot));
   const def = CROPS[plot.crop];
+  // La tierra cansada rinde menos (ver soil.ts).
+  const amount = harvestYield(plot);
   // Si no cabe la cosecha entera, se queda en el campo esperando sitio en el granero.
-  if (storageFree(state) < def.yield) return fail('msg.granaryFull');
-  store(state, def.product, def.yield);
-  state.stats.harvested += def.yield;
+  if (storageFree(state) < amount) return fail('msg.granaryFull');
+  store(state, def.product, amount);
+  state.stats.harvested += amount;
+  tireSoil(plot, plot.crop);
   plot.crop = null;
   plot.growth = 0;
   const levelUps = addXp(state, def.xp);
-  return done({ ok: true, msg: 'msg.harvested', params: { amount: def.yield, product: def.product, xp: def.xp } }, levelUps);
+  const tired = plot.fertility < PROGRESSION.fertility.tiredBelow;
+  return done({ ok: true, msg: tired ? 'msg.harvestedTired' : 'msg.harvested', params: { amount, product: def.product, xp: def.xp, pct: Math.round(plot.fertility * 100) } }, levelUps);
 }
 
 function growingInfo(state: GameState, plot: Plot): CommandResult {
@@ -290,7 +304,7 @@ export function buyLand(state: GameState, x: number, y: number): Outcome {
   state.coins -= cost;
   state.landBought++;
   tileAt(state, x, y)!.kind = 'soil';
-  state.plots[plotKey(x, y)] = { crop: null, growth: 0 };
+  state.plots[plotKey(x, y)] = newPlot();
   return done({ ok: true, msg: 'msg.landBought', params: { cost } }, addXp(state, 5));
 }
 
