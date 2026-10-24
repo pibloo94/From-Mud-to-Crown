@@ -2917,6 +2917,27 @@ img[src^='assets/pixel/'] {
   }
 }
 
+.path-ranks {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  font-size: 15px;
+}
+
+.path-ranks li {
+  margin: 2px 0;
+  color: var(--ink-soft);
+}
+
+.path-ranks li.got,
+.path-ranks li.got b {
+  color: #2f5a1f;
+}
+
+.rank-fx {
+  color: #2f5a1f;
+}
+
 .path-card .row-btns {
   margin-top: 4px;
 }

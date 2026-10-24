@@ -2,6 +2,7 @@
 import { BUILDINGS, BUILDING_IDS, CROPS, CROP_IDS, JOB_IDS, MAX_LEVEL, PROGRESSION, TOWN_IDS, TRADE, VILLAGERS, WORKSHOPS, WORKSHOP_IDS, type Feature, type RankDef } from './data';
 import { ESTATE_IDS } from './estates';
 import { traitMult } from './character';
+import { pathLevel } from './paths';
 import type { BuildingId, CropId, GameState, JobId, RankId, WorkshopId } from './types';
 
 export function levelDef(level: number) {
@@ -90,8 +91,26 @@ export function meetsRank(state: GameState, r: RankDef): boolean {
     hamletsTaken(state) >= (r.hamlets ?? 0) &&
     hamletLevelSum(state) >= (r.hamletLevels ?? 0) &&
     n.soldiers >= (r.soldiers ?? 0) &&
-    n.prestige >= (r.prestige ?? 0)
+    n.prestige >= (r.prestige ?? 0) &&
+    pathOk(state, r)
   );
+}
+
+/** Si el camino del rango tiene el peldano que pide y esta como pide (en foco, de segundo...). */
+export function pathOk(state: GameState, r: RankDef): boolean {
+  if (!r.path) return true;
+  if (pathLevel(state.paths.merits[r.path]).level < (r.pathLevel ?? 0)) return false;
+  const { focus, second } = state.paths;
+  if (r.pathRole === 'focus') return focus === r.path;
+  if (r.pathRole === 'main') return focus === r.path || second === r.path;
+  return true;
+}
+
+/** Rangos y titulos conseguidos (los de la escalera hasta el actual y los de rama). */
+export function ownedRanks(state: GameState): RankDef[] {
+  const main = mainRanks();
+  const idx = main.findIndex((r) => r.id === state.rank);
+  return [...main.slice(0, idx + 1), ...branchRanks().filter((r) => (state.titles ?? []).includes(r.id))];
 }
 
 /** Rango que llega solo con el nivel (se anuncia en la tarjeta de subida de nivel, no aparte). */

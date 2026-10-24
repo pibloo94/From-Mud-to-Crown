@@ -5,15 +5,21 @@
 // - effects: multiplicadores de precios, cultivos, animales, comida, experiencia, tributo, diezmo,
 //   peajes, materiales, salarios y contratacion (se aplican donde ya se calculaba cada cosa).
 import { TRAITS, type TraitDef } from './data';
+import { ownedRanks } from './progress';
 import type { EstateId, GameState, TraitEffect } from './types';
 
 export type CharacterAnswers = { name: string; origin: string; nature: string; ambition: string };
 
 export const traitDef = (id: string): TraitDef | undefined => TRAITS.traits[id];
 
-/** Rasgos del personaje con su definicion (los que ya no existan en los datos se ignoran). */
-const traitDefs = (state: GameState): TraitDef[] =>
-  (state.character?.traits ?? []).map(traitDef).filter((d): d is TraitDef => !!d);
+/**
+ * Rasgos del personaje con su definicion (los que ya no existan en los datos se ignoran), mas lo
+ * que dan los rangos conseguidos (progression.json, effects), que funciona igual.
+ */
+const traitDefs = (state: GameState): Pick<TraitDef, 'effects' | 'repGain'>[] => [
+  ...(state.character?.traits ?? []).map(traitDef).filter((d): d is TraitDef => !!d),
+  ...(state.paths ? ownedRanks(state) : []),
+];
 
 /** Multiplicador de un efecto por todos los rasgos del personaje. */
 export function traitMult(state: GameState, effect: TraitEffect): number {

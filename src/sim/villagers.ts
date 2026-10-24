@@ -9,6 +9,7 @@ import { hasMaterials, materialsList, missingMaterials, payMaterials } from './m
 import { changeRep, estateMult } from './estates';
 import { meritsFromSales } from './paths';
 import type { CommandResult, CropId, GameState, JobId, Notice, ProductId, Villager } from './types';
+import { ownedRanks } from './progress';
 
 export { dailyFood, foodDays } from './pantry';
 
@@ -16,7 +17,8 @@ const ok = (msg: string, params?: CommandResult['params']): CommandResult => ({ 
 const no = (msg: string, params?: CommandResult['params']): CommandResult => ({ ok: false, msg, params });
 
 export function beds(state: GameState): number {
-  return buildingStat(state, 'house', 'beds');
+  // Los rangos del camino del Pueblo dan camas de mas.
+  return buildingStat(state, 'house', 'beds') + ownedRanks(state).reduce((n, r) => n + (r.beds ?? 0), 0);
 }
 
 export function freeBeds(state: GameState): number {
