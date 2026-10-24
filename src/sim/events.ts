@@ -24,6 +24,7 @@ import { difficulty } from './difficulty';
 import type { AnimalId, CommandResult, EstateId, GameState, MaterialId, Notice, ProductId, RankId, WorkshopId } from './types';
 import { delayCaravans } from './trade';
 import { hasRank, mainRanks } from './progress';
+import { meritsFromSales } from './paths';
 
 /**
  * Condiciones de eventos y opciones. Claves admitidas:
@@ -208,6 +209,7 @@ function applyEffects(state: GameState, source: string, fx: EventEffects = {}, p
     state.coins += coins;
     state.stats.earned += coins;
     state.stats.seasonEarned += coins;
+    meritsFromSales(state, coins, 'market');
     levelUps.push(...addXp(state, coins * PROGRESSION.xpPerCoinSold));
   }
   if (fx.xp) {

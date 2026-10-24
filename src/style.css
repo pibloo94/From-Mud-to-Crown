@@ -2864,6 +2864,63 @@ img[src^='assets/pixel/'] {
   margin-top: 12px;
 }
 
+/* Caminos: el que esta en foco, resaltado; los parados, apagados. */
+.path-card {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 8px;
+  border-top: 1px solid rgba(110, 80, 40, 0.3);
+}
+
+.path-card .up-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.path-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.path-head b {
+  font: 600 18px var(--font-caps);
+}
+
+.path-card.path-focus {
+  background: rgba(201, 161, 74, 0.18);
+  box-shadow: inset 3px 0 0 var(--gold-2);
+}
+
+.path-card.path-other > .icon {
+  filter: grayscale(1) opacity(0.5);
+}
+
+.pill.ambition {
+  background: var(--blood);
+  color: var(--gold-3);
+}
+
+/* En movil, las tres pestanas de la ficha: dos arriba y la tercera debajo, sin cortar el texto. */
+@media (max-width: 480px) {
+  .sheet.character .tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .sheet.character .tabs > .tab:nth-child(3):last-child {
+    grid-column: span 2;
+  }
+}
+
+.path-card .row-btns {
+  margin-top: 4px;
+}
+
 /* ------------------------------------------------------------ estamentos */
 
 .rep small {

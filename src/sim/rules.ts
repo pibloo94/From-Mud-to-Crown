@@ -11,6 +11,7 @@ import { buildingStat, storageFree, store } from './buildings';
 import { expireModifiers, multiplier, nextSeasonStart } from './modifiers';
 import { carterSells, farmerPlots, feedVillagers, foodDays, growthPerDay, hasHerder, herderBonus } from './villagers';
 import { seasonForecast } from './forecast';
+import { meritsFromSales } from './paths';
 import { isIdle } from './modifiers';
 import { buildableWorkshops, workshopAt, workshopsWork } from './workshops';
 import { caravansReturn } from './trade';
@@ -361,6 +362,7 @@ export function sell(state: GameState, product: ProductId, qty: number | 'all'):
   state.coins += coins;
   state.stats.earned += coins;
   state.stats.seasonEarned += coins;
+  meritsFromSales(state, coins, 'market');
   const levelUps = addXp(state, coins * PROGRESSION.xpPerCoinSold);
   return done({ ok: true, msg: 'msg.sold', params: { amount, product, coins } }, levelUps);
 }

@@ -1,6 +1,6 @@
 // Talleres: transforman productos del granero (trigo -> harina -> pan, leche -> queso).
 // Se levantan en los solares del mapa y necesitan un aldeano artesano para trabajar.
-import { PRODUCT_IDS, VILLAGERS, WORKSHOPS, WORKSHOP_IDS, type WorkshopUpgradeDef } from './data';
+import { PRODUCTS, PRODUCT_IDS, VILLAGERS, WORKSHOPS, WORKSHOP_IDS, type WorkshopUpgradeDef } from './data';
 import { tileAt } from './state';
 import { addXp } from './progress';
 import { hasMaterials, materialsList, missingMaterials, payMaterials } from './materials';
@@ -9,6 +9,7 @@ import { surplus } from './pantry';
 import { isIdle } from './modifiers';
 import { efficiency } from './villagers';
 import { repFrom } from './estates';
+import { meritsFromCraft } from './paths';
 import type { CommandResult, GameState, Notice, ProductId, Villager, WorkshopId } from './types';
 
 export interface WorkOutcome {
@@ -139,6 +140,8 @@ export function workshopsWork(state: GameState): Notice[] {
       }
       for (const p of PRODUCT_IDS) state.inventory[p] -= recipe.in[p] ?? 0;
       for (const p of PRODUCT_IDS) if (recipe.out[p]) store(state, p as ProductId, recipe.out[p]!);
+      // Lo que sale de los talleres cuenta para el camino del Oficio.
+      meritsFromCraft(state, PRODUCT_IDS.reduce((sum, p) => sum + (recipe.out[p] ?? 0) * PRODUCTS[p].price, 0));
       w.progress -= 1;
       w.made++;
       for (const level of addXp(state, xpPerBatch)) notices.push({ ok: true, msg: 'levelup', card: 'levelup', params: { level } });

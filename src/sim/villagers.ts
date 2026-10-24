@@ -7,6 +7,7 @@ import { priceOf } from './market';
 import { dailyFood, eatingOrder, surplus } from './pantry';
 import { hasMaterials, materialsList, missingMaterials, payMaterials } from './materials';
 import { changeRep, estateMult } from './estates';
+import { meritsFromSales } from './paths';
 import type { CommandResult, CropId, GameState, JobId, Notice, ProductId, Villager } from './types';
 
 export { dailyFood, foodDays } from './pantry';
@@ -192,6 +193,7 @@ export function carterSells(state: GameState): Notice | null {
   state.coins += coins;
   state.stats.earned += coins;
   state.stats.seasonEarned += coins;
+  meritsFromSales(state, coins, 'market');
   return { ok: true, msg: 'msg.carterSold', params: { amount: units, coins } };
 }
 

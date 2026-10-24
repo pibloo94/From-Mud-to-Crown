@@ -10,9 +10,10 @@ import { finishedTutorial } from '../sim/tutorial';
 import { relayFief } from '../sim/layout';
 import { renownProgress } from '../sim/progress';
 import { startReps } from '../sim/estates';
+import { startPaths } from '../sim/paths';
 
 export const SAVE_FORMAT = 'from-mud-to-crown-save';
-export const SAVE_VERSION = 15;
+export const SAVE_VERSION = 16;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;
@@ -114,6 +115,8 @@ export function migrate(state: Record<string, unknown>, from: number): GameState
   }
   // v14 -> v15: personaje. Las partidas de antes no pasaron por el cuestionario: sin rasgos.
   if (from < 15) s = { ...s, character: { name: '', traits: [], ambition: null } };
+  // v15 -> v16: caminos. Se empieza sin meritos y sin foco (se elige en la ficha).
+  if (from < 16) s = { ...s, paths: startPaths() };
   return s as GameState;
 }
 

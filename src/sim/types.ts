@@ -146,6 +146,9 @@ export type EstateEffect = 'tribute' | 'tithe' | 'tolls' | 'materials' | 'wages'
 /** Lo que puede cambiar un rasgo (multiplicadores). */
 export type TraitEffect = 'growth' | 'animal' | 'food' | 'priceAll' | 'tribute' | 'xp' | 'tithe' | 'tolls' | 'materials' | 'wages' | 'hire';
 
+/** Caminos del personaje (ver paths.ts). */
+export type PathId = 'crown' | 'faith' | 'craft' | 'trade' | 'people';
+
 /** El personaje del jugador: nombre, rasgos y ambicion (ver character.ts). */
 export interface Character {
   name: string;
@@ -225,6 +228,8 @@ export interface GameState {
   difficulty: Difficulty;
   /** El personaje: nombre, rasgos y ambicion. */
   character: Character;
+  /** Meritos de cada camino, el camino en foco y el segundo. */
+  paths: { merits: Record<PathId, number>; focus: PathId | null; second: PathId | null };
   /** Mejoras compradas de cada edificio (se compran en orden). */
   buildings: Record<BuildingId, number>;
   villagers: Villager[];
