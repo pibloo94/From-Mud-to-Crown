@@ -21,7 +21,7 @@
  ],
  "boundary": [
   8,
-  12
+  13
  ],
  "brewery": [
   32,
@@ -60,16 +60,16 @@
   26
  ],
  "cart": [
-  32,
-  22
+  18,
+  14
  ],
  "cheesery": [
   32,
   42
  ],
  "chicken": [
-  8,
-  8
+  10,
+  10
  ],
  "cliff_l": [
   32,
@@ -264,8 +264,8 @@
   22
  ],
  "sheep": [
-  16,
-  12
+  18,
+  14
  ],
  "site": [
   32,
@@ -308,24 +308,24 @@
   46
  ],
  "villager_artisan": [
-  9,
-  14
+  11,
+  16
  ],
  "villager_carter": [
-  9,
-  14
+  11,
+  16
  ],
  "villager_farmer": [
-  9,
-  14
+  11,
+  16
  ],
  "villager_herder": [
-  9,
-  14
+  11,
+  16
  ],
  "villager_soldier": [
-  9,
-  14
+  11,
+  16
  ],
  "well": [
   32,

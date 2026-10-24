@@ -1281,5 +1281,9 @@
   "wsUpgrade.loom.fullingMill": "Fulling mill",
   "commission.guildWool": "Wool for the guild weavers: {n}.",
   "commission.churchCloth": "Cloth for the abbey's habits: {n}.",
-  "commission.kingCloth": "Cloth for the livery of the King's guard: {n}."
+  "commission.kingCloth": "Cloth for the livery of the King's guard: {n}.",
+  "hud.foods": "Food",
+  "hud.status": "Status",
+  "hud.scrollPrev": "Show previous",
+  "hud.scrollNext": "Show more"
 }

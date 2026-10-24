@@ -3,6 +3,7 @@
 import type { Game } from '../sim/game';
 import {
   ANIMALS,
+  ANIMAL_IDS,
   BUILDINGS,
   BUILDING_IDS,
   CROPS,
@@ -513,7 +514,9 @@ function levelItems(level: number): TreeItem[] {
   for (const c of u.crops) items.push({ icon: PRODUCTS[CROPS[c].product].icon, text: t('levelup.unlock.crop', { name: t(`product.${CROPS[c].product}`) }), where: t('progress.where.plant') });
   for (const f of u.features) {
     const where = f === 'buyLand' ? 'field' : f === 'renown' ? 'season' : 'market';
-    const ic = f === 'buyLand' ? 'icon_wheat' : f === 'buyChicken' ? 'icon_egg' : f === 'renown' ? 'icon_prestige' : 'icon_milk';
+    // Comprar un animal: el icono de lo que da (gallina → huevo, vaca → leche, oveja → lana).
+    const animal = ANIMAL_IDS.find((a) => PROGRESSION.animalsForSale[a].unlock === f);
+    const ic = animal ? PRODUCTS[ANIMALS[animal].product].icon : f === 'buyLand' ? 'icon_wheat' : f === 'renown' ? 'icon_prestige' : 'icon_coin';
     items.push({ icon: ic, text: featureText(f), where: t(`progress.where.${where}`) });
   }
   if (u.maxPlots) items.push({ icon: 'icon_wheat', text: t('levelup.maxPlots', { max: u.maxPlots }), where: t('progress.where.field') });

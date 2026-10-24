@@ -266,13 +266,57 @@ def banner(s: Spr, x, y, h=9, flip=False):
             s.px(x + d * (k + 1), y - h + 3, "red0")
 
 
+def touching_border(s: Spr):
+    """Pixeles pintados en el borde del lienzo: ahi no cabe el contorno y el dibujo se ve cortado."""
+    out = []
+    for y in range(s.h):
+        for x in range(s.w):
+            if (x in (0, s.w - 1) or y in (0, s.h - 1)) and s.im.getpixel((x, y))[3] >= 128:
+                out.append((x, y))
+    return out
+
+
 def finish(s: Spr, ground: "Spr | None" = None):
-    """Contorno del objeto; si hay capa de suelo (tierra, hierba pisada), va debajo y sin contorno."""
+    """Contorno del objeto; si hay capa de suelo (tierra, hierba pisada), va debajo y sin contorno.
+    Anota en `cut` lo del objeto que toca el borde (la capa de suelo no lleva contorno: no cuenta)."""
+    cut = touching_border(s)
     s.outline()
     if ground is not None:
         ground.paste(s, 0, 0)
-        return ground
+        s = ground
+    s.cut = cut
     return s
+
+
+def pad(s: Spr, l=1, t=1, r=1, b=1) -> Spr:
+    """El mismo dibujo en un lienzo mayor, para que quepa el contorno."""
+    out = Spr(s.w + l + r, s.h + t + b)
+    out.paste(s, l, t)
+    return out
+
+
+def make_symmetric(s: Spr):
+    """Silueta simetrica respecto al centro de lo pintado: lo que falte en un lado se copia del otro
+    (con su color, asi las luces y sombras siguen donde estaban)."""
+    src = s.im.copy()
+    xs = [x for y in range(s.h) for x in range(s.w) if src.getpixel((x, y))[3] >= 128]
+    if not xs:
+        return
+    x0, x1 = min(xs), max(xs)
+    for y in range(s.h):
+        for x in range(x0, x1 + 1):
+            c = src.getpixel((x, y))
+            m = x0 + x1 - x
+            if c[3] >= 128 and src.getpixel((m, y))[3] < 128:
+                s.im.putpixel((m, y), c)
+
+
+def pattern(s: Spr, rows, pal, ox=0, oy=0):
+    """Dibujo pixel a pixel: una cadena por fila; cada letra es un color de `pal` y el punto, vacio."""
+    for y, row in enumerate(rows):
+        for x, ch in enumerate(row):
+            if ch != ".":
+                s.px(ox + x, oy + y, pal[ch])
 
 
 def ground_shadow(s: Spr, cx, by, rx, ry=None):
@@ -429,7 +473,7 @@ def boundary() -> Spr:
     s.px(4, 2, "r2")
     s.px(3, 6, "r0")
     s.px(3, 7, "r0")
-    return finish(s)
+    return finish(pad(s, 0, 0, 0, 1))
 
 
 def site() -> Spr:
@@ -891,20 +935,30 @@ def stall() -> Spr:
 
 
 def cart() -> Spr:
-    """Carreta de dos ruedas con sacos bajo una lona."""
-    s = Spr(TW, 22)
-    by = 20
-    ground_shadow(s, 15, by, 11, 3)
-    s.line((22, by - 6), (31, by - 10), "w1")
-    s.line((21, by - 5), (30, by - 9), "w1")
-    s.poly([(4, by - 9), (22, by - 4), (22, by - 9), (4, by - 14)], "w3")
-    s.poly([(22, by - 4), (25, by - 6), (25, by - 11), (22, by - 9)], "w2")
-    s.poly([(4, by - 14), (8, by - 18), (20, by - 17), (25, by - 11), (22, by - 9)], "cream0")
-    s.line((8, by - 16), (22, by - 10), "cream")
-    s.ellipse(12, by - 4, 4, 4, "w1")
-    s.ellipse(12, by - 4, 2, 2, "w3")
-    s.px(12, by - 4, "w0")
-    return finish(s)
+    """Carretilla de mano pequena y abierta, de lado (como los aldeanos), cargada de fruta y verdura."""
+    s = Spr(16, 12)
+    by = 11
+    ground_shadow(s, 7, by, 6, 1)
+    # varal hacia la derecha
+    s.line((11, by - 4), (15, by - 5), "w1")
+    # caja de tablas
+    s.rect(1, by - 7, 11, by - 3, "w4")
+    s.rect(1, by - 5, 11, by - 5, "w3")
+    s.rect(1, by - 3, 11, by - 3, "w2")
+    s.rect(1, by - 7, 1, by - 3, "w3")
+    s.rect(11, by - 7, 11, by - 3, "w3")
+    # carga: manzanas, coles y zanahorias asomando
+    load = {2: "red2", 3: "red1", 4: "cab", 5: "cab1", 6: "carrot", 7: "red2", 8: "cab", 9: "carrot", 10: "red1"}
+    for x, c in load.items():
+        s.px(x, by - 8, c)
+        if 3 <= x <= 9:
+            s.px(x, by - 9, load[x + 1] if x % 2 else c)
+    s.px(5, by - 10, "cab1")
+    s.px(7, by - 10, "red2")
+    # rueda
+    s.ellipse(6, by - 2, 2.2, 2.2, "w1")
+    s.px(6, by - 2, "w4")
+    return finish(pad(s))
 
 
 def windmill() -> Spr:
@@ -948,7 +1002,7 @@ def bakery() -> Spr:
     s = Spr(TW, 46)
     by = 43
     al, ar, h = 12, 8, 9
-    cx = 13
+    cx = 14
     ground_shadow(s, 16, by + 1, 14, 4)
     # lena apilada contra la pared del fondo, a la izquierda
     for k in range(3):
@@ -970,9 +1024,9 @@ def bakery() -> Spr:
     s.rect(sx - 5, sy, sx - 3, sy + 1, "st3")
     # horno de barro delante a la derecha: base de piedra y cupula con la boca encendida
     ox, oy = 25, by - 3
-    s.ellipse(ox, oy - 1, 6, 3, "r2")
-    s.rect(ox - 6, oy - 4, ox + 6, oy - 1, "r2")
-    s.ellipse(ox, oy - 4, 6, 3, "r3")
+    s.ellipse(ox, oy - 1, 5, 3, "r2")
+    s.rect(ox - 5, oy - 4, ox + 5, oy - 1, "r2")
+    s.ellipse(ox, oy - 4, 5, 3, "r3")
     s.ellipse(ox, oy - 8, 5, 5, "cl1")
     s.ellipse(ox - 1, oy - 10, 3, 3, "cl2")
     s.px(ox - 2, oy - 11, "pl1")
@@ -983,7 +1037,7 @@ def bakery() -> Spr:
     # sacos de harina y una pala de horno
     s.ellipse(cx + 3, by - 2, 2, 2, "cream")
     s.ellipse(cx + 6, by - 3, 2, 2, "cream0")
-    s.line((ox + 6, oy - 2), (ox + 3, oy - 12), "w3")
+    s.line((ox + 5, oy - 2), (ox + 3, oy - 12), "w3")
     return finish(s)
 
 
@@ -1111,9 +1165,9 @@ def manor(stage: int) -> Spr:
     ground_shadow(g, cx, by, 28, 8)
     if stage >= 2:
         # muralla en las aristas traseras del recinto, con torrecillas
-        crenel_wall(s, (cx - 30, by - 16), (cx, by - 31), 7, "r2", rnd)
-        crenel_wall(s, (cx, by - 31), (cx + 30, by - 16), 7, "r1", rnd)
-        for (x, y) in ((cx - 30, by - 16), (cx, by - 31), (cx + 30, by - 16)):
+        crenel_wall(s, (cx - 28, by - 16), (cx, by - 31), 7, "r2", rnd)
+        crenel_wall(s, (cx, by - 31), (cx + 28, by - 16), 7, "r1", rnd)
+        for (x, y) in ((cx - 28, by - 16), (cx, by - 31), (cx + 28, by - 16)):
             s.rect(x - 2, y - 11, x + 2, y, "r2")
             s.rect(x + 1, y - 11, x + 2, y, "r1")
             s.px(x - 2, y - 12, "r3")
@@ -1394,7 +1448,7 @@ def hamlet(material: str, stage: int) -> Spr:
     back, right, front = (44, by - 20), (56, by - 11), (36, by - 3)
     items = [("res", 0, by - 16)]
     if stage == 0:
-        items += [("ruin", *right), ("ruin", *front)]
+        items += [("ruin", right[0] - 1, right[1]), ("ruin", *front)]
     else:
         items += [("c", *right), ("s" if stage == 3 else "c", *front)]
         if stage >= 2:
@@ -1795,7 +1849,8 @@ def villager(job: str) -> Spr:
         s.rect(8, 0, 8, 13, "w2")
         s.px(8, 0, "r4")
         s.rect(0, 7, 1, 10, "w3")
-    return finish(s)
+    # herramientas y pies llegan al borde del dibujo: un pixel mas alrededor para el contorno
+    return finish(pad(s))
 
 
 def cow() -> Spr:
@@ -1833,7 +1888,7 @@ def sheep() -> Spr:
     s.px(12, 2, "w2")
     for x in (4, 6, 9, 11):
         s.rect(x, 9, x, 11, "w1")
-    return finish(s)
+    return finish(pad(s))
 
 
 def chicken() -> Spr:
@@ -1846,7 +1901,7 @@ def chicken() -> Spr:
     s.px(6, 2, "out")
     s.px(0, 3, "hen0")
     s.px(3, 7, "beak")
-    return finish(s)
+    return finish(pad(s))
 
 
 # ================================================================== interfaz (mismo estilo que el mapa)
@@ -1981,9 +2036,21 @@ def thumb() -> Spr:
 
 # ------------------------------------------------------------------ iconos 12x12
 
-def icon(draw) -> Spr:
+# Iconos de silueta simetrica (se corrige lo que el redondeo de elipses y poligonos tuerce).
+SYMMETRIC = {"icon_coin", "icon_egg", "icon_bread", "icon_cabbage", "icon_crown", "icon_fence", "icon_scarecrow",
+             "icon_iron", "icon_prestige", "icon_up", "icon_down", "icon_stone", "icon_house", "icon_granary",
+             "icon_worker", "icon_flour", "icon_wheat", "icon_manor", "icon_milk", "icon_carrot", "icon_wood"}
+
+
+def icon(draw, name="") -> Spr:
+    """Icono de 12x12. Lo pintado no puede tocar el borde: el contorno necesita ese pixel."""
     s = Spr(12, 12)
     draw(s)
+    if name in SYMMETRIC:
+        make_symmetric(s)
+    bad = touching_border(s)
+    if bad:
+        raise ValueError(f"{name}: el dibujo toca el borde en {bad[:5]} y se veria cortado")
     return finish(s)
 
 
@@ -2005,18 +2072,22 @@ def _wheat(s):
 
 
 def _carrot(s):
-    s.poly([(2, 4), (8, 4), (5, 11)], "carrot")
+    s.poly([(2, 4), (9, 4), (5.5, 10)], "carrot")
     s.px(3, 5, "st4")
+    s.px(5, 7, "#8e4a1f")
+    s.px(7, 5, "#8e4a1f")
     s.rect(4, 1, 4, 3, "l3")
-    s.rect(6, 0, 6, 3, "l4")
-    s.px(5, 2, "l3")
+    s.rect(7, 1, 7, 3, "l3")
+    s.rect(5, 2, 6, 3, "l4")
 
 
 def _cabbage(s):
+    # col con hojas abiertas y nervios claros
     s.ellipse(5.5, 6, 4.5, 4, "cab0")
-    s.ellipse(5, 5.5, 3, 3, "cab")
-    s.ellipse(4.5, 5, 1.5, 1.5, "cab1")
-    s.px(5, 9, "cab1")
+    s.ellipse(5.5, 5.5, 3.5, 3, "cab")
+    s.ellipse(5, 4.5, 1.8, 1.5, "cab1")
+    s.line((5, 6), (3, 9), "cab1")
+    s.line((6, 6), (8, 9), "cab1")
 
 
 def _egg(s):
@@ -2026,41 +2097,52 @@ def _egg(s):
 
 
 def _milk(s):
-    s.rect(3, 4, 8, 10, "clay" if "clay" in P else "#8f5534")
-    s.rect(2, 3, 9, 3, "#5c331d")
-    s.rect(3, 4, 8, 4, "milk")
-    s.rect(9, 5, 10, 8, "#5c331d")
-    s.px(4, 6, "#b06a40")
+    # cubo de madera lleno de leche, con aros y asa
+    s.poly([(2, 4), (9, 4), (8, 10), (3, 10)], "w3")
+    s.poly([(7, 4), (9, 4), (8, 10), (7, 10)], "w2")
+    s.rect(2, 5, 9, 5, "iron1")
+    s.rect(3, 9, 8, 9, "iron1")
+    s.ellipse(5.5, 3.6, 3.6, 1.1, "milk")
+    s.line((1, 4), (3, 1), "iron1")
+    s.line((3, 1), (8, 1), "iron1")
+    s.line((8, 1), (10, 4), "iron1")
 
 
 def _flour(s):
-    s.poly([(2, 3), (9, 3), (10, 10), (1, 10)], "cream")
-    s.rect(3, 2, 8, 2, "cream0")
-    s.rect(5, 5, 6, 8, "red1")
-    s.rect(4, 6, 7, 7, "red1")
+    # saco atado arriba, con una espiga pintada
+    s.poly([(2, 5), (9, 5), (10, 10), (1, 10)], "cream")
+    s.poly([(3, 3), (8, 3), (9, 5), (2, 5)], "cream0")
+    s.rect(4, 2, 7, 2, "w2")
+    s.px(4, 1, "cream0")
+    s.px(7, 1, "cream0")
+    s.rect(5, 6, 5, 9, "st1")
+    s.px(4, 7, "st1")
+    s.px(6, 7, "st1")
+    s.px(4, 6, "st1")
+    s.px(6, 6, "st1")
+    s.rect(8, 6, 9, 10, "cream0")
 
 
 def _bread(s):
-    s.ellipse(5.5, 7, 5, 3.5, "st1")
-    s.ellipse(5, 6, 4, 2.5, "st2")
-    for x in (3, 6, 9):
+    s.ellipse(5.5, 7, 4.5, 3, "st1")
+    s.ellipse(5.5, 6, 3.5, 2.2, "st2")
+    for x in (3, 5, 7):
+        s.px(x + 1, 5, "w2")
         s.px(x, 6, "w2")
-        s.px(x - 1, 7, "w2")
 
 
 def _barley(s):
     # cebada: una espiga gruesa que cabecea hacia un lado, con barbas (el trigo va derecho)
-    for x, y in ((3, 11), (3, 10), (3, 9), (4, 8), (4, 7), (4, 6), (5, 5)):
+    for x, y in ((3, 10), (3, 9), (3, 8), (4, 7), (4, 6), (4, 5), (5, 4)):
         s.px(x, y, "l3")
-    s.px(2, 8, "l4")
-    s.px(1, 7, "l4")
+    s.px(2, 7, "l4")
+    s.px(1, 6, "l4")
     for t in range(5):
-        s.px(5 + t, 3 + t, "st3")
-        s.px(6 + t, 3 + t, "st4")
-        s.px(5 + t, 4 + t, "st1" if t < 4 else "st3")
+        s.px(5 + t, 2 + t, "st3")
+        s.px(min(10, 6 + t), 2 + t, "st4")
+        s.px(5 + t, 3 + t, "st1" if t < 4 else "st3")
     for t in range(4):
-        s.px(7 + t, 2 + t, "st1")
-    s.px(11, 9, "st1")
+        s.px(7 + t, 1 + t, "st1")
 
 
 def _beer(s):
@@ -2077,38 +2159,54 @@ def _beer(s):
 
 def _wool(s):
     # ovillo de lana: vueltas de hebra marcadas y el cabo suelto
-    s.ellipse(5.5, 5.5, 4.5, 4.5, "cream")
-    s.line((2, 3), (8, 9), "pl0")
-    s.line((3, 2), (9, 8), "cream0")
-    s.line((1, 6), (5, 10), "pl0")
-    s.line((6, 1), (10, 5), "pl0")
+    s.ellipse(5, 5, 4, 4, "cream")
+    s.line((2, 3), (7, 8), "pl0")
+    s.line((3, 2), (8, 7), "cream0")
+    s.line((1, 5), (4, 8), "pl0")
+    s.line((5, 1), (8, 4), "pl0")
     s.px(3, 4, "milk")
     s.px(4, 3, "milk")
-    s.line((9, 9), (11, 11), "pl0")
+    s.line((8, 8), (10, 10), "pl0")
 
 
 def _cloth(s):
     # pieza de pano doblada, roja, con el canto claro
     s.rect(1, 5, 10, 10, "red1")
     s.rect(1, 5, 10, 6, "red2")
-    s.rect(2, 2, 11, 4, "red2")
-    s.rect(2, 2, 11, 2, "cream")
+    s.rect(2, 2, 10, 4, "red2")
+    s.rect(2, 2, 10, 2, "cream")
     s.rect(1, 8, 10, 8, "red0")
 
 
 def _cheese(s):
-    s.poly([(1, 8), (10, 4), (10, 10), (1, 10)], "gold")
-    s.poly([(1, 8), (6, 3), (10, 4)], "glow")
-    s.px(6, 8, "#8d6c2c")
-    s.px(8, 6, "#8d6c2c")
-    s.px(3, 9, "#8d6c2c")
+    # cuna de queso vista de lado: el corte en triangulo con agujeros, el filo de arriba claro y la
+    # corteza a la derecha
+    pattern(s, [
+        "..........",
+        ".......gR.",
+        "......gYRR",
+        ".....gYYRR",
+        "....gYDYRR",
+        "...gYYYYRR",
+        "..gYYYYDRR",
+        ".gYDYYYYRR",
+        "gYYYYDYYRR",
+        "YYYYYYYYRR",
+    ], {"g": "glow", "Y": "gold", "D": "#8d6c2c", "R": "#a8853a"}, 1, 1)
 
 
 def _wood(s):
-    for (x, y) in ((3, 7), (8, 7), (5, 3)):
-        s.ellipse(x, y, 2.5, 2.5, "w3")
-        s.ellipse(x, y, 1.5, 1.5, "w4")
-        s.px(x, y, "w2")
+    # pila de troncos vistos por la punta: dos abajo y uno encima, corteza oscura y madera clara
+    pattern(s, [
+        "...aa...",
+        "..abba..",
+        "..abba..",
+        ".aaaaaa.",
+        "abbaabba",
+        "abbaabba",
+        ".aa..aa.",
+        "dddddddd",
+    ], {"a": "w2", "b": "st3", "d": "w1"}, 2, 2)
 
 
 def _stone(s):
@@ -2120,28 +2218,28 @@ def _stone(s):
 
 
 def _iron(s):
-    s.poly([(1, 9), (3, 5), (10, 5), (10, 9)], "iron1")
-    s.rect(3, 5, 9, 5, "#7c7a72")
+    s.poly([(1, 9), (3, 5), (8, 5), (10, 9)], "iron1")
+    s.rect(3, 5, 8, 5, "#7c7a72")
     s.rect(1, 9, 10, 10, "iron")
 
 
 def _worker(s):
-    s.rect(4, 1, 7, 4, "skin")
-    s.rect(3, 0, 8, 1, "st2")
+    s.rect(4, 2, 7, 4, "skin")
+    s.rect(3, 1, 8, 1, "st2")
     s.rect(2, 5, 9, 10, "w3")
     s.rect(7, 5, 9, 10, "w2")
 
 
 def _banner(s):
-    s.rect(2, 0, 2, 11, "w2")
+    s.rect(2, 1, 2, 10, "w2")
     s.poly([(3, 1), (10, 1), (8, 4), (10, 7), (3, 7)], "red1")
     s.rect(4, 3, 7, 3, "gold")
 
 
 def _hammer(s):
-    s.line((2, 10), (7, 5), "w3")
-    s.line((3, 10), (8, 5), "w2")
-    s.poly([(5, 3), (8, 0), (11, 3), (8, 6)], "iron1")
+    s.line((2, 10), (6, 6), "w3")
+    s.line((3, 10), (7, 6), "w2")
+    s.poly([(4, 4), (7, 1), (10, 4), (7, 7)], "iron1")
 
 
 def _granary(s):
@@ -2177,11 +2275,16 @@ def _crown(s):
 
 
 def _cart(s):
-    s.rect(1, 3, 8, 6, "w3")
-    s.rect(1, 3, 8, 3, "w4")
-    s.line((8, 6), (11, 5), "w1")
-    s.ellipse(4, 8, 2.5, 2.5, "w1")
+    # carretilla de lado: caja abierta con fruta y verdura, una rueda y el varal
+    s.rect(1, 4, 8, 7, "w3")
+    s.rect(1, 4, 8, 4, "w4")
+    s.rect(1, 7, 8, 7, "w2")
+    for (x, y, c) in ((1, 3, "red2"), (2, 2, "red2"), (2, 3, "red1"), (3, 3, "cab"), (4, 2, "cab1"), (4, 3, "cab"),
+                      (5, 2, "carrot"), (5, 3, "carrot"), (6, 3, "red2"), (7, 2, "cab1"), (7, 3, "cab"), (8, 3, "red1")):
+        s.px(x, y, c)
+    s.ellipse(4.5, 8.5, 1.8, 1.8, "w1")
     s.px(4, 8, "w4")
+    s.line((8, 6), (10, 5), "w1")
 
 
 def _charter(s):
@@ -2191,26 +2294,26 @@ def _charter(s):
 
 
 def _prestige(s):
-    s.poly([(1, 1), (10, 1), (10, 6), (5.5, 11), (1, 6)], "red1")
+    s.poly([(1, 1), (10, 1), (10, 6), (5.5, 10), (1, 6)], "red1")
     s.line((2, 2), (9, 8), "gold")
     s.px(5, 4, "glow")
 
 
 def _soldier(s):
-    s.ellipse(5.5, 6, 5, 1.5, "iron1")
+    s.ellipse(5.5, 6, 4.5, 1.5, "iron1")
     s.ellipse(5.5, 4, 3.5, 3, "iron1")
     s.rect(5, 1, 6, 6, "#7c7a72")
-    s.line((9, 1), (2, 11), "w2")
+    s.line((9, 1), (2, 10), "w2")
 
 
 def _manor(s):
-    s.rect(3, 3, 8, 10, "r3")
-    s.rect(6, 3, 8, 10, "r1")
-    for x in (3, 5, 7):
-        s.px(x, 2, "r3")
+    s.rect(3, 4, 8, 10, "r3")
+    s.rect(6, 4, 8, 10, "r1")
+    for x in (3, 5, 6, 8):
+        s.px(x, 3, "r3" if x < 6 else "r1")
     s.rect(5, 7, 6, 10, "w0")
-    s.rect(5, 0, 5, 2, "w1")
-    s.rect(6, 0, 7, 1, "red1")
+    s.rect(5, 1, 5, 2, "w1")
+    s.rect(6, 1, 7, 1, "red1")
 
 
 def _check(s):
@@ -2240,6 +2343,29 @@ def _menu(s):
         s.rect(2, y, 9, y + 1, "cream")
 
 
+def _scarecrow(s):
+    # espantapajaros: sombrero de paja, cabeza de saco, brazos con paja en las manos, camisa y palo
+    s.rect(4, 1, 7, 1, "st3")
+    s.rect(3, 2, 8, 2, "st2")
+    s.rect(4, 3, 7, 4, "cream")
+    s.rect(5, 4, 6, 10, "w2")
+    s.rect(2, 5, 9, 5, "w3")
+    s.rect(3, 5, 8, 8, "red1")
+    s.rect(3, 8, 8, 8, "red0")
+    s.rect(1, 5, 1, 6, "st3")
+    s.rect(10, 5, 10, 6, "st3")
+
+
+def _fence(s):
+    # cerca: tres estacas con dos travesanos
+    for x in (1, 5, 9):
+        s.rect(x, 2, x + 1, 10, "w4")
+        s.rect(x + 1, 2, x + 1, 10, "w3")
+        s.rect(x, 1, x + 1, 1, "w3")
+    s.rect(1, 4, 10, 4, "w2")
+    s.rect(1, 8, 10, 8, "w2")
+
+
 ICONS = {
     "icon_coin": _coin, "icon_wheat": _wheat, "icon_carrot": _carrot, "icon_cabbage": _cabbage,
     "icon_egg": _egg, "icon_milk": _milk, "icon_flour": _flour, "icon_bread": _bread, "icon_cheese": _cheese,
@@ -2249,6 +2375,7 @@ ICONS = {
     "icon_crown": _crown, "icon_cart": _cart, "icon_charter": _charter, "icon_prestige": _prestige,
     "icon_soldier": _soldier, "icon_manor": _manor, "icon_pause": _pause, "icon_play": _play, "icon_menu": _menu,
     "icon_check": _check, "icon_up": _up, "icon_down": _down,
+    "icon_scarecrow": _scarecrow, "icon_fence": _fence,
 }
 
 
@@ -2259,7 +2386,7 @@ def bubble() -> Spr:
     s.rect(2, 2, 27, 15, "w0")
     s.rect(1, 1, 28, 1, "#8d6c2c")
     s.rect(1, 16, 28, 16, "#8d6c2c")
-    s.poly([(12, 17), (15, 19), (18, 17)], "#8d6c2c")
+    s.poly([(12, 17), (15, 18), (18, 17)], "#8d6c2c")
     return finish(s)
 
 
@@ -2275,7 +2402,7 @@ def generate_ui() -> dict:
         "btn_ghost": bevel_button("#c4b48e", "#ddd0ac", "#9a8762", "w2"),
         "inset": frame_inset(), "inset_parch": frame_inset("#bba981", "w2"), "rule": frame_bar(),
         "seal": seal(), "shield": level_shield(), "thumb": thumb(), "bubble": bubble(),
-        **{name: icon(fn) for name, fn in ICONS.items()},
+        **{name: icon(fn, name) for name, fn in ICONS.items()},
     }
 
 
@@ -2308,6 +2435,10 @@ def generate() -> dict:
         out[f"{k}_snow"] = snow_ground(k, out[k], 90 + i)
     out["tree_a_snow"] = snow_tree(out["tree_a"], 3)
     out["tree_b_snow"] = snow_tree(out["tree_b"], 4)
+    # Nada con contorno puede tocar el borde del lienzo: se veria cortado
+    cut = {k: v.cut for k, v in out.items() if getattr(v, "cut", None)}
+    if cut:
+        raise ValueError("Dibujos cortados por el borde: " + "; ".join(f"{k} {v[:4]}" for k, v in cut.items()))
     return out
 
 

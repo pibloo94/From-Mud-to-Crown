@@ -203,7 +203,7 @@ function buyTab(ctx: PanelCtx): HTMLElement[] {
       h(
         'div',
         { class: 'trade-head' },
-        icon(kind === 'crops' ? 'icon_wheat' : 'icon_egg', 'icon big'),
+        icon(kind === 'crops' ? 'icon_scarecrow' : 'icon_fence', 'icon big'),
         h('div', { class: 'market-info' }, h('b', {}, t(`protection.${kind}`)), h('small', {}, t(`protection.${kind}.desc`))),
         active
           ? h('span', { class: 'up-req' }, icon('icon_check', 'icon tiny'), t('protection.active'))

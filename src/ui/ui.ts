@@ -31,6 +31,7 @@ import { autosave, forgetLinkedFile, hasLinkedFile, loadGameFromFile, readBackup
 import { SaveError } from '../save/serialize';
 import type { Insets } from '../render/FarmScene';
 import { h, icon } from './dom';
+import { chipScroller } from './chipscroll';
 import { marketView, resetMarketChoices, type MarketTab } from './market';
 import { siteView, workshopView } from './workshops';
 import { music } from '../audio/music';
@@ -131,13 +132,11 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     amounts.set(id, n);
     return h('div', { class: 'chip', 'data-res': id }, icon(iconName), n);
   };
-  const resources = h(
-    'div',
-    { class: 'resources panel' },
-    levelBox,
-    chip('coins', 'icon_coin'),
-    ...PRODUCT_IDS.map((p) => chip(p, PRODUCTS[p].icon)),
-  );
+  // Dos grupos que se deslizan en horizontal si no caben: alimentos y materiales (este abre la compra).
+  const foods = chipScroller('foods', ...PRODUCT_IDS.map((p) => chip(p, PRODUCTS[p].icon)));
+  const mats = chipScroller('mats', ...MATERIAL_IDS.map((m) => chip(`mat:${m}`, MATERIALS[m].icon)));
+  mats.track.addEventListener('click', () => openModal({ kind: 'market', tab: 'buy' }));
+  const resources = h('div', { class: 'resources panel' }, levelBox, chip('coins', 'icon_coin'), foods.el, mats.el);
 
   // Fila de estado: granero, aldeanos y efectos activos.
   const storageText = h('b', {});
@@ -153,8 +152,6 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     { class: 'status-pill', onclick: () => openModal({ kind: 'building', building: 'house', tab: 'villagers' }) },
     h('span', { class: 'status-inner' }, icon('icon_worker'), villagersText),
   );
-  const materialsInner = h('span', { class: 'status-inner' });
-  const materialsPill = h('button', { class: 'status-pill', onclick: () => openModal({ kind: 'market', tab: 'buy' }) }, materialsInner);
   const caravanText = h('b', {});
   const caravanPill = h(
     'button',
@@ -182,7 +179,8 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     h('span', { class: 'status-inner' }, icon('icon_banner'), commissionsText),
   );
   const modsBox = h('div', { class: 'mods' });
-  const statusRow = h('div', { class: 'status-row' }, ledgerPill, commissionsPill, storagePill, villagersPill, materialsPill, caravanPill, prestigePill, modsBox);
+  const status = chipScroller('status-row', ledgerPill, commissionsPill, storagePill, villagersPill, caravanPill, prestigePill, modsBox);
+  const statusRow = status.el;
 
   const speedButtons = SPEEDS.map((sp) =>
     // Dibujos en vez de caracteres (❚❚ ▶): no todas las fuentes los tienen.
@@ -404,11 +402,10 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     villagersPill.title = `${t('hud.villagers', { n: s.villagers.length, beds: beds(s) })}${s.villagers.length ? ` · ${t('hud.foodDays', { days })}` : ''}`;
     villagersPill.setAttribute('aria-label', villagersPill.title);
     villagersPill.hidden = beds(s) === 0 && s.villagers.length === 0;
-    materialsInner.replaceChildren(
-      ...MATERIAL_IDS.filter((m) => materialUnlocked(s, m) || s.materials[m] > 0).flatMap((m) => [icon(MATERIALS[m].icon), h('b', {}, String(s.materials[m]))]),
-    );
-    materialsPill.title = t('hud.materials');
-    materialsPill.setAttribute('aria-label', `${t('hud.materials')}: ${MATERIAL_IDS.map((m) => `${s.materials[m]} ${t(`material.${m}`)}`).join(', ')}`);
+    for (const m of MATERIAL_IDS) {
+      amounts.get(`mat:${m}`)!.textContent = String(s.materials[m]);
+      resources.querySelector<HTMLElement>(`[data-res="mat:${m}"]`)!.hidden = !materialUnlocked(s, m) && s.materials[m] === 0;
+    }
     caravanPill.hidden = s.caravans.length === 0;
     if (s.caravans.length) {
       const soon = Math.max(0, Math.min(...s.caravans.map((c) => c.returnDay)) - s.day);
@@ -439,10 +436,22 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     });
     resources.querySelector<HTMLElement>('[data-res="coins"]')!.title = t('hud.coins');
     for (const p of PRODUCT_IDS) resources.querySelector<HTMLElement>(`[data-res="${p}"]`)!.title = t(`product.${p}`);
+    for (const m of MATERIAL_IDS) resources.querySelector<HTMLElement>(`[data-res="mat:${m}"]`)!.title = t(`material.${m}`);
+    foods.label(t('hud.foods'), t('hud.scrollPrev'), t('hud.scrollNext'));
+    mats.label(t('hud.materials'), t('hud.scrollPrev'), t('hud.scrollNext'));
+    status.label(t('hud.status'), t('hud.scrollPrev'), t('hud.scrollNext'));
+    // Las flechas de "hay mas" solo se recalculan cuando cambia lo que se ve en cada grupo.
+    const scrollKey = [foods, mats, status].map((g) => [...g.track.children].map((c) => ((c as HTMLElement).hidden ? '' : c.textContent)).join('|')).join('#');
+    if (scrollKey !== lastScrollKey) {
+      lastScrollKey = scrollKey;
+      for (const g of [foods, mats, status]) g.update();
+    }
     marketBtn.lastElementChild!.textContent = t('hud.market');
     progressBtn.lastElementChild!.textContent = t('hud.progress');
     menuBtn.lastElementChild!.textContent = t('hud.menu');
   }
+
+  let lastScrollKey = '';
 
   /** La prevision ensaya las cuentas sobre una copia: se rehace solo cuando cambia algo que cuenta. */
   let ledgerKey = '';
