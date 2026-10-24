@@ -5,7 +5,7 @@ import type { EstateId } from '../../src/sim/types';
 
 const RANKS = ['freeFarmer', 'artisan', 'landowner', 'burgher', 'lord', 'baron', 'count'];
 // Rangos de los demas caminos (solo salen en el informe si alguna partida llega).
-const PATH_RANKS = ['master', 'grandMaster', 'merchant', 'mayor', 'layBrother', 'prior', 'faithEnvoy', 'goodMan', 'spokesman', 'leader'];
+const PATH_RANKS = ['duke', 'master', 'grandMaster', 'merchant', 'mayor', 'layBrother', 'prior', 'faithEnvoy', 'goodMan', 'spokesman', 'leader'];
 const RANK_NAMES: Record<string, string> = {
   freeFarmer: 'Granjero libre',
   artisan: 'Artesano',
@@ -24,6 +24,7 @@ const RANK_NAMES: Record<string, string> = {
   goodMan: 'Hombre bueno',
   spokesman: 'Portavoz',
   leader: 'Caudillo',
+  duke: 'Duque',
 };
 const LEVELS = [2, 5, 8, 10, 12, 15, 17, 20];
 const ESTATE_NAMES: Record<EstateId, string> = { king: 'Rey', nobles: 'Nobleza', artisans: 'Artesanos', commoners: 'Pueblo llano', church: 'Iglesia' };
@@ -69,6 +70,7 @@ export function formatReport(reports: BalanceReport[]): string {
   add('Cosechas con el granero lleno', (r) => r.granaryFull);
   add('Tandas en los talleres', (r) => r.workshopBatches);
   add('Encargos cumplidos', (r) => r.commissions);
+  for (const id of [...new Set(reports.flatMap((r) => Object.keys(r.monumentDay)))]) add(`Monumento ${id} (día)`, (r) => r.monumentDay[id] ?? null);
   for (const id of [...new Set(reports.flatMap((r) => Object.keys(r.traitDay)))]) add(`Rasgo ${id} (día)`, (r) => r.traitDay[id] ?? null);
   add('Caravanas', (r) => r.caravans);
   add('Ganado con caravanas', (r) => r.caravanEarnings);

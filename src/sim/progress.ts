@@ -1,5 +1,5 @@
 // Experiencia, niveles, rangos y lo que desbloquea cada nivel (tambien para el arbol de progreso).
-import { BUILDINGS, BUILDING_IDS, CROPS, CROP_IDS, JOB_IDS, MAX_LEVEL, PROGRESSION, TOWN_IDS, TRADE, VILLAGERS, WORKSHOPS, WORKSHOP_IDS, type Feature, type RankDef } from './data';
+import { BUILDINGS, BUILDING_IDS, CROPS, CROP_IDS, JOB_IDS, MAX_LEVEL, MONUMENTS, PROGRESSION, TOWN_IDS, TRADE, VILLAGERS, WORKSHOPS, WORKSHOP_IDS, type Feature, type RankDef } from './data';
 import { ESTATE_IDS } from './estates';
 import { traitMult } from './character';
 import { pathLevel } from './paths';
@@ -92,6 +92,7 @@ export function meetsRank(state: GameState, r: RankDef): boolean {
     hamletLevelSum(state) >= (r.hamletLevels ?? 0) &&
     n.soldiers >= (r.soldiers ?? 0) &&
     n.prestige >= (r.prestige ?? 0) &&
+    (!r.monument || (state.monuments?.[r.monument]?.stage ?? 0) >= MONUMENTS.stages.length) &&
     pathOk(state, r)
   );
 }

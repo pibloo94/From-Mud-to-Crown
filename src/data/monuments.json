@@ -1,0 +1,14 @@
+{
+  "monuments": {
+    "castle": { "path": "crown", "rank": "count", "prestige": 400, "effects": { "tribute": 0.8 } },
+    "greatChurch": { "path": "faith", "rank": "faithEnvoy", "prestige": 400, "effects": { "tithe": 0.5, "priceAll": 1.03 } },
+    "guildHall": { "path": "craft", "rank": "grandMaster", "prestige": 400, "effects": { "materials": 0.75, "priceAll": 1.04 } },
+    "exchange": { "path": "trade", "rank": "mayor", "prestige": 400, "effects": { "priceAll": 1.08, "tolls": 0.8 } },
+    "council": { "path": "people", "rank": "leader", "prestige": 400, "beds": 4, "effects": { "wages": 0.8, "hire": 0.8 } }
+  },
+  "stages": [
+    { "cost": 5000, "materials": { "wood": 60, "stone": 80 } },
+    { "cost": 9000, "materials": { "stone": 150, "iron": 25 } },
+    { "cost": 14000, "materials": { "wood": 100, "stone": 200, "iron": 50 } }
+  ]
+}

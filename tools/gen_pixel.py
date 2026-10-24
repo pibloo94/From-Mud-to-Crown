@@ -1333,6 +1333,220 @@ def hamlet(material: str, stage: int) -> Spr:
     return finish(s, g)
 
 
+# ================================================================== monumentos (2x2)
+
+def tower(s: Spr, cx, by, a, h, rnd, roof="sl", cap=True):
+    """Torre cuadrada de piedra con almenas o chapitel."""
+    t = s.box(cx, by, a, h, "r3", "r1", "r2")
+    stone_texture(s, cx, by, a, h, rnd, "r3", "r1")
+    if cap:
+        # chapitel conico de pizarra
+        top = t["B"][1] + a // 2
+        s.poly([(cx - a - 1, top + a // 4), (cx, top - a - 4), (cx + a, top + a // 4), (cx, top + a // 2 + 1)], f"{roof}1")
+        s.poly([(cx, top - a - 4), (cx + a, top + a // 4), (cx, top + a // 2 + 1)], f"{roof}0")
+        s.px(cx, top - a - 5, "gold")
+    else:
+        for k in range(-a, a, 3):
+            s.rect(cx + k, t["F"][1] - a // 2 - 2 + abs(k) // 2, cx + k + 1, t["F"][1] - a // 2 + abs(k) // 2, "r3")
+    return t
+
+
+def monument_works(stage: int) -> Spr:
+    """Obra de un monumento: 1 cimientos y estacas, 2 muros a medio alzar con andamios."""
+    rnd = random.Random(300 + stage)
+    s, g = Spr(64, 80), Spr(64, 80)
+    by, cx = 78, 32
+    for (x, y) in block_cells(by, 2, cx):
+        if rnd.random() < 0.5:
+            g.px(x, y, rnd.choice(["s1", "s2", "p0", "s3"]))
+    ground_shadow(g, cx, by, 26, 7)
+    if stage == 1:
+        # zanja de cimientos de piedra y estacas con cuerda
+        b = s.box(cx, by - 4, 22, 3, "r2", "r1", "s1")
+        stone_texture(s, cx, by - 4, 22, 3, rnd, "r2", "r1")
+        for (x, y) in ((cx - 24, by - 16), (cx, by - 3), (cx + 24, by - 16), (cx, by - 28)):
+            s.rect(x, y - 6, x, y, "w3")
+        s.line((cx - 24, by - 21), (cx, by - 8), "cream0")
+        s.line((cx, by - 8), (cx + 24, by - 21), "cream0")
+        # montones de piedra y madera
+        for (x, y) in ((cx - 18, by - 2), (cx + 16, by)):
+            s.ellipse(x, y - 2, 4, 2, "r3")
+            s.ellipse(x - 1, y - 3, 2, 1, "r4")
+        log_pile(s, cx + 6, by - 30, (3, 2), 7)
+        return finish(s, g)
+    # muros a media altura con andamios de madera
+    b = s.box(cx, by - 4, 22, 14, "r3", "r1")
+    stone_texture(s, cx, by - 4, 22, 14, rnd, "r3", "r1")
+    for k in range(-22, 23, 2):
+        if rnd.random() < 0.5:
+            s.px(cx + k, b["F"][1] - (22 - abs(k)) // 2 - 1, "r2")
+    for x in (cx - 24, cx - 12, cx + 12, cx + 24):
+        y = by - 4 - (22 - abs(x - cx)) // 2 + 2
+        s.rect(x, y - 24, x, y, "w2")
+    for z in (8, 16, 23):
+        s.line((cx - 24, by - 15 - z), (cx - 12, by - 9 - z), "w3")
+        s.line((cx + 12, by - 9 - z), (cx + 24, by - 15 - z), "w3")
+    # grua de madera
+    s.rect(cx + 2, by - 50, cx + 3, by - 18, "w1")
+    s.line((cx + 3, by - 50), (cx - 12, by - 44), "w2")
+    s.rect(cx - 12, by - 44, cx - 12, by - 36, "iron1")
+    s.rect(cx - 14, by - 36, cx - 10, by - 34, "r3")
+    return finish(s, g)
+
+
+def castle() -> Spr:
+    """Castillo: recinto almenado con cuatro torres y torre del homenaje."""
+    rnd = random.Random(310)
+    s, g = Spr(64, 96), Spr(64, 96)
+    by, cx = 94, 32
+    ground_shadow(g, cx, by, 30, 8)
+    crenel_wall(s, (cx - 30, by - 16), (cx, by - 31), 9, "r2", rnd)
+    crenel_wall(s, (cx, by - 31), (cx + 30, by - 16), 9, "r1", rnd)
+    tower(s, cx, by - 30, 5, 18, rnd, cap=True)
+    keep = s.box(cx + 2, by - 14, 12, 36, "r3", "r1", "r2")
+    stone_texture(s, cx + 2, by - 14, 12, 36, rnd, "r3", "r1")
+    for k in range(-12, 12, 3):
+        s.rect(cx + 2 + k, keep["F"][1] - 8 + abs(k) // 2, cx + 3 + k, keep["F"][1] - 6 + abs(k) // 2, "r3")
+    window(s, keep, "l", 0.5, 26, True)
+    window(s, keep, "r", 0.4, 22, False)
+    window(s, keep, "l", 0.3, 14, True)
+    banner(s, cx + 2, keep["B"][1] + 6, 12)
+    tower(s, cx - 28, by - 16, 5, 22, rnd)
+    tower(s, cx + 28, by - 16, 5, 22, rnd)
+    crenel_wall(s, (cx - 28, by - 14), (cx - 2, by - 1), 6, "r2", rnd)
+    crenel_wall(s, (cx + 2, by - 1), (cx + 28, by - 14), 6, "r1", rnd)
+    gate = s.box(cx, by, 6, 14, "r3", "r1", "r2")
+    stone_texture(s, cx, by, 6, 14, rnd, "r3", "r1")
+    door(s, gate, "r", 0.5, 3, 7, "w1")
+    for k in range(-6, 6, 3):
+        s.rect(cx + k, gate["F"][1] - 4 + abs(k) // 2, cx + k + 1, gate["F"][1] - 2 + abs(k) // 2, "r3")
+    return finish(s, g)
+
+
+def great_church() -> Spr:
+    """Gran iglesia: nave larga de piedra, rosetón y campanario alto con chapitel."""
+    rnd = random.Random(320)
+    s, g = Spr(64, 96), Spr(64, 96)
+    by, cx = 94, 30
+    ground_shadow(g, cx, by, 30, 8)
+    nave = s.box2(cx, by - 2, 26, 12, 18, "r3", "r1")
+    stone_texture(s, cx, by - 2, 12, 18, rnd, "r3", "r1")
+    for f in (0.15, 0.4, 0.65, 0.9):
+        window(s, nave, "l", f, 8, True, 2, 6)
+    door(s, nave, "r", 0.45, 4, 9, "w1")
+    # roseton sobre la puerta
+    rx, ry = cx + 5, by - 2 - 3 - 15
+    s.ellipse(rx, ry, 2, 2, "glow")
+    s.px(rx, ry, "red1")
+    s.gable_roof(nave, 12, "sl2", "sl0", "r2", 1, shingle_texture("sl1", "sl2"), rnd)
+    # campanario a la derecha
+    t = s.box(cx + 20, by - 14, 6, 40, "r3", "r1", "r2")
+    stone_texture(s, cx + 20, by - 14, 6, 40, rnd, "r3", "r1")
+    window(s, t, "l", 0.5, 32, False, 2, 4)
+    window(s, t, "r", 0.5, 32, False, 2, 4)
+    s.px(cx + 18, by - 14 - 33, "gold")
+    top = t["B"][1] + 3
+    s.poly([(cx + 13, top + 3), (cx + 20, top - 16), (cx + 26, top + 3), (cx + 20, top + 6)], "sl1")
+    s.poly([(cx + 20, top - 16), (cx + 26, top + 3), (cx + 20, top + 6)], "sl0")
+    s.rect(cx + 20, top - 21, cx + 20, top - 16, "iron")
+    s.rect(cx + 18, top - 19, cx + 22, top - 19, "iron")
+    return finish(s, g)
+
+
+def guild_hall() -> Spr:
+    """Casa del gremio: tres plantas de entramado sobre soportales de piedra, con el emblema."""
+    rnd = random.Random(330)
+    s, g = Spr(64, 96), Spr(64, 96)
+    by, cx = 94, 32
+    ground_shadow(g, cx, by, 28, 8)
+    base = s.box2(cx, by - 2, 24, 16, 9, "r3", "r1")
+    stone_texture(s, cx, by - 2, 16, 9, rnd, "r3", "r1")
+    for f in (0.15, 0.4, 0.65, 0.9):
+        x = cx - int(24 * f)
+        s.wall(cx, by - 2, 24, "l", x - 1, x + 1, 0, 6, "#141612")
+    for f in (0.3, 0.75):
+        x = cx + int(16 * f)
+        s.wall(cx, by - 2, 16, "r", x - 1, x + 1, 0, 6, "#141612")
+    up = s.box2(cx, by - 11, 24, 16, 20, "pl2", "pl0")
+    frame_walls(s, up, 0, 20)
+    for f in (0.2, 0.5, 0.8):
+        window(s, up, "l", f, 6, True)
+        window(s, up, "l", f, 14, True)
+    window(s, up, "r", 0.5, 10, True)
+    m1, m2 = s.gable_roof(up, 14, "sh2", "sh0", "w2", 2, shingle_texture("sh1", "sh2"), rnd)
+    # emblema del gremio (martillo) colgado sobre la esquina
+    ex, ey = cx + 2, by - 32
+    s.rect(ex, ey - 6, ex + 5, ey, "red1")
+    s.rect(ex + 2, ey - 5, ex + 3, ey - 1, "gold")
+    s.rect(ex + 1, ey - 5, ex + 4, ey - 4, "gold")
+    chimney(s, int(m2[0]) - 3, int(m2[1]) + 3, 6)
+    banner(s, int((m1[0] + m2[0]) / 2), int((m1[1] + m2[1]) / 2), 10)
+    return finish(s, g)
+
+
+def exchange() -> Spr:
+    """Lonja: gran sala gotica de piedra con arcos altos, pinaculos y estandartes de la villa."""
+    rnd = random.Random(340)
+    s, g = Spr(64, 96), Spr(64, 96)
+    by, cx = 94, 32
+    ground_shadow(g, cx, by, 30, 8)
+    hall = s.box2(cx, by - 2, 26, 14, 24, "r4", "r2")
+    stone_texture(s, cx, by - 2, 14, 24, rnd, "r4", "r2")
+    for f in (0.12, 0.37, 0.62, 0.87):
+        x = cx - int(26 * f)
+        s.wall(cx, by - 2, 26, "l", x - 1, x + 2, 2, 15, "#141612")
+        s.wall(cx, by - 2, 26, "l", x, x + 1, 15, 17, "#141612")
+    for f in (0.3, 0.75):
+        x = cx + int(14 * f)
+        s.wall(cx, by - 2, 14, "r", x - 1, x + 1, 2, 14, "#141612")
+    # remate almenado con pinaculos
+    crenel_wall(s, (hall["L"][0], hall["L"][1]), (hall["F"][0], hall["F"][1]), 2, "r4", rnd)
+    crenel_wall(s, (hall["F"][0], hall["F"][1]), (hall["R"][0], hall["R"][1]), 2, "r2", rnd)
+    for (x, y) in (hall["L"], hall["F"], hall["R"]):
+        s.rect(x - 1, y - 7, x + 1, y, "r4")
+        s.px(x, y - 8, "gold")
+    s.poly([hall["L"], hall["F"], hall["R"], hall["B"]], "sl1")
+    banner(s, hall["L"][0] + 6, hall["L"][1] + 1, 10)
+    banner(s, hall["R"][0] - 4, hall["R"][1] + 1, 10, True)
+    # torre del reloj detras
+    t = s.box(cx - 8, by - 26, 5, 22, "r4", "r2", "r3")
+    stone_texture(s, cx - 8, by - 26, 5, 22, rnd, "r4", "r2")
+    s.ellipse(cx - 6, by - 26 - 16, 1, 1, "cream")
+    return finish(s, g)
+
+
+def council() -> Spr:
+    """Concejo: casa de reuniones de madera y piedra con portico, campana y el olmo del pueblo."""
+    rnd = random.Random(350)
+    s, g = Spr(64, 96), Spr(64, 96)
+    by, cx = 94, 30
+    ground_shadow(g, cx, by, 28, 8)
+    # olmo detras a la izquierda
+    s.ellipse(cx - 18, by - 46, 11, 9, "l2")
+    s.ellipse(cx - 20, by - 49, 7, 5, "l3")
+    s.ellipse(cx - 14, by - 43, 6, 4, "l1")
+    s.rect(cx - 19, by - 38, cx - 17, by - 26, "w1")
+    hall = s.box2(cx, by - 2, 22, 16, 14, "r3", "r1")
+    stone_texture(s, cx, by - 2, 16, 14, rnd, "r3", "r1")
+    for f in (0.25, 0.6):
+        window(s, hall, "l", f, 7, True, 2, 4)
+    door(s, hall, "r", 0.5, 4, 8, "w1")
+    m1, m2 = s.gable_roof(hall, 12, "st2", "st1", "w2", 2, straw_texture, rnd)
+    # portico de madera delante de la pared derecha
+    for f in (0.1, 0.9):
+        x = cx + int(16 * f)
+        y = by + 4 - int(16 * f) // 2
+        s.rect(x, y - 12, x, y, "w2")
+    s.line((cx, by - 8), (cx + 15, by - 16), "w3")
+    # espadana con la campana del concejo
+    bx, byy = int(m2[0]) - 2, int(m2[1])
+    s.rect(bx - 2, byy - 8, bx + 2, byy, "r3")
+    s.rect(bx - 1, byy - 6, bx + 1, byy - 3, "#141612")
+    s.px(bx, byy - 4, "gold")
+    banner(s, int(m1[0]) + 2, int(m1[1]) + 2, 9)
+    return finish(s, g)
+
+
 # ================================================================== invierno
 
 def recolor(src: Spr, mapping, rnd) -> Spr:
@@ -1868,6 +2082,9 @@ def generate() -> dict:
         "mill": windmill(), "bakery": bakery(), "cheesery": cheesery(),
         **{f"manor_{i}": manor(i) for i in range(4)},
         **{f"hamlet_{m}_{i}": hamlet(m, i) for m in ("wood", "stone", "iron") for i in range(4)},
+        "monument_works_1": monument_works(1), "monument_works_2": monument_works(2),
+        "monument_castle": castle(), "monument_greatChurch": great_church(), "monument_guildHall": guild_hall(),
+        "monument_exchange": exchange(), "monument_council": council(),
         **{f"villager_{j}": villager(j) for j in ("farmer", "herder", "carter", "artisan", "soldier")},
         "cow": cow(), "chicken": chicken(),
     }

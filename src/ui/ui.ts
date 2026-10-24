@@ -40,6 +40,7 @@ import { pendingTip } from '../sim/tutorial';
 import { manorView, type ManorTab } from './noble';
 import { ledgerView } from './ledger';
 import { commissionsView } from './commissions';
+import { legacyView, monumentView } from './monuments';
 import { openCommissions } from '../sim/commissions';
 import { characterView, randomName, traitEarnedView, traitLinesEl, type CharacterTab } from './character';
 import type { CharacterAnswers } from '../sim/character';
@@ -75,14 +76,16 @@ type Modal =
   | { kind: 'ledger' }
   | { kind: 'character'; tab: CharacterTab }
   | { kind: 'trait'; id: string }
-  | { kind: 'commissions' };
+  | { kind: 'commissions' }
+  | { kind: 'monument'; monument: string }
+  | { kind: 'legacy'; monument: string };
 
 /** Todas las ventanas detienen el tiempo mientras estan abiertas; al cerrarlas vuelve la velocidad anterior. */
-const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'levelup', 'season', 'rank', 'caravan', 'event', 'tip', 'ledger', 'character', 'trait', 'commissions'];
+const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'levelup', 'season', 'rank', 'caravan', 'event', 'tip', 'ledger', 'character', 'trait', 'commissions', 'monument', 'legacy'];
 /** Ventanas que se cierran con Escape o tocando fuera. */
-const DISMISSABLE: Modal['kind'][] = ['menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'ledger', 'character', 'commissions'];
+const DISMISSABLE: Modal['kind'][] = ['menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'ledger', 'character', 'commissions', 'monument'];
 /** Ventanas desde las que se puede ir a otra y volver con "Atras". */
-const NAVIGABLE: Modal['kind'][] = ['market', 'building', 'workshop', 'site', 'manor', 'progress', 'levelup', 'ledger', 'character', 'commissions'];
+const NAVIGABLE: Modal['kind'][] = ['market', 'building', 'workshop', 'site', 'manor', 'progress', 'levelup', 'ledger', 'character', 'commissions', 'monument'];
 
 export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI {
   let lastSpeed: Speed = 1;
@@ -293,6 +296,9 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       case 'workshop':
         openModal({ kind: 'workshop', workshop: e.workshop });
         break;
+      case 'monument':
+        openModal({ kind: 'monument', monument: e.monument });
+        break;
       case 'levelUp':
         showCard({ kind: 'levelup', level: e.level });
         break;
@@ -304,6 +310,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
         else if (e.notice.card === 'rank') showCard({ kind: 'rank', rank: e.notice.params?.rank as RankId });
         else if (e.notice.card === 'caravan') showCard({ kind: 'caravan', params: e.notice.params ?? {} });
         else if (e.notice.card === 'trait') showCard({ kind: 'trait', id: String(e.notice.params?.trait) });
+        else if (e.notice.card === 'legacy') showCard({ kind: 'legacy', monument: String(e.notice.params?.monument) });
         else toast(t(e.notice.msg, e.notice.params), e.notice.ok ? 'good' : 'warn');
         break;
       case 'result':
@@ -556,6 +563,8 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       tip: () => tipView(sim, (modal as Extract<Modal, { kind: 'tip' }>).id, () => closeModal()),
       ledger: () => ledgerView(panelCtx),
       commissions: () => commissionsView(panelCtx),
+      monument: () => monumentView(panelCtx, (modal as Extract<Modal, { kind: 'monument' }>).monument),
+      legacy: () => legacyView(panelCtx, (modal as Extract<Modal, { kind: 'legacy' }>).monument),
       trait: () => traitEarnedView(panelCtx, (modal as Extract<Modal, { kind: 'trait' }>).id, () => openModal({ kind: 'character', tab: 'traits' })),
       character: () => characterView(panelCtx, (modal as Extract<Modal, { kind: 'character' }>).tab, (tab) => openModal({ kind: 'character', tab })),
     };
@@ -607,6 +616,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     if (m.kind === 'market') return `market:${m.tab}`;
     if (m.kind === 'manor') return `manor:${m.tab}`;
     if (m.kind === 'character') return `character:${m.tab}`;
+    if (m.kind === 'monument') return `monument:${m.monument}`;
     return m.kind;
   }
 
@@ -619,6 +629,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     openMarket: (tab = 'buy') => openModal({ kind: 'market', tab }),
     openWorkshop: (id) => openModal({ kind: 'workshop', workshop: id }),
     openLedger: () => openModal({ kind: 'ledger' }),
+    openMonument: (id) => openModal({ kind: 'monument', monument: id }),
   };
 
   overlay.addEventListener('click', (e) => {

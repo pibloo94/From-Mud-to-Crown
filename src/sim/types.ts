@@ -31,7 +31,8 @@ export type RankId =
   | 'faithEnvoy'
   | 'goodMan'
   | 'spokesman'
-  | 'leader';
+  | 'leader'
+  | 'duke';
 /** Senor feudal al que se rinde tributo: cambia al subir en la escalera noble. */
 export type LiegeId = 'baron' | 'count' | 'king';
 export type Speed = 0 | 1 | 2 | 3;
@@ -58,6 +59,8 @@ export type TileKind =
   | 'tenant'
   /** Casa solariega del feudo (ver `GameState.noble.manor`). */
   | 'manor'
+  /** Monumento de un camino (ver `GameState.monuments`). */
+  | 'monument'
   /** Aldea vasalla del feudo. */
   | 'hamlet';
 
@@ -250,6 +253,8 @@ export interface GameState {
   difficulty: Difficulty;
   /** El personaje: nombre, rasgos y ambicion. */
   character: Character;
+  /** Monumentos levantados (etapa 1-3) y donde (casilla de origen de su bloque de 2x2). */
+  monuments: Record<string, { stage: number; x: number; y: number }>;
   /** Encargos de los estamentos de esta estacion (ver commissions.ts). */
   commissions: { offers: { id: string; amount: number; base: number; done: boolean }[] };
   /** Meritos de cada camino, el camino en foco y el segundo. */
@@ -286,7 +291,7 @@ export interface CommandResult {
 
 /** Aviso que la simulacion genera por si sola al pasar los dias. `card` pide mostrarlo como tarjeta. */
 export interface Notice extends CommandResult {
-  card?: 'season' | 'rank' | 'levelup' | 'caravan' | 'trait';
+  card?: 'season' | 'rank' | 'levelup' | 'caravan' | 'trait' | 'legacy';
   /** Baldosa donde ocurrio (p. ej. una cosecha de los labradores), para mostrarlo sobre el mapa. */
   tile?: { x: number; y: number };
 }

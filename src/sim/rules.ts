@@ -19,6 +19,7 @@ import { settleSeason } from './taxes';
 import type { AnimalId, BuildingId, CommandResult, CropId, GameState, Notice, Plot, ProductId, Speed, WorkshopId } from './types';
 import { updateEarnedTraits } from './character';
 import { offerCommissions } from './commissions';
+import { monumentAt } from './monuments';
 
 /** Avance maximo por fotograma, para que una pausa del navegador no salte muchos dias de golpe. */
 export const MAX_FRAME_MS = 250;
@@ -385,6 +386,7 @@ export type Interaction =
   | { kind: 'workshop'; workshop: WorkshopId }
   /** Casa solariega: `hamlet` si se ha tocado una aldea. */
   | { kind: 'manor'; hamlet: string | null }
+  | { kind: 'monument'; monument: string }
   | { kind: 'openMarket' };
 
 export function interact(state: GameState, x: number, y: number): Interaction {
@@ -420,6 +422,10 @@ export function interact(state: GameState, x: number, y: number): Interaction {
       return { kind: 'manor', hamlet: null };
     case 'hamlet':
       return { kind: 'manor', hamlet: hamletAt(x, y) };
+    case 'monument': {
+      const id = monumentAt(state, x, y);
+      return id ? { kind: 'monument', monument: id } : { kind: 'done', outcome: fail('msg.nothing') };
+    }
     case 'tenant':
       return { kind: 'done', outcome: done({ ok: true, msg: 'msg.tenant', params: { rent: PROGRESSION.lands.rentPerSeason } }) };
     // Gallinero y corral: si hay algo que recoger se recoge; si no, se abre el edificio.

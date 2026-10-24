@@ -2879,6 +2879,32 @@ img[src^='assets/pixel/'] {
   display: inline-block;
 }
 
+/* Monumentos */
+.monument-art {
+  display: block;
+  width: 128px;
+  height: 192px;
+  margin: 0 auto -8px;
+  object-fit: contain;
+  object-position: bottom;
+}
+
+.monument-fx {
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: #2f5a1f;
+}
+
+.legacy .acct-row b {
+  white-space: normal;
+  text-align: right;
+}
+
+.legacy .monument-art {
+  width: 160px;
+  height: 240px;
+}
+
 /* Encargos de los estamentos */
 .commission {
   display: flex;

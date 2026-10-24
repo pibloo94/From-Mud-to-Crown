@@ -196,6 +196,17 @@
       "effects": { "tribute": 0.9 }
     },
     {
+      "id": "duke",
+      "level": 20,
+      "king": 80,
+      "keep": { "king": 60 },
+      "path": "crown",
+      "pathLevel": 5,
+      "pathRole": "focus",
+      "monument": "castle",
+      "effects": { "tolls": 0.8 }
+    },
+    {
       "id": "artisan",
       "level": 12,
       "branch": true,
@@ -265,7 +276,8 @@
       "burgher": 1.5,
       "lord": 3,
       "baron": 3.5,
-      "count": 4
+      "count": 4,
+      "duke": 4
     }
   },
   "reputation": {

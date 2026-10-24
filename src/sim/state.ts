@@ -72,6 +72,7 @@ export function createNewGame(seed: number = newSeed(), difficulty: Difficulty =
     character: emptyCharacter(),
     paths: startPaths(),
     commissions: { offers: [] },
+    monuments: {},
     buildings,
     villagers: [],
     nextVillagerId: 1,

@@ -6,6 +6,7 @@ import { hasRank } from '../sim/progress';
 import { PATH_IDS, canChoosePath, pathLevel, pathRate } from '../sim/paths';
 import type { GameState, PathId } from '../sim/types';
 import { EARNED_IDS, earnStatus, traitDef, traitLines, type TraitLine } from '../sim/character';
+import { MONUMENT_IDS, STAGES, monumentDef, monumentDone, monumentStage, monumentUnlocked } from '../sim/monuments';
 import { ESTATE_IDS } from '../sim/estates';
 import { estateBar, pct, tabs, type PanelCtx } from './panels';
 
@@ -119,6 +120,7 @@ function pathCard(ctx: PanelCtx, s: GameState, p: PathId): HTMLElement {
       h('span', { class: 'rep-bar' }, h('span', { class: 'rep-fill', style: `width:${fill}%` })),
       h('small', {}, t(`path.${p}.desc`)),
       pathRanks(s, p),
+      monumentButton(ctx, s, p),
       choose &&
         p !== focus &&
         h(
@@ -134,6 +136,15 @@ function pathCard(ctx: PanelCtx, s: GameState, p: PathId): HTMLElement {
         ),
     ),
   );
+}
+
+/** Acceso al monumento del camino: se ve siempre, se puede levantar con el ultimo rango. */
+function monumentButton(ctx: PanelCtx, s: GameState, p: PathId): HTMLElement | null {
+  const id = MONUMENT_IDS.find((m) => monumentDef(m)!.path === p);
+  if (!id) return null;
+  const stage = monumentStage(s, id);
+  const label = monumentDone(s, id) ? t('monument.seeDone', { monument: id }) : stage > 0 ? t('monument.continue', { monument: id, n: stage, total: STAGES }) : t('monument.open', { monument: id });
+  return h('button', { class: `btn small ${monumentUnlocked(s, id) && !monumentDone(s, id) ? 'primary' : ''}`, onclick: () => ctx.openMonument(id) }, label);
 }
 
 /** Los rangos de un camino: peldano que piden, lo que dan y si ya se tienen. */
