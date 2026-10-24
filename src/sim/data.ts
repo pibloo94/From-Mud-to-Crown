@@ -16,6 +16,7 @@ import estatesJson from '../data/estates.json';
 import traitsJson from '../data/traits.json';
 import pathsJson from '../data/paths.json';
 import commissionsJson from '../data/commissions.json';
+import monumentsJson from '../data/monuments.json';
 import layoutJson from '../data/layout.json';
 import type { AnimalId, BuildingId, CropId, Difficulty, EstateEffect, EstateId, JobId, LiegeId, MaterialId, ModifierKind, PathId, ProductId, ProtectionId, RankId, TileKind, TraitEffect, WorkshopId } from './types';
 import type { Season } from './calendar';
@@ -114,6 +115,8 @@ export interface RankDef {
   effects?: Partial<Record<TraitEffect, number>>;
   /** Camas de mas en la casa. */
   beds?: number;
+  /** Monumento terminado que pide (Duque, el castillo). */
+  monument?: string;
 }
 
 export interface ProgressionDef {
@@ -170,6 +173,21 @@ export interface ProgressionDef {
     perManorLevel: number;
     neglect: { days: number; growth: number; animal: number };
   };
+}
+
+/** Monumento final de un camino: rango que pide, prestigio y lo que da al terminarlo. */
+export interface MonumentDef {
+  path: PathId;
+  rank: RankId;
+  prestige: number;
+  effects?: Partial<Record<TraitEffect, number>>;
+  beds?: number;
+}
+
+export interface MonumentsDef {
+  monuments: Record<string, MonumentDef>;
+  /** Etapas de obra, iguales para todos: monedas y materiales. */
+  stages: { cost: number; materials: MaterialAmounts }[];
 }
 
 /** Un encargo de estamento: que pide (productos, monedas o tandas), cuanto mas por nivel y que favor da. */
@@ -549,6 +567,7 @@ export const ESTATES = estatesJson as unknown as EstatesDef;
 export const TRAITS = traitsJson as unknown as TraitsDef;
 export const PATHS = pathsJson as unknown as PathsDef;
 export const COMMISSIONS = commissionsJson as unknown as CommissionsDef;
+export const MONUMENTS = monumentsJson as unknown as MonumentsDef;
 export const LAYOUT = layoutJson as unknown as LayoutDef;
 export const HAMLET_IDS = Object.keys(NOBILITY.hamlets);
 export const PATRONAGE_IDS = Object.keys(NOBILITY.patronage);

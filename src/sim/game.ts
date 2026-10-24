@@ -15,6 +15,7 @@ import * as tutorial from './tutorial';
 import * as risk from './risk';
 import * as paths from './paths';
 import * as commissions from './commissions';
+import * as monuments from './monuments';
 
 export type GameEvent =
   | { type: 'change' }
@@ -29,6 +30,7 @@ export type GameEvent =
   | { type: 'workshop'; workshop: WorkshopId }
   /** Ventana de la casa solariega; `hamlet` si se ha tocado una aldea. */
   | { type: 'manor'; hamlet: string | null }
+  | { type: 'monument'; monument: string }
   | { type: 'levelUp'; level: number }
   | { type: 'event'; id: string }
   | { type: 'mapChanged' }
@@ -116,6 +118,9 @@ export class Game {
         break;
       case 'manor':
         this.emit({ type: 'manor', hamlet: r.hamlet });
+        break;
+      case 'monument':
+        this.emit({ type: 'monument', monument: r.monument });
         break;
       default:
         this.report(r.outcome, x, y);
@@ -245,6 +250,25 @@ export class Game {
     const result = trade.sendCaravan(this.state, town, cargo, buy, escort);
     if (result.ok) this.emit({ type: 'mapChanged' });
     this.report({ result, levelUps: [] });
+  }
+
+  // ---------------------------------------------------------------- monumentos
+
+  /** Levanta la siguiente etapa de un monumento (la primera elige el sitio y redibuja el mapa). */
+  buildMonument(id: string): void {
+    const out = monuments.buildMonument(this.state, id);
+    const ranks = out.result.ok ? rules.checkRank(this.state) : [];
+    if (out.result.ok) this.emit({ type: 'mapChanged' });
+    this.report({ result: out.result, levelUps: [] });
+    for (const notice of [...out.notices, ...ranks]) this.emit({ type: 'notice', notice });
+  }
+
+  buyMissingForMonument(id: string): void {
+    this.report({ result: materials.buyMissing(this.state, monuments.nextStage(this.state, id)?.materials), levelUps: [] });
+  }
+
+  openMonument(id: string): void {
+    this.emit({ type: 'monument', monument: id });
   }
 
   // ---------------------------------------------------------------- encargos

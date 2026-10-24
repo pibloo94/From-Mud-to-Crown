@@ -17,6 +17,7 @@ import type { AnimalId, BuildingId, JobId, Tile } from '../sim/types';
 import { t } from '../i18n/i18n';
 import pixelManifest from '../../public/assets/pixel/manifest.json';
 import { blockBase, depthOf, fitScale, TILE_H, TILE_W, tileCenter, toScreen, toTile } from './iso';
+import { STAGES, monumentAt, monumentStage } from '../sim/monuments';
 
 /** Piezas de la interfaz que tambien salen en el mapa (la placa de los animales y sus iconos), a x3. */
 const UI_SCALE = 3;
@@ -281,6 +282,15 @@ export class FarmScene extends Phaser.Scene {
         // Ocupa un bloque: se dibuja una vez, desde su casilla de origen.
         if (isBlockOrigin(st, tile)) this.landmarks.push(this.place(`manor_${manorStage(st)}`, tile, 5, objectSize('manor')));
         break;
+      case 'monument': {
+        // Bloque de 2x2 como la casa solariega: la obra a medias o el monumento terminado.
+        if (!isBlockOrigin(st, tile)) break;
+        const id = monumentAt(st, tile.x, tile.y);
+        if (!id) break;
+        const stage = monumentStage(st, id);
+        this.landmarks.push(this.place(stage >= STAGES ? `monument_${id}` : `monument_works_${Math.max(1, stage)}`, tile, 5, objectSize('monument')));
+        break;
+      }
       case 'hamlet': {
         // Ocupa un bloque como la casa solariega: se dibuja una vez, desde la casilla de origen.
         const id = hamletAt(tile.x, tile.y);

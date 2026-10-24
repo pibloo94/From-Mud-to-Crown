@@ -195,6 +195,34 @@
   32,
   56
  ],
+ "monument_castle": [
+  64,
+  96
+ ],
+ "monument_council": [
+  64,
+  96
+ ],
+ "monument_exchange": [
+  64,
+  96
+ ],
+ "monument_greatChurch": [
+  64,
+  96
+ ],
+ "monument_guildHall": [
+  64,
+  96
+ ],
+ "monument_works_1": [
+  64,
+  80
+ ],
+ "monument_works_2": [
+  64,
+  80
+ ],
  "path": [
   32,
   16

@@ -7,6 +7,7 @@
 import { TRAITS, type TraitDef } from './data';
 import { ownedRanks } from './progress';
 import type { EstateId, GameState, Notice, TraitEffect } from './types';
+import { doneMonuments } from './monuments';
 
 export type CharacterAnswers = { name: string; origin: string; nature: string; ambition: string };
 
@@ -24,6 +25,7 @@ export const emptyCharacter = (): GameState['character'] => ({ name: '', traits:
 const traitDefs = (state: GameState): Pick<TraitDef, 'effects' | 'repGain' | 'beds'>[] => [
   ...[...(state.character?.traits ?? []), ...(state.character?.earned ?? [])].map(traitDef).filter((d): d is TraitDef => !!d),
   ...(state.paths ? ownedRanks(state) : []),
+  ...(state.monuments ? doneMonuments(state) : []),
 ];
 
 /** Multiplicador de un efecto por todos los rasgos del personaje. */

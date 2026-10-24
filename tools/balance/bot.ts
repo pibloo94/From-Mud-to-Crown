@@ -22,6 +22,7 @@ import { isProtected, protectionCost } from '../../src/sim/risk';
 import type { CropId, Difficulty, EstateId, GameState, JobId, MaterialId, PathId, ProductId } from '../../src/sim/types';
 import { PATH_IDS, canChoosePath, pathLevel } from '../../src/sim/paths';
 import { commissionDef, commissionProgress } from '../../src/sim/commissions';
+import { MONUMENT_IDS, monumentDone, monumentUnlocked, nextStage } from '../../src/sim/monuments';
 
 /** Lo que mide una partida del bot. Los dias son dias de juego (10 s reales a velocidad x1). */
 export interface BalanceReport {
@@ -43,6 +44,8 @@ export interface BalanceReport {
   workshopBatches: number;
   /** Encargos de los estamentos cumplidos. */
   commissions: number;
+  /** Dia en que se termina cada monumento. */
+  monumentDay: Record<string, number>;
   /** Rasgos ganados: dia en que llega cada uno (los perdidos tambien cuentan) y los que quedan al final. */
   traitDay: Record<string, number>;
   earned: string[];
@@ -128,6 +131,7 @@ export function simulate(seed: number, days: number, level: Difficulty = 'normal
     merits: {},
     workshopBatches: 0,
     commissions: 0,
+    monumentDay: {},
     traitDay: {},
     earned: [],
     coinsAt: {},
@@ -183,6 +187,7 @@ export function simulate(seed: number, days: number, level: Difficulty = 'normal
     report.commissions += fulfilCommissions(game);
     sell(game);
     spend(game);
+    raiseMonument(game);
     // Un dia de juego, en pasos de un fotograma largo (la simulacion no deja saltar mas de golpe).
     // Si a mitad de dia llega un evento, el reloj se para hasta contestarlo, como en el juego.
     game.setSpeed(3);
@@ -196,6 +201,7 @@ export function simulate(seed: number, days: number, level: Difficulty = 'normal
     for (const id of [s().rank, ...s().titles]) report.rankDay[id] ??= s().day;
     choosePaths(game);
     for (const id of s().character.earned) report.traitDay[id] ??= s().day;
+    for (const id of MONUMENT_IDS) if (monumentDone(s(), id)) report.monumentDay[id] ??= s().day;
     const f = s().paths.focus;
     if (f) report.focusLevelDay[pathLevel(s().paths.merits[f]).level] ??= s().day;
   }
@@ -298,6 +304,18 @@ function unitValue(s: GameState, p: ProductId): number {
     best = Math.max(best, made / (inputs[p] ?? 1));
   }
   return best;
+}
+
+/** Levanta el monumento del camino en cuanto se puede pagar la etapa sin tocar la reserva. */
+function raiseMonument(game: Game): void {
+  const s = game.state;
+  for (const id of MONUMENT_IDS) {
+    if (!monumentUnlocked(s, id) || monumentDone(s, id)) continue;
+    const st = nextStage(s, id)!;
+    if (spare(s) < st.cost + materialsPrice(s, missingMaterials(s, st.materials)) + 300) continue;
+    game.buyMissingForMonument(id);
+    game.buildMonument(id);
+  }
 }
 
 /** Cumple los encargos que se pueden: productos que sobren o monedas que no hagan falta para las cuentas. */
