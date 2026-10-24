@@ -21,7 +21,7 @@ import { STAGES, monumentAt, monumentStage } from '../sim/monuments';
 
 /** Piezas de la interfaz que tambien salen en el mapa (la placa de los animales y sus iconos), a x3. */
 const UI_SCALE = 3;
-const UI_SPRITES = ['bubble', 'icon_egg', 'icon_milk', 'icon_wheat', 'icon_coin'];
+const UI_SPRITES = ['bubble', 'icon_egg', 'icon_milk', 'icon_wool', 'icon_wheat', 'icon_coin'];
 /** Arte del mapa en pixel art: PNG a resolucion nativa que se dibujan a x4 con filtrado nitido. */
 const ART = 4;
 const PIXEL_SPRITES = Object.keys(pixelManifest);
@@ -384,6 +384,7 @@ export class FarmScene extends Phaser.Scene {
     const midX = (topV.x + bottomV.x) / 2;
     const midY = (topV.y + bottomV.y) / 2;
     this.addBubble('cow', { x: pen[0].x, y: pen[0].y }, midX + 30, midY - 70, 'icon_milk');
+    this.addBubble('sheep', { x: pen[0].x, y: pen[0].y }, midX - 40, midY - 50, 'icon_wool');
   }
 
   /** Valla del corral: estacas toscas, cerca de tablas o muro de piedra segun las mejoras. */
@@ -456,6 +457,8 @@ export class FarmScene extends Phaser.Scene {
     const y0 = Math.min(...penAll.map((p) => p.y));
     const pen = shed ? penAll.filter((p) => p.x !== x0 || p.y !== y0) : penAll;
     for (let i = 0; i < this.sim.state.herds.cow.count; i++) this.addAnimal('cow', pen, 0.9);
+    // Las ovejas comparten el corral (como mucho seis a la vista, para que no se amontonen).
+    for (let i = 0; i < Math.min(6, this.sim.state.herds.sheep.count); i++) this.addAnimal('sheep', pen, 0.8);
     // Aldeanos: cada oficio pasea por donde trabaja.
     const tiles = this.sim.state.map.tiles;
     const coopArea = coop ? tiles.filter((tl) => tl.kind === 'grass' && Math.abs(tl.x - coop.x) <= 1 && Math.abs(tl.y - coop.y) <= 1) : [];

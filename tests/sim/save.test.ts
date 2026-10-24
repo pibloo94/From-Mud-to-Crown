@@ -168,3 +168,18 @@ describe('partida version 22', () => {
     expect(sites(back)).toBe(sites(createNewGame(5)));
   });
 });
+
+describe('partida version 23', () => {
+  it('anade las ovejas, la lana, el pano y el quinto solar', () => {
+    const s = createNewGame(5);
+    delete (s.herds as Partial<GameState['herds']>).sheep;
+    delete (s.inventory as Partial<GameState['inventory']>).wool;
+    delete (s.inventory as Partial<GameState['inventory']>).cloth;
+    s.map.tiles.find((t) => t.x === 3 && t.y === 7)!.kind = 'grass';
+    const back = deserialize(JSON.stringify({ format: 'from-mud-to-crown-save', version: 23, savedAt: '2026-10-24T18:00:00Z', state: s }));
+    expect(back.herds.sheep).toEqual({ count: 0, stored: 0, timer: 0 });
+    expect(back.inventory.wool).toBe(0);
+    expect(back.inventory.cloth).toBe(0);
+    expect(back.map.tiles.find((t) => t.x === 3 && t.y === 7)!.kind).toBe('site');
+  });
+});

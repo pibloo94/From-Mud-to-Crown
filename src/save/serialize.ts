@@ -1,6 +1,6 @@
 // Formato del archivo de partida. Puro (sin DOM) para poder probarlo.
 import type { GameState, Tile } from '../sim/types';
-import { ACHIEVEMENTS, BUILDING_IDS, ESTATES, MATERIAL_IDS, PATHS, PRODUCT_IDS, PROGRESSION, START } from '../sim/data';
+import { ACHIEVEMENTS, ANIMAL_IDS, BUILDING_IDS, ESTATES, MATERIAL_IDS, PATHS, PRODUCT_IDS, PROGRESSION, START } from '../sim/data';
 import { defaultPantry } from '../sim/pantry';
 import { rollPrices } from '../sim/market';
 import { buildingStat, storageCapacity, storageUsed } from '../sim/buildings';
@@ -15,7 +15,7 @@ import { emptyCharacter } from '../sim/character';
 import { achievementMet } from '../sim/achievements';
 
 export const SAVE_FORMAT = 'from-mud-to-crown-save';
-export const SAVE_VERSION = 23;
+export const SAVE_VERSION = 24;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;
@@ -140,13 +140,15 @@ export function migrate(state: Record<string, unknown>, from: number): GameState
   // v21 -> v22: fertilidad del suelo. Todas las parcelas empiezan descansadas.
   if (from < 22) s = { ...s, plots: Object.fromEntries(Object.entries(s.plots ?? {}).map(([k, p]) => [k, { ...(p as object), fertility: 1, last: null }])) };
   // v22 -> v23: cebada y cerveza (productos nuevos) y un cuarto solar para la cerveceria.
-  if (from < 23) s = addProductsAndSite(s);
+  // v23 trajo la cebada, la cerveza y el cuarto solar; v24, las ovejas, la lana, el pano y el quinto.
+  if (from < 24) s = addProductsAndSite(s);
   return s as GameState;
 }
 
-/** Productos que falten (a cero) y el solar nuevo del mapa de inicio, si su casilla sigue libre. */
+/** Productos y animales que falten (a cero) y los solares nuevos del mapa de inicio, si su casilla sigue libre. */
 function addProductsAndSite(old: Record<string, any>): Record<string, any> {
-  const s: Record<string, any> = { ...old, inventory: { ...old.inventory }, priceMult: { ...old.priceMult }, pantry: { ...old.pantry, eat: { ...old.pantry.eat } } };
+  const s: Record<string, any> = { ...old, inventory: { ...old.inventory }, priceMult: { ...old.priceMult }, pantry: { ...old.pantry, eat: { ...old.pantry.eat } }, herds: { ...old.herds } };
+  for (const a of ANIMAL_IDS) s.herds[a] ??= { count: 0, stored: 0, timer: 0 };
   const fresh = defaultPantry();
   for (const p of PRODUCT_IDS) {
     s.inventory[p] ??= 0;

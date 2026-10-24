@@ -336,7 +336,12 @@ export function lease(state: GameState, x: number, y: number): Outcome {
 // ------------------------------------------------------------------ animales
 
 export function buildingOf(animal: AnimalId): BuildingId {
-  return animal === 'chicken' ? 'coop' : 'pen';
+  return ANIMALS[animal].building;
+}
+
+/** Animales que viven en un edificio (el corral tiene vacas y ovejas). */
+export function animalsIn(building: BuildingId): AnimalId[] {
+  return ANIMAL_IDS.filter((a) => ANIMALS[a].building === building);
 }
 
 /** Pasa al granero lo producido que quepa. Devuelve cuanto se ha guardado. */
@@ -359,7 +364,7 @@ export function collect(state: GameState, animal: AnimalId): Outcome {
 }
 
 export function animalCapacity(state: GameState, animal: AnimalId): number {
-  return buildingStat(state, buildingOf(animal), 'maxAnimals');
+  return buildingStat(state, buildingOf(animal), ANIMALS[animal].capStat);
 }
 
 export function buyAnimal(state: GameState, animal: AnimalId): Outcome {
@@ -444,13 +449,15 @@ export function interact(state: GameState, x: number, y: number): Interaction {
     }
     case 'tenant':
       return { kind: 'done', outcome: done({ ok: true, msg: 'msg.tenant', params: { rent: PROGRESSION.lands.rentPerSeason } }) };
-    // Gallinero y corral: si hay algo que recoger se recoge; si no, se abre el edificio.
+    // Gallinero y corral: si hay algo que recoger se recoge (todo lo de ese edificio); si no, se abre.
     case 'coop':
-      if (state.herds.chicken.stored >= 1) return { kind: 'done', outcome: collect(state, 'chicken') };
-      return { kind: 'building', building: 'coop' };
-    case 'pen':
-      if (state.herds.cow.stored >= 1) return { kind: 'done', outcome: collect(state, 'cow') };
-      return { kind: 'building', building: 'pen' };
+    case 'pen': {
+      const ready = animalsIn(tile.kind).filter((a) => state.herds[a].stored >= 1);
+      if (ready.length === 0) return { kind: 'building', building: tile.kind };
+      const outcomes = ready.map((a) => collect(state, a));
+      const shown = outcomes.find((o) => !o.result.ok) ?? outcomes[outcomes.length - 1];
+      return { kind: 'done', outcome: done(shown.result, outcomes.flatMap((o) => o.levelUps)) };
+    }
     case 'house':
       return { kind: 'building', building: 'house' };
     case 'granary':

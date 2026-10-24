@@ -29,7 +29,7 @@ import {
 } from '../sim/data';
 import { hasMaterials, materialsList, materialsPrice, missingMaterials } from '../sim/materials';
 import { eatingOrder, reserved, reserveTotal } from '../sim/pantry';
-import { cropUnlocked } from '../sim/progress';
+import { cropUnlocked, hasFeature } from '../sim/progress';
 import { plantableCrops } from '../sim/rules';
 import { builtWorkshops } from '../sim/workshops';
 import { workshopProduct, workshopTreeSection } from './workshops';
@@ -41,8 +41,8 @@ import { buildingUpkeep, upkeepBill } from '../sim/upkeep';
 import { branchCount, branchRanks, hamletLevelSum, hamletsTaken, hasRank, levelDef, levelOnlyRank, mainRanks, pathOk, rankDef, unlocksAt, workshopCount } from '../sim/progress';
 import { rankFxText } from './character';
 import { charterReady, liegeBefore, liegeOf } from '../sim/noble';
-import { buildingOf } from '../sim/rules';
-import type { AnimalId, BuildingId, CropId, EstateId, GameState, JobId, Modifier, RankId, Villager, WorkshopId } from '../sim/types';
+import { animalCapacity, animalsIn, buildingOf } from '../sim/rules';
+import type { BuildingId, CropId, EstateId, GameState, JobId, Modifier, RankId, Villager, WorkshopId } from '../sim/types';
 import { t } from '../i18n/i18n';
 import { artUrl, h, icon } from './dom';
 
@@ -78,6 +78,7 @@ export function statsLine(fx: BuildingStats): string {
   if (fx.foodSaving) parts.push(t('stat.foodSaving', { n: pct(fx.foodSaving) }));
   if (fx.capacity) parts.push(t('stat.capacity', { n: fx.capacity }));
   if (fx.maxAnimals) parts.push(t('stat.maxAnimals', { n: fx.maxAnimals }));
+  if (fx.maxSheep) parts.push(t('stat.maxSheep', { n: fx.maxSheep }));
   if (fx.animalBonus) parts.push(t('stat.animalBonus', { n: pct(fx.animalBonus) }));
   return parts.join(' · ');
 }
@@ -112,8 +113,13 @@ export function buildingStatsText(sim: Game, b: BuildingId): string {
     case 'granary':
       return t('panel.granary.stats', { used: storageUsed(s), cap: storageCapacity(s) });
     default: {
-      const animal: AnimalId = b === 'coop' ? 'chicken' : 'cow';
-      return t(`panel.${b}.stats`, { n: s.herds[animal].count, max: buildingStat(s, b, 'maxAnimals'), bonus: pct(buildingStat(s, b, 'animalBonus')) });
+      // El primer animal del edificio da la linea principal; el resto (las ovejas del corral), la suya si ya se pueden tener.
+      const [first, ...others] = animalsIn(b);
+      const main = t(`panel.${b}.stats`, { n: s.herds[first].count, max: animalCapacity(s, first), bonus: pct(buildingStat(s, b, 'animalBonus')) });
+      const extra = others
+        .filter((a) => s.herds[a].count > 0 || hasFeature(s, PROGRESSION.animalsForSale[a].unlock))
+        .map((a) => t(`panel.${b}.${a}`, { n: s.herds[a].count, max: animalCapacity(s, a) }));
+      return [main, ...extra].join(' · ');
     }
   }
 }
@@ -192,13 +198,12 @@ export function buildingView(ctx: PanelCtx, b: BuildingId, tab: BuildingTab): HT
   ];
   const extra: (HTMLElement | null)[] = [];
   if (b === 'coop' || b === 'pen') {
-    const animal: AnimalId = b === 'coop' ? 'chicken' : 'cow';
-    const stored = Math.floor(s.herds[animal].stored);
+    const ready = animalsIn(b).filter((a) => s.herds[a].stored >= 1);
     extra.push(
       h(
         'div',
         { class: 'panel-actions' },
-        stored >= 1 &&
+        ready.length > 0 &&
           h(
             'button',
             {
@@ -208,8 +213,8 @@ export function buildingView(ctx: PanelCtx, b: BuildingId, tab: BuildingTab): HT
                 ctx.sim.interact(tile.x, tile.y);
               },
             },
-            icon(PRODUCTS[ANIMALS[animal].product].icon),
-            t('panel.collect', { n: stored }),
+            ...ready.map((a) => icon(PRODUCTS[ANIMALS[a].product].icon)),
+            t('panel.collect', { n: ready.reduce((n, a) => n + Math.floor(s.herds[a].stored), 0) }),
           ),
         h('button', { class: 'btn small', onclick: () => ctx.openMarket() }, t('panel.buyAnimals')),
       ),

@@ -55,6 +55,10 @@ export interface AnimalDef {
   amountPerAnimal: number;
   /** Cuantas producciones se acumulan como maximo sin recoger. */
   maxBatches: number;
+  /** Edificio donde viven (sus mejoras dan mas producto). */
+  building: BuildingId;
+  /** Estadistica del edificio que dice cuantos caben. */
+  capStat: 'maxAnimals' | 'maxSheep';
 }
 
 export interface StartDef {
@@ -65,7 +69,7 @@ export interface StartDef {
   map: { legend: Record<string, TileKind>; rows: string[] };
 }
 
-export type Feature = 'buyLand' | 'buyChicken' | 'buyCow' | 'renown';
+export type Feature = 'buyLand' | 'buyChicken' | 'buyCow' | 'buySheep' | 'renown';
 
 export interface LevelDef {
   xp: number;
@@ -325,6 +329,8 @@ export interface BuildingStats {
   foodSaving?: number;
   capacity?: number;
   maxAnimals?: number;
+  /** Ovejas que caben en el corral. */
+  maxSheep?: number;
   animalBonus?: number;
 }
 

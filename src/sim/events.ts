@@ -1,6 +1,7 @@
 // Eventos con tarjeta: aparecen al pasar los dias y el jugador elige una opcion.
 // Ofertas: rechazar no castiga. Obligaciones: incumplir penaliza. Percances: se juega el riesgo.
 import {
+  ANIMALS,
   ANIMAL_IDS,
   ESTATES,
   EVENTS,
@@ -30,8 +31,8 @@ import { recordDeeds } from './character';
 /**
  * Condiciones de eventos y opciones. Claves admitidas:
  * - un producto o "coins": tener al menos esa cantidad
- * - "chicken", "cow": tener al menos esos animales; "chickenBelow", "cowBelow": tener menos
- * - "chickenRoom", "cowRoom": que quepan mas animales en el gallinero o el corral
+ * - un animal ("chicken", "cow", "sheep"): tener al menos esos; "<animal>Below": tener menos
+ * - "<animal>Room": que quepan mas de ese animal en su edificio
  * - "villagers": tener al menos esos aldeanos; "freeBed": tener al menos esas camas libres
  * - "king", "nobles", "artisans", "commoners", "church": relacion minima con ese estamento
  * - "flag:<nombre>": que haya pasado algo antes (1) o que no (0)
@@ -56,8 +57,10 @@ function meets(state: GameState, key: string, value: number): boolean {
     const a = key.slice(0, -5) as AnimalId;
     if ((ANIMAL_IDS as string[]).includes(a)) return state.herds[a].count < value;
   }
-  if (key === 'chickenRoom') return state.herds.chicken.count + value <= buildingStat(state, 'coop', 'maxAnimals');
-  if (key === 'cowRoom') return state.herds.cow.count + value <= buildingStat(state, 'pen', 'maxAnimals');
+  if (key.endsWith('Room')) {
+    const a = key.slice(0, -4) as AnimalId;
+    if ((ANIMAL_IDS as string[]).includes(a)) return state.herds[a].count + value <= buildingStat(state, ANIMALS[a].building, ANIMALS[a].capStat);
+  }
   if (key === 'villagers') return state.villagers.length >= value;
   if (key === 'freeBed') return freeBeds(state) >= value;
   if ((ESTATES.ids as string[]).includes(key)) return state.rep[key as EstateId] >= value;

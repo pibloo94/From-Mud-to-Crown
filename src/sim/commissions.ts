@@ -1,7 +1,7 @@
 // Encargos de los estamentos: al empezar cada estacion, cada estamento pide algo (productos, monedas
 // o tandas en los talleres) hasta las cuentas. Cumplirlo da su favor (y, si es en productos, algo de
 // dinero) y cuenta como decision a su favor. No cumplirlo no castiga: es una oportunidad.
-import { COMMISSIONS, CROPS, PRODUCTS, WORKSHOPS, type CommissionDef } from './data';
+import { ANIMALS, ANIMAL_IDS, COMMISSIONS, CROPS, PRODUCTS, WORKSHOPS, type CommissionDef } from './data';
 import { ESTATE_IDS, applyRep } from './estates';
 import { recordDeeds } from './character';
 import { cropUnlocked } from './progress';
@@ -17,8 +17,8 @@ export function obtainable(state: GameState, p: ProductId): boolean {
   const crop = (Object.keys(CROPS) as CropId[]).find((c) => CROPS[c].product === p);
   if (crop) return cropUnlocked(state, crop);
   if (PRODUCTS[p].artisan) return builtWorkshops(state).some((id) => WORKSHOPS[id].recipe.out[p]);
-  if (p === 'egg') return state.herds.chicken.count > 0;
-  if (p === 'milk') return state.herds.cow.count > 0;
+  const animal = ANIMAL_IDS.find((a) => ANIMALS[a].product === p);
+  if (animal) return state.herds[animal].count > 0;
   return true;
 }
 

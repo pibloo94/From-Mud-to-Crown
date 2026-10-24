@@ -1,6 +1,6 @@
 // Mercado: vender con una barra para elegir la cantidad y comprar materiales y ganado.
 import type { Game } from '../sim/game';
-import { ANIMAL_IDS, CROPS, MATERIALS, MATERIAL_IDS, PRODUCTS, PRODUCT_IDS, PROGRESSION, WORKSHOPS } from '../sim/data';
+import { ANIMALS, ANIMAL_IDS, CROPS, MATERIALS, MATERIAL_IDS, PRODUCTS, PRODUCT_IDS, PROGRESSION, WORKSHOPS } from '../sim/data';
 import { builtWorkshops } from '../sim/workshops';
 import { boostActive, priceOf, priceTrend } from '../sim/market';
 import { dateFromDay } from '../sim/calendar';
@@ -179,7 +179,7 @@ function buyTab(ctx: PanelCtx): HTMLElement[] {
       h(
         'div',
         { class: 'trade-head' },
-        icon(a === 'chicken' ? 'icon_egg' : 'icon_milk', 'icon big'),
+        icon(PRODUCTS[ANIMALS[a].product].icon, 'icon big'),
         h(
           'div',
           { class: 'market-info' },
