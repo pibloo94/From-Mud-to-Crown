@@ -21,6 +21,7 @@ import { upkeepBill } from '../../src/sim/upkeep';
 import { isProtected, protectionCost } from '../../src/sim/risk';
 import type { CropId, Difficulty, EstateId, GameState, JobId, MaterialId, PathId, ProductId } from '../../src/sim/types';
 import { PATH_IDS, canChoosePath, pathLevel } from '../../src/sim/paths';
+import { commissionDef, commissionProgress } from '../../src/sim/commissions';
 
 /** Lo que mide una partida del bot. Los dias son dias de juego (10 s reales a velocidad x1). */
 export interface BalanceReport {
@@ -40,6 +41,8 @@ export interface BalanceReport {
   merits: Record<string, number>;
   /** Tandas hechas en los talleres. */
   workshopBatches: number;
+  /** Encargos de los estamentos cumplidos. */
+  commissions: number;
   /** Rasgos ganados: dia en que llega cada uno (los perdidos tambien cuentan) y los que quedan al final. */
   traitDay: Record<string, number>;
   earned: string[];
@@ -124,6 +127,7 @@ export function simulate(seed: number, days: number, level: Difficulty = 'normal
     focusLevelDay: {},
     merits: {},
     workshopBatches: 0,
+    commissions: 0,
     traitDay: {},
     earned: [],
     coinsAt: {},
@@ -176,6 +180,7 @@ export function simulate(seed: number, days: number, level: Difficulty = 'normal
     if (d % 200 === 0) report.coinsAt[d] = s().coins;
     answerEvent(game);
     farm(game);
+    report.commissions += fulfilCommissions(game);
     sell(game);
     spend(game);
     // Un dia de juego, en pasos de un fotograma largo (la simulacion no deja saltar mas de golpe).
@@ -293,6 +298,23 @@ function unitValue(s: GameState, p: ProductId): number {
     best = Math.max(best, made / (inputs[p] ?? 1));
   }
   return best;
+}
+
+/** Cumple los encargos que se pueden: productos que sobren o monedas que no hagan falta para las cuentas. */
+function fulfilCommissions(game: Game): number {
+  const s = game.state;
+  let done = 0;
+  s.commissions.offers.forEach((o, i) => {
+    if (o.done) return;
+    const c = commissionDef(o.id)!;
+    const { have, need } = commissionProgress(s, i);
+    if (have < need) return;
+    if (c.coins && spare(s) < need + 200) return;
+    if (c.goods && have - need < Math.ceil(dailyFood(s) * 5)) return;
+    game.completeCommission(i);
+    done++;
+  });
+  return done;
 }
 
 /** Lo que piden los talleres con artesano para unos dias de trabajo. */

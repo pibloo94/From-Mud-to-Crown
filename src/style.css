@@ -2879,6 +2879,43 @@ img[src^='assets/pixel/'] {
   display: inline-block;
 }
 
+/* Encargos de los estamentos */
+.commission {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 8px;
+  border-top: 1px solid rgba(110, 80, 40, 0.3);
+  text-align: left;
+}
+
+.commission .up-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.commission.done {
+  opacity: 0.6;
+}
+
+.commission-reward {
+  color: #2f5a1f;
+}
+
+.commission-act {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.commission-act .rep-bar {
+  grid-column: 1 / -1;
+}
+
 /* Caminos: el que esta en foco, resaltado; los parados, apagados. */
 .path-card {
   display: flex;

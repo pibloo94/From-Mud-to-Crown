@@ -14,6 +14,7 @@ import * as noble from './noble';
 import * as tutorial from './tutorial';
 import * as risk from './risk';
 import * as paths from './paths';
+import * as commissions from './commissions';
 
 export type GameEvent =
   | { type: 'change' }
@@ -244,6 +245,12 @@ export class Game {
     const result = trade.sendCaravan(this.state, town, cargo, buy, escort);
     if (result.ok) this.emit({ type: 'mapChanged' });
     this.report({ result, levelUps: [] });
+  }
+
+  // ---------------------------------------------------------------- encargos
+
+  completeCommission(index: number): void {
+    this.report({ result: commissions.completeCommission(this.state, index), levelUps: [] });
   }
 
   // ---------------------------------------------------------------- caminos

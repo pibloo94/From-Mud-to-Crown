@@ -15,6 +15,7 @@ import tutorialJson from '../data/tutorial.json';
 import estatesJson from '../data/estates.json';
 import traitsJson from '../data/traits.json';
 import pathsJson from '../data/paths.json';
+import commissionsJson from '../data/commissions.json';
 import layoutJson from '../data/layout.json';
 import type { AnimalId, BuildingId, CropId, Difficulty, EstateEffect, EstateId, JobId, LiegeId, MaterialId, ModifierKind, PathId, ProductId, ProtectionId, RankId, TileKind, TraitEffect, WorkshopId } from './types';
 import type { Season } from './calendar';
@@ -169,6 +170,25 @@ export interface ProgressionDef {
     perManorLevel: number;
     neglect: { days: number; growth: number; animal: number };
   };
+}
+
+/** Un encargo de estamento: que pide (productos, monedas o tandas), cuanto mas por nivel y que favor da. */
+export interface CommissionDef {
+  id: string;
+  estate: EstateId;
+  goods?: Partial<Record<ProductId, number>>;
+  coins?: number;
+  batches?: number;
+  perLevel: number;
+  rep: number;
+}
+
+export interface CommissionsDef {
+  /** Dia desde el que llegan encargos. */
+  firstDay: number;
+  /** Parte del valor de mercado que se paga por lo entregado. */
+  payRate: number;
+  templates: CommissionDef[];
 }
 
 /** Caminos: de donde salen los meritos, ritmos, coste de cambiar de foco y peldanos. */
@@ -528,6 +548,7 @@ export const TUTORIAL = tutorialJson as unknown as TutorialDef;
 export const ESTATES = estatesJson as unknown as EstatesDef;
 export const TRAITS = traitsJson as unknown as TraitsDef;
 export const PATHS = pathsJson as unknown as PathsDef;
+export const COMMISSIONS = commissionsJson as unknown as CommissionsDef;
 export const LAYOUT = layoutJson as unknown as LayoutDef;
 export const HAMLET_IDS = Object.keys(NOBILITY.hamlets);
 export const PATRONAGE_IDS = Object.keys(NOBILITY.patronage);

@@ -71,6 +71,7 @@ export function createNewGame(seed: number = newSeed(), difficulty: Difficulty =
     // Sin cuestionario (tests, bot, partidas antiguas): sin rasgos. La interfaz lo rellena.
     character: emptyCharacter(),
     paths: startPaths(),
+    commissions: { offers: [] },
     buildings,
     villagers: [],
     nextVillagerId: 1,

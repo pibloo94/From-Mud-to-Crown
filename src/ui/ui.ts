@@ -39,6 +39,8 @@ import { createCoach, tipView } from './coach';
 import { pendingTip } from '../sim/tutorial';
 import { manorView, type ManorTab } from './noble';
 import { ledgerView } from './ledger';
+import { commissionsView } from './commissions';
+import { openCommissions } from '../sim/commissions';
 import { characterView, randomName, traitEarnedView, traitLinesEl, type CharacterTab } from './character';
 import type { CharacterAnswers } from '../sim/character';
 import { isNoble } from '../sim/noble';
@@ -72,14 +74,15 @@ type Modal =
   | { kind: 'tip'; id: string }
   | { kind: 'ledger' }
   | { kind: 'character'; tab: CharacterTab }
-  | { kind: 'trait'; id: string };
+  | { kind: 'trait'; id: string }
+  | { kind: 'commissions' };
 
 /** Todas las ventanas detienen el tiempo mientras estan abiertas; al cerrarlas vuelve la velocidad anterior. */
-const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'levelup', 'season', 'rank', 'caravan', 'event', 'tip', 'ledger', 'character', 'trait'];
+const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'levelup', 'season', 'rank', 'caravan', 'event', 'tip', 'ledger', 'character', 'trait', 'commissions'];
 /** Ventanas que se cierran con Escape o tocando fuera. */
-const DISMISSABLE: Modal['kind'][] = ['menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'ledger', 'character'];
+const DISMISSABLE: Modal['kind'][] = ['menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'ledger', 'character', 'commissions'];
 /** Ventanas desde las que se puede ir a otra y volver con "Atras". */
-const NAVIGABLE: Modal['kind'][] = ['market', 'building', 'workshop', 'site', 'manor', 'progress', 'levelup', 'ledger', 'character'];
+const NAVIGABLE: Modal['kind'][] = ['market', 'building', 'workshop', 'site', 'manor', 'progress', 'levelup', 'ledger', 'character', 'commissions'];
 
 export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI {
   let lastSpeed: Speed = 1;
@@ -166,8 +169,15 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     { class: 'status-pill ledger-pill', onclick: () => openModal({ kind: 'ledger' }) },
     h('span', { class: 'status-inner' }, icon('icon_scroll'), ledgerText),
   );
+  // Encargos de los estamentos que quedan por cumplir esta estacion.
+  const commissionsText = h('b', {});
+  const commissionsPill = h(
+    'button',
+    { class: 'status-pill commissions-pill', onclick: () => openModal({ kind: 'commissions' }) },
+    h('span', { class: 'status-inner' }, icon('icon_banner'), commissionsText),
+  );
   const modsBox = h('div', { class: 'mods' });
-  const statusRow = h('div', { class: 'status-row' }, ledgerPill, storagePill, villagersPill, materialsPill, caravanPill, prestigePill, modsBox);
+  const statusRow = h('div', { class: 'status-row' }, ledgerPill, commissionsPill, storagePill, villagersPill, materialsPill, caravanPill, prestigePill, modsBox);
 
   const speedButtons = SPEEDS.map((sp) =>
     // Dibujos en vez de caracteres (❚❚ ▶): no todas las fuentes los tienen.
@@ -366,6 +376,11 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       resources.querySelector<HTMLElement>(`[data-res="${p}"]`)!.hidden = s.inventory[p] === 0 && ((!!crop && s.level < crop.unlockLevel) || fromWorkshop);
     }
     renderLedgerPill(s);
+    const open = openCommissions(s);
+    commissionsPill.hidden = s.commissions.offers.length === 0;
+    commissionsText.textContent = `${open}/${s.commissions.offers.length}`;
+    commissionsPill.title = t('hud.commissions', { n: open });
+    commissionsPill.setAttribute('aria-label', commissionsPill.title);
     const used = storageUsed(s);
     const cap = storageCapacity(s);
     storageText.textContent = `${used}/${cap}`;
@@ -540,6 +555,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       event: eventView,
       tip: () => tipView(sim, (modal as Extract<Modal, { kind: 'tip' }>).id, () => closeModal()),
       ledger: () => ledgerView(panelCtx),
+      commissions: () => commissionsView(panelCtx),
       trait: () => traitEarnedView(panelCtx, (modal as Extract<Modal, { kind: 'trait' }>).id, () => openModal({ kind: 'character', tab: 'traits' })),
       character: () => characterView(panelCtx, (modal as Extract<Modal, { kind: 'character' }>).tab, (tab) => openModal({ kind: 'character', tab })),
     };

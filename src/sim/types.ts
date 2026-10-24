@@ -250,6 +250,8 @@ export interface GameState {
   difficulty: Difficulty;
   /** El personaje: nombre, rasgos y ambicion. */
   character: Character;
+  /** Encargos de los estamentos de esta estacion (ver commissions.ts). */
+  commissions: { offers: { id: string; amount: number; base: number; done: boolean }[] };
   /** Meritos de cada camino, el camino en foco y el segundo. */
   paths: { merits: Record<PathId, number>; focus: PathId | null; second: PathId | null };
   /** Mejoras compradas de cada edificio (se compran en orden). */
