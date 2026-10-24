@@ -139,6 +139,28 @@ describe('caravanas', () => {
     expect(robbed).toBeLessThan(35);
   });
 
+  it('el asalto se decide al salir (asi se ve en el mapa) y se cumple al volver', () => {
+    const s = withCart();
+    s.inventory.bread = 20;
+    sendCaravan(s, 'ironhold', { bread: 10 }, {}, true);
+    // con escolta, nunca
+    expect(s.caravans[0].ambush).toBe(false);
+    const c = s.caravans[0];
+    c.escort = false;
+    c.ambush = true;
+    s.day = c.returnDay;
+    expect(caravansReturn(s)[0].params).toMatchObject({ robbed: 1, coins: Math.round(c.value * (1 - TRADE.robbedFraction)) });
+  });
+
+  it('una caravana de una partida antigua (sin decidir el asalto) se sortea al volver', () => {
+    const s = withCart();
+    s.inventory.bread = 20;
+    sendCaravan(s, 'ironhold', { bread: 10 }, {}, false);
+    delete s.caravans[0].ambush;
+    s.day = s.caravans[0].returnDay;
+    expect(caravansReturn(s)).toHaveLength(1);
+  });
+
   it('con el titulo de Burgues caben mas cosas y el peaje es menor', () => {
     const s = trader();
     const cap = cartCapacity(s);

@@ -1814,7 +1814,7 @@ def snow_tree(spr: Spr, seed: int) -> Spr:
 # ================================================================== personas y animales
 
 def villager(job: str) -> Spr:
-    cloth = {"farmer": ("w3", "w2"), "herder": ("l2", "l1"), "carter": ("red0", "#431812"), "artisan": ("r1", "r0"), "soldier": ("red1", "red0")}[job]
+    cloth = {"farmer": ("w3", "w2"), "herder": ("l2", "l1"), "carter": ("red0", "#431812"), "artisan": ("r1", "r0"), "soldier": ("red1", "red0"), "bandit": ("pi2", "pi1")}[job]
     s = Spr(9, 14)
     # piernas
     s.px(3, 13, "w0")
@@ -1842,6 +1842,14 @@ def villager(job: str) -> Spr:
     elif job == "artisan":
         s.rect(3, 7, 5, 11, "cream0")
         s.rect(3, 2, 5, 2, "red1")
+    elif job == "bandit":
+        # capucha calada (la cara en sombra), panuelo y garrote
+        s.rect(2, 2, 6, 5, cloth[1])
+        s.rect(3, 4, 5, 5, "skin0")
+        s.rect(3, 5, 5, 5, "out")
+        s.px(4, 1, cloth[1])
+        s.rect(8, 6, 8, 11, "w2")
+        s.rect(7, 5, 8, 6, "w3")
     else:  # soldado
         s.rect(2, 2, 6, 3, "iron1")
         s.rect(1, 3, 7, 3, "iron1")
@@ -2427,7 +2435,7 @@ def generate() -> dict:
         "monument_works_1": monument_works(1), "monument_works_2": monument_works(2),
         "monument_castle": castle(), "monument_greatChurch": great_church(), "monument_guildHall": guild_hall(),
         "monument_exchange": exchange(), "monument_council": council(),
-        **{f"villager_{j}": villager(j) for j in ("farmer", "herder", "carter", "artisan", "soldier")},
+        **{f"villager_{j}": villager(j) for j in ("farmer", "herder", "carter", "artisan", "soldier", "bandit")},
         "cow": cow(), "sheep": sheep(), "chicken": chicken(),
     }
     # variantes de invierno de lo que cambia con la estacion: suelos y arboles

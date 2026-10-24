@@ -137,6 +137,8 @@ export function sendCaravan(state: GameState, town: string, cargo: Cargo, buy: M
     value: q.value,
     departDay: state.day,
     returnDay: state.day + q.days,
+    // Sin escolta, los bandidos pueden salirle al camino de vuelta (se decide ya; ver Caravan.ambush).
+    ambush: !escort && random(state) < TRADE.towns[town].danger,
   });
   return { ok: true, msg: 'msg.caravanSent', params: { town, days: q.days, units: q.units } };
 }
@@ -149,7 +151,7 @@ export function caravansReturn(state: GameState): Notice[] {
   state.caravans = state.caravans.filter((c) => c.returnDay > state.day);
   for (const c of back) {
     const def = TRADE.towns[c.town];
-    const robbed = !c.escort && random(state) < def.danger;
+    const robbed = c.ambush ?? (!c.escort && random(state) < def.danger);
     const coins = robbed ? Math.round(c.value * (1 - TRADE.robbedFraction)) : c.value;
     state.coins += coins;
     state.stats.earned += coins;

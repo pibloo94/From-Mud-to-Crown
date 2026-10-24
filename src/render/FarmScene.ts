@@ -18,7 +18,7 @@ import { t } from '../i18n/i18n';
 import pixelManifest from '../../public/assets/pixel/manifest.json';
 import { blockBase, depthOf, fitScale, TILE_H, TILE_W, tileCenter, toScreen, toTile } from './iso';
 import { STAGES, monumentAt, monumentStage } from '../sim/monuments';
-import { pointOnRoad, roadCaravans, tradeRoad, villagerDuties, type Duty, type Spot } from './life';
+import { ambushBandits, banditCamp, pointOnRoad, roadCaravans, tradeRoad, villagerDuties, type Duty, type Spot } from './life';
 
 /** Piezas de la interfaz que tambien salen en el mapa (la placa de los animales y sus iconos), a x3. */
 const UI_SCALE = 3;
@@ -63,6 +63,8 @@ interface Actor {
   busy: boolean;
   villager: number | null;
   work: Duty['work'];
+  /** Bandido de la partida que ronda las aldeas (evento de bandidos). */
+  bandit?: boolean;
 }
 
 interface Bubble {
@@ -208,8 +210,9 @@ export class FarmScene extends Phaser.Scene {
     this.addPenFence();
     this.addAnimals();
     this.road = tradeRoad(this.sim.state);
-    for (const c of this.caravans.values()) for (const im of c) im.destroy();
+    for (const c of [...this.caravans.values(), ...this.ambushers.values()]) for (const im of c) im.destroy();
     this.caravans.clear();
+    this.ambushers.clear();
     this.fadeOccluders();
     this.refresh();
   }
@@ -505,6 +508,12 @@ export class FarmScene extends Phaser.Scene {
       const yard = tiles.filter((tl) => (tl.kind === 'grass' || tl.kind === 'path') && tl.x >= manor.x - 1 && tl.x <= manor.x + n && tl.y >= manor.y - 1 && tl.y <= manor.y + n);
       for (let i = 0; i < Math.min(6, this.sim.state.noble.soldiers); i++) this.addAnimal('villager_soldier', yard, 0.95);
     }
+    // Bandidos rondando las aldeas mientras el evento espera decision.
+    const camp = banditCamp(this.sim.state);
+    for (let i = 0; i < Math.min(3, camp.length); i++) {
+      const a = this.addAnimal('villager_bandit', camp, 0.95);
+      if (a) a.bandit = true;
+    }
   }
 
   private addAnimal(key: string, area: Spot[], oy: number): Actor | null {
@@ -547,6 +556,8 @@ export class FarmScene extends Phaser.Scene {
   private road: Spot[] = [];
   /** Caravanas a la vista: carreta, carretero y, con escolta, un soldado. */
   private caravans = new Map<number, Phaser.GameObjects.Image[]>();
+  /** Bandidos que asaltan una caravana en el camino de vuelta. */
+  private ambushers = new Map<number, Phaser.GameObjects.Image[]>();
 
   /** Coloca cada frame las caravanas que salen o vuelven, segun la hora del dia (life.ts). */
   private moveCaravans(): void {
@@ -578,12 +589,87 @@ export class FarmScene extends Phaser.Scene {
           .setFlipX(flip)
           .setAlpha(alpha);
       });
+      // Asalto: dos bandidos salen de los lados del camino, saquean la carreta parada y huyen.
+      let gang = this.ambushers.get(c.id);
+      if (c.ambush === null) {
+        if (gang) for (const im of gang) im.destroy();
+        this.ambushers.delete(c.id);
+        continue;
+      }
+      if (!gang) {
+        gang = [0, 1].map(() => this.add.image(0, 0, 'villager_bandit').setOrigin(0.5, 0.95).setScale(ART));
+        this.ambushers.set(c.id, gang);
+      }
+      ambushBandits(this.road, c.t, c.ambush).forEach((b, i) => {
+        const { sx, sy } = toScreen(b.x, b.y);
+        gang![i].setPosition(Math.round(sx / ART) * ART, Math.round(sy / ART) * ART).setDepth(depthOf(b.x, b.y, 3)).setFlipX(b.flip).setAlpha(b.alpha);
+      });
     }
     for (const [id, parts] of this.caravans) {
       if (seen.has(id)) continue;
       for (const im of parts) im.destroy();
       this.caravans.delete(id);
     }
+    for (const [id, gang] of this.ambushers) {
+      if (seen.has(id)) continue;
+      for (const im of gang) im.destroy();
+      this.ambushers.delete(id);
+    }
+  }
+
+  /**
+   * Se resuelve el evento de bandidos: si sale la mesnada, los soldados corren desde la casa
+   * solariega y los bandidos huyen; si no, se marchan por su cuenta. Sigue aunque el juego este en
+   * pausa (es la respuesta a la decision del jugador).
+   */
+  private banditsLeave(fight: boolean): void {
+    const gang = this.animals.filter((a) => a.bandit);
+    if (gang.length === 0) return;
+    this.animals = this.animals.filter((a) => !a.bandit);
+    const { width: W, height: H } = this.sim.state.map;
+    const manor = this.sim.state.map.tiles.find((t) => t.kind === 'manor');
+    const move = (im: Phaser.GameObjects.Image, to: Spot, ms: number, delay: number, fade: boolean, done?: () => void) => {
+      const from = { x: im.x, y: im.y };
+      const end = toScreen(to.x, to.y);
+      im.setFlipX(end.sx < from.x);
+      const tw = this.tweens.add({
+        targets: im,
+        x: end.sx,
+        y: end.sy,
+        alpha: fade ? 0 : im.alpha,
+        duration: ms,
+        delay,
+        ease: 'Sine.easeIn',
+        onUpdate: () => im.setDepth(depthOf(to.x, to.y, 3)),
+        onComplete: () => {
+          this.feedbackTweens.delete(tw);
+          done?.();
+        },
+      });
+      this.feedbackTweens.add(tw);
+    };
+    gang.forEach((a, i) => {
+      this.tweens.killTweensOf(a.sprite);
+      a.sprite.setAngle(0);
+      // Huye hacia el borde del mapa mas cercano.
+      const exits: Spot[] = [
+        { x: -1.5, y: a.gy },
+        { x: W + 1.5, y: a.gy },
+        { x: a.gx, y: -1.5 },
+        { x: a.gx, y: H + 1.5 },
+      ];
+      const exit = exits.reduce((b, p) => (Math.hypot(p.x - a.gx, p.y - a.gy) < Math.hypot(b.x - a.gx, b.y - a.gy) ? p : b));
+      const soldiers = fight && manor ? Math.min(3, this.sim.state.noble.soldiers) : 0;
+      if (i < soldiers && manor) {
+        // Un soldado sale de la casa, corre hasta el bandido y vuelve.
+        const start = toScreen(manor.x + 1, manor.y + 1);
+        const guard = this.add.image(start.sx, start.sy, 'villager_soldier').setOrigin(0.5, 0.95).setScale(ART).setDepth(depthOf(manor.x + 1, manor.y + 1, 3));
+        move(guard, { x: a.gx - 0.3, y: a.gy - 0.3 }, 900, 0, false, () =>
+          move(guard, { x: manor.x + 1, y: manor.y + 1 }, 1200, 900, true, () => guard.destroy()),
+        );
+      }
+      move(a.sprite, exit, 1700, fight ? 750 : 150, true, () => a.sprite.destroy());
+    });
   }
 
   private wander(): void {
@@ -631,6 +717,10 @@ export class FarmScene extends Phaser.Scene {
       case 'day':
         this.updateDuties();
         break;
+      case 'event':
+        // Con el evento de bandidos, la partida aparece junto a las aldeas.
+        if (e.id === 'bandits') this.build();
+        break;
       case 'notice':
         // Al ser Terrateniente el encuadre en vertical pasa a incluir las tierras del este.
         if (e.notice.card === 'rank') this.fit();
@@ -640,6 +730,7 @@ export class FarmScene extends Phaser.Scene {
         this.syncSpeed();
         break;
       case 'result':
+        if (e.result.msg.startsWith('event.bandits.result.')) this.banditsLeave(e.result.msg.startsWith('event.bandits.result.fight'));
         if (e.result.ok && e.x !== undefined && e.y !== undefined && e.result.params?.amount !== undefined) {
           const sign = e.result.msg === 'msg.planted' ? '' : '+';
           this.floatText(e.x, e.y, `${sign}${e.result.params.amount} ${t(`product.${e.result.params.product}`)}`);
