@@ -18,6 +18,7 @@ import { t } from '../i18n/i18n';
 import pixelManifest from '../../public/assets/pixel/manifest.json';
 import { blockBase, depthOf, fitScale, TILE_H, TILE_W, tileCenter, toScreen, toTile } from './iso';
 import { STAGES, monumentAt, monumentStage } from '../sim/monuments';
+import { pointOnRoad, roadCaravans, tradeRoad, villagerDuties, type Duty, type Spot } from './life';
 
 /** Piezas de la interfaz que tambien salen en el mapa (la placa de los animales y sus iconos), a x3. */
 const UI_SCALE = 3;
@@ -51,6 +52,17 @@ export interface Insets {
   bottom: number;
   /** Pixeles del lienzo por pixel CSS. */
   dpr: number;
+}
+
+/** Animal o aldeano que pasea por el mapa. Los aldeanos llevan su id y lo que hacen al llegar. */
+interface Actor {
+  sprite: Phaser.GameObjects.Image;
+  area: Spot[];
+  gx: number;
+  gy: number;
+  busy: boolean;
+  villager: number | null;
+  work: Duty['work'];
 }
 
 interface Bubble {
@@ -118,6 +130,7 @@ export class FarmScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     this.sim.update(delta);
+    this.moveCaravans();
   }
 
   // Limites del mapa en coordenadas de mundo y zoom que lo muestra entero.
@@ -194,6 +207,9 @@ export class FarmScene extends Phaser.Scene {
     for (const tile of tiles) this.addObject(tile);
     this.addPenFence();
     this.addAnimals();
+    this.road = tradeRoad(this.sim.state);
+    for (const c of this.caravans.values()) for (const im of c) im.destroy();
+    this.caravans.clear();
     this.fadeOccluders();
     this.refresh();
   }
@@ -437,7 +453,7 @@ export class FarmScene extends Phaser.Scene {
 
   // ---------------------------------------------------------------- animales (decorativos)
 
-  private animals: { sprite: Phaser.GameObjects.Image; area: { x: number; y: number }[]; gx: number; gy: number; busy: boolean }[] = [];
+  private animals: Actor[] = [];
 
   private addAnimals(): void {
     this.animals = [];
@@ -471,7 +487,16 @@ export class FarmScene extends Phaser.Scene {
         (tl) => (tl.kind === 'grass' || tl.kind === 'path') && tiles.some((w) => w.kind === 'workshop' && Math.abs(w.x - tl.x) <= 1 && Math.abs(w.y - tl.y) <= 1),
       ),
     };
-    for (const v of this.sim.state.villagers) this.addAnimal(`villager_${v.job}`, areas[v.job], 0.95);
+    // Labradores, artesanos y carreteros van a su trabajo (life.ts); los pastores, al corral y al gallinero.
+    const duties = villagerDuties(this.sim.state);
+    for (const v of this.sim.state.villagers) {
+      const duty = duties.get(v.id);
+      const a = this.addAnimal(`villager_${v.job}`, duty?.area.length ? duty.area : areas[v.job], 0.95);
+      if (a) {
+        a.villager = v.id;
+        a.work = duty?.work ?? null;
+      }
+    }
     // La mesnada ronda la casa solariega (como mucho seis, para no llenar el mapa).
     const manor = tiles.find((tl) => tl.kind === 'manor');
     if (manor) {
@@ -482,14 +507,83 @@ export class FarmScene extends Phaser.Scene {
     }
   }
 
-  private addAnimal(key: string, area: { x: number; y: number }[], oy: number): void {
-    if (!area.length) return;
+  private addAnimal(key: string, area: Spot[], oy: number): Actor | null {
+    if (!area.length) return null;
     const start = Phaser.Utils.Array.GetRandom(area);
     const gx = start.x + 0.5;
     const gy = start.y + 0.5;
     const { sx, sy } = toScreen(gx, gy);
     const sprite = this.img(key, sx, sy, 0.5, oy, depthOf(gx, gy, 2));
-    this.animals.push({ sprite, area, gx, gy, busy: false });
+    const actor: Actor = { sprite, area, gx, gy, busy: false, villager: null, work: null };
+    this.animals.push(actor);
+    return actor;
+  }
+
+  /** Cada dia cambia el trabajo: un taller que se queda sin materia prima, el dia de venta del carretero... */
+  private updateDuties(): void {
+    const duties = villagerDuties(this.sim.state);
+    for (const a of this.animals) {
+      if (a.villager === null) continue;
+      const d = duties.get(a.villager);
+      if (!d) continue;
+      if (d.area.length) a.area = d.area;
+      a.work = d.work;
+    }
+  }
+
+  /** Al llegar a su sitio, el labrador cava y el artesano martillea un rato (unos saltitos o un balanceo). */
+  private doWork(a: Actor, onDone: () => void): void {
+    const base = a.sprite.y;
+    const tw =
+      a.work === 'hoe'
+        ? this.tweens.add({ targets: a.sprite, y: base - ART, duration: 160, yoyo: true, repeat: 3, hold: 120, onComplete: () => (a.sprite.setY(base), onDone()) })
+        : this.tweens.add({ targets: a.sprite, angle: 8, duration: 110, yoyo: true, repeat: 5, hold: 60, onComplete: () => (a.sprite.setAngle(0), onDone()) });
+    this.respectPause(tw);
+  }
+
+  // ---------------------------------------------------------------- caravanas en el camino
+
+  /** Camino de las caravanas (del mercado al borde del mapa). */
+  private road: Spot[] = [];
+  /** Caravanas a la vista: carreta, carretero y, con escolta, un soldado. */
+  private caravans = new Map<number, Phaser.GameObjects.Image[]>();
+
+  /** Coloca cada frame las caravanas que salen o vuelven, segun la hora del dia (life.ts). */
+  private moveCaravans(): void {
+    if (this.road.length < 2) return;
+    const seen = new Set<number>();
+    for (const c of roadCaravans(this.sim.state)) {
+      seen.add(c.id);
+      let parts = this.caravans.get(c.id);
+      if (!parts) {
+        const mk = (key: string, oy: number) => this.add.image(0, 0, key).setOrigin(0.5, oy).setScale(ART);
+        parts = [mk('cart', 0.85), mk('villager_carter', 0.95)];
+        if (c.escort) parts.push(mk('villager_soldier', 0.95));
+        this.caravans.set(c.id, parts);
+      }
+      // El carretero va delante tirando de la carreta; el soldado, detras. Hacia fuera o hacia el mercado.
+      const ahead = c.returning ? -1 : 1;
+      const step = 0.35 / (this.road.length - 1);
+      const offsets = [0, ahead * step, -ahead * step];
+      const here = pointOnRoad(this.road, c.t);
+      const next = pointOnRoad(this.road, c.t + ahead * 0.02);
+      const flip = toScreen(next.x, next.y).sx < toScreen(here.x, here.y).sx;
+      // Se desvanece al salir del mapa (ultimo tramo del camino) y aparece al volver.
+      const alpha = Math.max(0, Math.min(1, (1 - c.t) / 0.12));
+      parts.forEach((im, i) => {
+        const p = pointOnRoad(this.road, c.t + offsets[i]);
+        const { sx, sy } = toScreen(p.x, p.y);
+        im.setPosition(Math.round(sx / ART) * ART, Math.round(sy / ART) * ART)
+          .setDepth(depthOf(p.x, p.y, 2))
+          .setFlipX(flip)
+          .setAlpha(alpha);
+      });
+    }
+    for (const [id, parts] of this.caravans) {
+      if (seen.has(id)) continue;
+      for (const im of parts) im.destroy();
+      this.caravans.delete(id);
+    }
   }
 
   private wander(): void {
@@ -516,7 +610,8 @@ export class FarmScene extends Phaser.Scene {
         onComplete: () => {
           a.gx = gx;
           a.gy = gy;
-          a.busy = false;
+          if (a.work) this.doWork(a, () => (a.busy = false));
+          else a.busy = false;
         },
       });
     }
@@ -532,6 +627,9 @@ export class FarmScene extends Phaser.Scene {
         break;
       case 'mapChanged':
         this.build();
+        break;
+      case 'day':
+        this.updateDuties();
         break;
       case 'notice':
         // Al ser Terrateniente el encuadre en vertical pasa a incluir las tierras del este.
