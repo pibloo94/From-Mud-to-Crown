@@ -47,11 +47,11 @@ function withWorkshop(id: WorkshopId): GameState {
 }
 
 describe('solares y talleres', () => {
-  it('el mapa trae tres solares; tocarlos ofrece los talleres', () => {
+  it('el mapa trae cuatro solares; tocarlos ofrece los talleres', () => {
     const s = rich();
-    expect(sites(s)).toHaveLength(3);
+    expect(sites(s)).toHaveLength(4);
     const [a] = sites(s);
-    expect(interact(s, a.x, a.y)).toEqual({ kind: 'site', x: a.x, y: a.y, options: ['mill', 'bakery', 'cheesery'] });
+    expect(interact(s, a.x, a.y)).toEqual({ kind: 'site', x: a.x, y: a.y, options: ['mill', 'bakery', 'cheesery', 'brewery'] });
   });
 
   it('levantar un taller pide nivel, monedas y materiales, y ocupa el solar', () => {
@@ -259,7 +259,7 @@ describe('partida version 5', () => {
     }
     s.map.tiles = s.map.tiles.map((t: { kind: string }) => (t.kind === 'site' ? { ...t, kind: 'grass' } : t));
     const back = deserialize(JSON.stringify({ format: 'from-mud-to-crown-save', version: 4, savedAt: '2026-10-19T12:00:00Z', state: s }));
-    expect(back.map.tiles.filter((t) => t.kind === 'site')).toHaveLength(3);
+    expect(back.map.tiles.filter((t) => t.kind === 'site')).toHaveLength(4);
     expect(back.inventory.bread).toBe(0);
     expect(back.pantry.eat.bread).toBe(true);
     expect(back.titles).toEqual([]);

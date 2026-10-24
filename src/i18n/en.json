@@ -1253,5 +1253,17 @@
   "plant.soilTired": "Tired soil: at {pct} %. Rotate crops or let it rest.",
   "plant.last": "Before: {crop}.",
   "plant.repeat": "Repeating tires the soil more",
-  "msg.harvestedTired": "+{amount} {product} · soil at {pct} %"
+  "msg.harvestedTired": "+{amount} {product} · soil at {pct} %",
+  "crop.barley": "barley",
+  "product.barley": "Barley",
+  "product.beer": "Beer",
+  "workshop.brewery": "Brewery",
+  "workshop.brewery.desc": "Ferments barley in vats into beer, which sells well in the towns and at feasts.",
+  "wsUpgrade.brewery.casks": "Oak casks",
+  "wsUpgrade.brewery.copper": "Copper kettle",
+  "wsUpgrade.brewery.guildBrewery": "Guild brewery",
+  "commission.guildBarley": "Barley for the guild's brewers: {n}.",
+  "commission.lordBeer": "Beer for your lord's table: {n}.",
+  "commission.villageBeer": "Beer for the village feast: {n}.",
+  "farmerCrop.barley": "Barley"
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createNewGame } from '../../src/sim/state';
-import { COMMISSIONS } from '../../src/sim/data';
+import { COMMISSIONS, PRODUCT_IDS } from '../../src/sim/data';
 import { commissionDef, commissionProgress, completeCommission, offerCommissions, openCommissions } from '../../src/sim/commissions';
 import { advanceDay } from '../../src/sim/rules';
 import { DAYS_PER_SEASON } from '../../src/sim/calendar';
@@ -80,7 +80,7 @@ describe('encargos de los estamentos', () => {
   it('cada encargo tiene texto en los dos idiomas y pide algo', () => {
     for (const c of COMMISSIONS.templates) {
       expect(!!c.goods || !!c.coins || !!c.batches, c.id).toBe(true);
-      for (const p of Object.keys(c.goods ?? {})) expect(['wheat', 'carrot', 'cabbage', 'egg', 'milk', 'flour', 'bread', 'cheese']).toContain(p as ProductId);
+      for (const p of Object.keys(c.goods ?? {})) expect(PRODUCT_IDS).toContain(p as ProductId);
       for (const dict of [es, en] as Record<string, string>[]) expect(dict[`commission.${c.id}`], c.id).toBeTruthy();
     }
   });

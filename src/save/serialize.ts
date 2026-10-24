@@ -1,5 +1,5 @@
 // Formato del archivo de partida. Puro (sin DOM) para poder probarlo.
-import type { GameState } from '../sim/types';
+import type { GameState, Tile } from '../sim/types';
 import { ACHIEVEMENTS, BUILDING_IDS, ESTATES, MATERIAL_IDS, PATHS, PRODUCT_IDS, PROGRESSION, START } from '../sim/data';
 import { defaultPantry } from '../sim/pantry';
 import { rollPrices } from '../sim/market';
@@ -15,7 +15,7 @@ import { emptyCharacter } from '../sim/character';
 import { achievementMet } from '../sim/achievements';
 
 export const SAVE_FORMAT = 'from-mud-to-crown-save';
-export const SAVE_VERSION = 22;
+export const SAVE_VERSION = 23;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;
@@ -139,7 +139,40 @@ export function migrate(state: Record<string, unknown>, from: number): GameState
   }
   // v21 -> v22: fertilidad del suelo. Todas las parcelas empiezan descansadas.
   if (from < 22) s = { ...s, plots: Object.fromEntries(Object.entries(s.plots ?? {}).map(([k, p]) => [k, { ...(p as object), fertility: 1, last: null }])) };
+  // v22 -> v23: cebada y cerveza (productos nuevos) y un cuarto solar para la cerveceria.
+  if (from < 23) s = addProductsAndSite(s);
   return s as GameState;
+}
+
+/** Productos que falten (a cero) y el solar nuevo del mapa de inicio, si su casilla sigue libre. */
+function addProductsAndSite(old: Record<string, any>): Record<string, any> {
+  const s: Record<string, any> = { ...old, inventory: { ...old.inventory }, priceMult: { ...old.priceMult }, pantry: { ...old.pantry, eat: { ...old.pantry.eat } } };
+  const fresh = defaultPantry();
+  for (const p of PRODUCT_IDS) {
+    s.inventory[p] ??= 0;
+    s.priceMult[p] ??= 1;
+    s.pantry.eat[p] ??= fresh.eat[p];
+  }
+  s.map = { ...s.map, tiles: s.map.tiles.map((t: Tile) => ({ ...t })) };
+  const tiles = s.map.tiles as Tile[];
+  const at = (x: number, y: number) => tiles.find((t) => t.x === x && t.y === y);
+  // Tantos solares (libres o con taller) como trae ahora el mapa de inicio: los que falten, en su
+  // sitio nuevo si sigue siendo hierba; si no, en hierba junto a un camino.
+  const wanted: { x: number; y: number }[] = [];
+  START.map.rows.forEach((row, y) => [...row].forEach((ch, x) => START.map.legend[ch] === 'site' && wanted.push({ x, y })));
+  let missing = wanted.length - tiles.filter((t) => t.kind === 'site' || t.kind === 'workshop').length;
+  const byPath = (g: Tile) => g.kind === 'grass' && g.y < START.map.rows.length && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => at(g.x + dx, g.y + dy)?.kind === 'path');
+  for (const w of wanted) {
+    if (missing <= 0) break;
+    const t = at(w.x, w.y);
+    if (t && (t.kind === 'site' || t.kind === 'workshop')) continue;
+    const spot = t?.kind === 'grass' ? t : tiles.find(byPath);
+    if (spot) {
+      spot.kind = 'site';
+      missing--;
+    }
+  }
+  return s;
 }
 
 function crownForNobles(s: GameState): GameState['paths'] {

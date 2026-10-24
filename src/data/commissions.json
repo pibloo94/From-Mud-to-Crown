@@ -17,6 +17,9 @@
     { "id": "guildBatches", "estate": "artisans", "batches": 8, "perLevel": 0.6, "rep": 8 },
     { "id": "guildFlour", "estate": "artisans", "goods": { "flour": 10 }, "perLevel": 0.6, "rep": 7 },
     { "id": "guildMilk", "estate": "artisans", "goods": { "milk": 10 }, "perLevel": 0.6, "rep": 6 },
-    { "id": "guildCarrots", "estate": "artisans", "goods": { "carrot": 15 }, "perLevel": 1, "rep": 5 }
+    { "id": "guildCarrots", "estate": "artisans", "goods": { "carrot": 15 }, "perLevel": 1, "rep": 5 },
+    { "id": "guildBarley", "estate": "artisans", "goods": { "barley": 20 }, "perLevel": 1, "rep": 6 },
+    { "id": "lordBeer", "estate": "nobles", "goods": { "beer": 6 }, "perLevel": 0.3, "rep": 8 },
+    { "id": "villageBeer", "estate": "commoners", "goods": { "beer": 8 }, "perLevel": 0.4, "rep": 7 }
   ]
 }

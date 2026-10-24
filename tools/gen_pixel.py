@@ -487,6 +487,19 @@ def crop(kind: str, stage: int) -> Spr:
             if stage == 3:
                 s.px(x - 1, y - hgt, "st3")
                 s.px(x + 1, y - hgt, "st3")
+        elif kind == "barley":
+            hgt = {1: 2, 2: 4, 3: 6}[stage]
+            body = "l4" if stage < 3 else "st3"
+            for dx in (-1, 0, 1):
+                for z in range(hgt - (1 if dx == 0 else 0)):
+                    s.px(x + dx, y - z, body)
+            if stage == 3:
+                # espigas caidas hacia un lado, con barbas
+                s.px(x - 2, y - hgt + 1, "st4")
+                s.px(x + 2, y - hgt + 1, "st4")
+                s.px(x, y - hgt, "st4")
+                s.px(x - 2, y - hgt, "cream")
+                s.px(x + 2, y - hgt, "cream")
         elif kind == "carrot":
             hgt = {1: 2, 2: 3, 3: 4}[stage]
             for dx in (-1, 0, 1):
@@ -943,7 +956,7 @@ def bakery() -> Spr:
             s.ellipse(3 + j * 2 + k, by - 11 - k * 2, 1, 1, "w3")
             s.px(3 + j * 2 + k, by - 11 - k * 2, "w4")
     b = s.box2(cx, by, al, ar, h, "r2", "r1")
-    stone_texture(s, cx, by, min(al, ar), h, rnd)
+    stone_texture(s, cx, by, al, h, rnd, ar=ar)
     door(s, b, "l", 0.62, 3, 6, "w2")
     shutters(s, b, "l", 0.18, 4)
     m1, m2 = s.gable_roof(b, 9, "st2", "st1", "r2", 1, straw_texture, rnd)
@@ -993,6 +1006,40 @@ def cheesery() -> Spr:
         s.line((23, y), (29, y - 2), "w2")
         for x in (24, 27):
             s.rect(x, y - 2 - (x - 23) // 3, x + 1, y - 1 - (x - 23) // 3, "gold")
+    return finish(s)
+
+
+def brewery() -> Spr:
+    """Cerveceria: nave de piedra y entramado con tejado de tejas, chimenea de la caldera, cubas de
+    roble apiladas delante y una muestra con una jarra."""
+    rnd = random.Random(63)
+    s = Spr(TW, 46)
+    by = 43
+    al, ar, h = 12, 8, 7
+    cx = 14
+    ground_shadow(s, 16, by + 1, 14, 4)
+    b = s.box2(cx, by, al, ar, h, "r2", "r1")
+    stone_texture(s, cx, by, al, h, rnd, ar=ar)
+    up = s.box2(cx, by - h, al, ar, 5, "pl2", "pl0")
+    frame_walls(s, up, 0, 5)
+    door(s, b, "l", 0.6, 3, 5, "w2")
+    window(s, up, "l", 0.25, 2, True, 2, 2)
+    m1, m2 = s.gable_roof(up, 8, "sh2", "sh0", "pl1", 1, shingle_texture("sh1", "sh2"), rnd)
+    xh, yh = int(m1[0] + (m2[0] - m1[0]) * 0.7), int(m1[1] + (m2[1] - m1[1]) * 0.7) + 1
+    chimney(s, xh, yh, 6)
+    smoke(s, xh + 1, yh - 8)
+    # muestra con una jarra de cerveza
+    sx, sy = cx - 3, by - h - 2
+    s.line((sx, sy), (sx - 4, sy - 2), "iron")
+    s.rect(sx - 5, sy - 1, sx - 3, sy + 2, "w3")
+    s.rect(sx - 5, sy, sx - 3, sy + 1, "st3")
+    s.px(sx - 5, sy - 1, "cream")
+    # cubas de roble delante, a la derecha: dos abajo y una encima
+    for (x, y) in ((22, by - 2), (27, by - 4), (24, by - 7)):
+        s.ellipse(x, y - 2, 2, 3, "w3")
+        s.rect(x - 2, y - 3, x + 2, y - 3, "iron1")
+        s.rect(x - 2, y - 1, x + 2, y - 1, "iron1")
+        s.ellipse(x + 1, y - 2, 1, 2, "w2")
     return finish(s)
 
 
@@ -1949,6 +1996,33 @@ def _bread(s):
         s.px(x - 1, 7, "w2")
 
 
+def _barley(s):
+    # cebada: una espiga gruesa que cabecea hacia un lado, con barbas (el trigo va derecho)
+    for x, y in ((3, 11), (3, 10), (3, 9), (4, 8), (4, 7), (4, 6), (5, 5)):
+        s.px(x, y, "l3")
+    s.px(2, 8, "l4")
+    s.px(1, 7, "l4")
+    for t in range(5):
+        s.px(5 + t, 3 + t, "st3")
+        s.px(6 + t, 3 + t, "st4")
+        s.px(5 + t, 4 + t, "st1" if t < 4 else "st3")
+    for t in range(4):
+        s.px(7 + t, 2 + t, "st1")
+    s.px(11, 9, "st1")
+
+
+def _beer(s):
+    # jarra de madera con espuma
+    s.rect(2, 4, 8, 10, "w3")
+    s.rect(2, 4, 3, 10, "w4")
+    s.rect(2, 6, 8, 6, "iron1")
+    s.rect(2, 9, 8, 9, "iron1")
+    s.rect(9, 5, 10, 8, "w2")
+    s.rect(2, 2, 8, 3, "cream")
+    s.px(4, 1, "cream")
+    s.px(7, 1, "cream")
+
+
 def _cheese(s):
     s.poly([(1, 8), (10, 4), (10, 10), (1, 10)], "gold")
     s.poly([(1, 8), (6, 3), (10, 4)], "glow")
@@ -2096,6 +2170,7 @@ def _menu(s):
 ICONS = {
     "icon_coin": _coin, "icon_wheat": _wheat, "icon_carrot": _carrot, "icon_cabbage": _cabbage,
     "icon_egg": _egg, "icon_milk": _milk, "icon_flour": _flour, "icon_bread": _bread, "icon_cheese": _cheese,
+    "icon_barley": _barley, "icon_beer": _beer,
     "icon_wood": _wood, "icon_stone": _stone, "icon_iron": _iron, "icon_worker": _worker, "icon_banner": _banner,
     "icon_hammer": _hammer, "icon_granary": _granary, "icon_house": _house, "icon_scroll": _scroll,
     "icon_crown": _crown, "icon_cart": _cart, "icon_charter": _charter, "icon_prestige": _prestige,
@@ -2139,14 +2214,14 @@ def generate() -> dict:
         "soil": soil(), "soil_tired": soil_tired(), "path": path(), "wild": wild(),
         "cliff_l": cliff("l"), "cliff_r": cliff("r"),
         "boundary": boundary(), "site": site(), "tenant": tenant(),
-        **{f"{k}_{i}": crop(k, i) for k in ("wheat", "carrot", "cabbage") for i in range(4)},
+        **{f"{k}_{i}": crop(k, i) for k in ("wheat", "carrot", "cabbage", "barley") for i in range(4)},
         "tree_a": oak(), "tree_b": pine(), "rocks": rocks(), "well": well(),
         **{f"house_{i}": house(i) for i in (1, 2, 3)},
         "market": market(),
         **{f"granary_{i}": granary(i) for i in (1, 2, 3)},
         **{f"coop_{i}": coop(i) for i in (1, 2, 3)},
         "pen_shed": pen_shed(), "stall": stall(), "cart": cart(),
-        "mill": windmill(), "bakery": bakery(), "cheesery": cheesery(),
+        "mill": windmill(), "bakery": bakery(), "cheesery": cheesery(), "brewery": brewery(),
         **{f"manor_{i}": manor(i) for i in range(4)},
         **{f"hamlet_{m}_{i}": hamlet(m, i) for m in ("wood", "stone", "iron") for i in range(4)},
         "monument_works_1": monument_works(1), "monument_works_2": monument_works(2),
