@@ -20,7 +20,7 @@ export function createNewGame(seed: number = newSeed(), difficulty: Difficulty =
       const kind = START.map.legend[ch];
       if (!kind) throw new Error(`Simbolo de mapa desconocido "${ch}" en (${x},${y})`);
       tiles.push({ x, y, kind });
-      if (kind === 'soil') plots[plotKey(x, y)] = { crop: null, growth: 0 };
+      if (kind === 'soil') plots[plotKey(x, y)] = { crop: null, growth: 0, fertility: 1, last: null };
     });
   });
 

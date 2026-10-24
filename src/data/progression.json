@@ -259,6 +259,7 @@
     "dailyChance": 0.3
   },
   "priceDays": 7,
+  "fertility": { "min": 0.4, "max": 1.1, "regen": 0.05, "rotation": 0.5, "fallowPerDay": 0.02, "winterPerDay": 0.01, "tiredBelow": 0.85 },
   "forecast": { "warnDays": [7, 2], "foodWarnDays": 3 },
   "taxes": {
     "titheRate": 0.1,

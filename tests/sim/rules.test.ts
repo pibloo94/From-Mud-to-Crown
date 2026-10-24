@@ -218,7 +218,7 @@ describe('tierra', () => {
     expect(interact(s, x, y)).toMatchObject({ kind: 'offerLand', cost });
     expect(buyLand(s, x, y).result.ok).toBe(true);
     expect(tileAt(s, x, y)!.kind).toBe('soil');
-    expect(s.plots[plotKey(x, y)]).toEqual({ crop: null, growth: 0 });
+    expect(s.plots[plotKey(x, y)]).toEqual({ crop: null, growth: 0, fertility: 1, last: null });
     expect(s.coins).toBe(100 - cost);
     expect(landCost(s)).toBeGreaterThan(cost);
   });

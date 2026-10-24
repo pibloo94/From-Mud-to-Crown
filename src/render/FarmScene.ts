@@ -63,6 +63,7 @@ interface Bubble {
 export class FarmScene extends Phaser.Scene {
   private built: Phaser.GameObjects.GameObject[] = [];
   private crops = new Map<string, Phaser.GameObjects.Image>();
+  private tired = new Map<string, Phaser.GameObjects.Image>();
   private bubbles: Bubble[] = [];
   /** Hierba y arboles: lo que cambia de color con la estacion. */
   private seasonal: Phaser.GameObjects.Image[] = [];
@@ -178,6 +179,7 @@ export class FarmScene extends Phaser.Scene {
     for (const o of this.built) o.destroy();
     this.built = [];
     this.crops.clear();
+    this.tired.clear();
     this.bubbles = [];
     this.seasonal = [];
     this.season = null;
@@ -331,6 +333,9 @@ export class FarmScene extends Phaser.Scene {
       }
         break;
       case 'soil': {
+        // Capa de tierra cansada (fertilidad baja), entre el suelo y el cultivo.
+        const { sx, sy } = toScreen(tile.x, tile.y);
+        this.tired.set(plotKey(tile.x, tile.y), this.img('soil_tired', sx, sy, 0.5, 0, 1.5).setVisible(false));
         const crop = this.place('wheat_0', tile, 1).setVisible(false);
         this.crops.set(plotKey(tile.x, tile.y), crop);
         break;
@@ -616,6 +621,8 @@ export class FarmScene extends Phaser.Scene {
     this.drawLandHints();
     this.drawTutorialMarks();
     const s = this.sim.state;
+    const winter = dateFromDay(s.day).season === 'winter';
+    for (const [key, layer] of this.tired) layer.setVisible(!winter && (s.plots[key]?.fertility ?? 1) < PROGRESSION.fertility.tiredBelow);
     for (const [key, sprite] of this.crops) {
       const plot = s.plots[key];
       const stage = plot ? cropStage(plot) : -1;

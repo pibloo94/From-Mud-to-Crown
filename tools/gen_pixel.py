@@ -341,6 +341,22 @@ def soil() -> Spr:
     return s
 
 
+def soil_tired() -> Spr:
+    """Capa sobre la tierra cansada: terrones claros y resecos y alguna grieta (el resto, transparente)."""
+    rnd = random.Random(6)
+    s = Spr(TW, TH)
+    for (x, y) in tile_cells():
+        r = rnd.random()
+        if r < 0.22:
+            s.px(x, y, "p1")
+        elif r < 0.3:
+            s.px(x, y, "p2")
+    for (x0, y0, dx) in ((9, 6, 1), (19, 9, -1), (14, 11, 1)):
+        for k in range(4):
+            s.px(x0 + k * dx, y0 + (k // 2), "s0")
+    return s
+
+
 def path() -> Spr:
     rnd = random.Random(6)
     s = Spr(TW, TH)
@@ -2120,7 +2136,7 @@ def generate_ui() -> dict:
 def generate() -> dict:
     out = {
         "grass_a": grass(1), "grass_b": grass(2), "grass_c": grass(3),
-        "soil": soil(), "path": path(), "wild": wild(),
+        "soil": soil(), "soil_tired": soil_tired(), "path": path(), "wild": wild(),
         "cliff_l": cliff("l"), "cliff_r": cliff("r"),
         "boundary": boundary(), "site": site(), "tenant": tenant(),
         **{f"{k}_{i}": crop(k, i) for k in ("wheat", "carrot", "cabbage") for i in range(4)},
