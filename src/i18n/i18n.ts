@@ -65,6 +65,7 @@ const TRANSLATED: Record<string, (v: string, all: Record<string, string | number
   lost: (v) => t(`rank.${v}`),
   difficulty: (v) => t(`difficulty.${v}`),
   estate: (v) => t(`estate.${v}`),
+  path: (v) => t(`path.${v}`),
   // "wood:4,stone:2" -> "4 madera, 2 piedra" (tambien productos y monedas)
   list: (v) =>
     v

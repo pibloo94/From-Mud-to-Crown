@@ -6,13 +6,14 @@ import { upgradeBuilding } from './buildings';
 import * as villagers from './villagers';
 import * as pantry from './pantry';
 import * as materials from './materials';
-import type { AnimalId, BuildingId, CommandResult, CropId, GameState, JobId, MaterialId, Notice, ProductId, ProtectionId, Speed, WorkshopId } from './types';
+import type { AnimalId, BuildingId, CommandResult, CropId, GameState, JobId, MaterialId, Notice, PathId, ProductId, ProtectionId, Speed, WorkshopId } from './types';
 import { BUILDINGS, WORKSHOPS } from './data';
 import * as workshops from './workshops';
 import * as trade from './trade';
 import * as noble from './noble';
 import * as tutorial from './tutorial';
 import * as risk from './risk';
+import * as paths from './paths';
 
 export type GameEvent =
   | { type: 'change' }
@@ -243,6 +244,16 @@ export class Game {
     const result = trade.sendCaravan(this.state, town, cargo, buy, escort);
     if (result.ok) this.emit({ type: 'mapChanged' });
     this.report({ result, levelUps: [] });
+  }
+
+  // ---------------------------------------------------------------- caminos
+
+  setPathFocus(path: PathId): void {
+    this.report({ result: paths.setPathFocus(this.state, path), levelUps: [] });
+  }
+
+  setPathSecond(path: PathId): void {
+    this.report({ result: paths.setPathSecond(this.state, path), levelUps: [] });
   }
 
   // ---------------------------------------------------------------- nobleza

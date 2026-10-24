@@ -6,6 +6,7 @@ import { addVillager } from './villagers';
 import { defaultNoble } from './noble';
 import { startReps } from './estates';
 import { createCharacter, type CharacterAnswers } from './character';
+import { startPaths } from './paths';
 import type { AnimalId, BuildingId, Difficulty, GameState, Herd, Plot, ProductId, Tile } from './types';
 
 export const plotKey = (x: number, y: number): string => `${x},${y}`;
@@ -69,6 +70,7 @@ export function createNewGame(seed: number = newSeed(), difficulty: Difficulty =
     difficulty,
     // Sin cuestionario (tests, bot, partidas antiguas): sin rasgos. La interfaz lo rellena.
     character: { name: '', traits: [], ambition: null },
+    paths: startPaths(),
     buildings,
     villagers: [],
     nextVillagerId: 1,

@@ -54,10 +54,13 @@ export function formatReport(reports: BalanceReport[]): string {
   add('Avisos de perder el rango', (r) => r.rankWarnings);
   add('Rangos perdidos', (r) => r.ranksLost);
   add('Cosechas con el granero lleno', (r) => r.granaryFull);
+  add('Tandas en los talleres', (r) => r.workshopBatches);
   add('Caravanas', (r) => r.caravans);
   add('Ganado con caravanas', (r) => r.caravanEarnings);
   add('Experiencia sobrante (> nivel 20)', (r) => r.spareXp);
   for (const [e, name] of Object.entries(ESTATE_NAMES)) add(`${name} al final`, (r) => r.final.rep[e as EstateId]);
+  for (let l = 1; l <= 5; l++) add(`Camino en foco, peldaño ${l} (día)`, (r) => r.focusLevelDay[l] ?? null);
+  for (const p of ['crown', 'faith', 'craft', 'trade', 'people']) add(`Méritos ${p} al final`, (r) => r.merits[p] ?? 0);
   add('Prestigio al final', (r) => r.final.prestige);
   add('Monedas al final', (r) => r.final.coins);
 
@@ -85,7 +88,7 @@ export function formatReport(reports: BalanceReport[]): string {
         `  semilla ${r.seed}: nivel ${r.final.level}, ${RANK_NAMES[r.final.rank] ?? r.final.rank}` +
         `${r.final.titles.length ? ` (${r.final.titles.map((t) => RANK_NAMES[t] ?? t).join(', ')})` : ''}, ` +
         `${r.final.plots} parcelas, ${r.final.villagers} aldeanos, casa solariega ${r.final.manor}, ` +
-        `aldeas ${Object.values(r.final.hamlets).join('/')}, ${r.final.soldiers} soldados`,
+        `aldeas ${Object.values(r.final.hamlets).join('/')}, ${r.final.soldiers} soldados, foco ${r.focus} y ${r.second}`,
     ),
   ];
   return out.join('\n');

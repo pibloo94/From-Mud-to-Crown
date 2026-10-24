@@ -8,6 +8,7 @@ import { hasMaterials, materialsList, missingMaterials, payMaterials } from './m
 import { applyRep, estateMult } from './estates';
 import type { CommandResult, GameState, MaterialId, Notice, ProductId } from './types';
 import { freeEscort } from './noble';
+import { meritsFromSales } from './paths';
 
 type Cargo = Partial<Record<ProductId, number>>;
 
@@ -154,6 +155,7 @@ export function caravansReturn(state: GameState): Notice[] {
     state.stats.earned += coins;
     state.stats.seasonEarned += coins;
     state.stats.tradeEarned += coins;
+    meritsFromSales(state, coins, 'trade');
     state.stats.trades++;
     for (const m of MATERIAL_IDS) state.materials[m] += c.buy[m] ?? 0;
     applyRep(state, def.rep);

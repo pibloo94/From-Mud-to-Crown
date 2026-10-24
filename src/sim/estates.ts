@@ -4,6 +4,7 @@
 // las relaciones vuelven algo hacia el punto medio si no se cuidan.
 import { ESTATES } from './data';
 import { repGainMult, traitMult } from './character';
+import { meritsFromRep } from './paths';
 import type { EstateEffect, EstateId, GameState } from './types';
 
 export const ESTATE_IDS = ESTATES.ids as EstateId[];
@@ -23,6 +24,8 @@ export function changeRep(state: GameState, estate: EstateId, delta: number, riv
   // Los rasgos cambian cuanto se gana (no cuanto se pierde).
   if (delta > 0) delta = Math.round(delta * repGainMult(state, estate));
   if (!delta) return;
+  // Lo que se gana cuenta para el camino de ese estamento, aunque la relacion ya este al maximo.
+  if (delta > 0) meritsFromRep(state, estate, delta);
   state.rep[estate] = clampRep(state.rep[estate] + delta);
   if (rivals && delta > 0) {
     const loss = Math.round(delta * ESTATES.rivalShare);

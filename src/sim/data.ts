@@ -14,8 +14,9 @@ import nobilityJson from '../data/nobility.json';
 import tutorialJson from '../data/tutorial.json';
 import estatesJson from '../data/estates.json';
 import traitsJson from '../data/traits.json';
+import pathsJson from '../data/paths.json';
 import layoutJson from '../data/layout.json';
-import type { AnimalId, BuildingId, CropId, Difficulty, EstateEffect, EstateId, JobId, LiegeId, MaterialId, ModifierKind, ProductId, ProtectionId, RankId, TileKind, TraitEffect, WorkshopId } from './types';
+import type { AnimalId, BuildingId, CropId, Difficulty, EstateEffect, EstateId, JobId, LiegeId, MaterialId, ModifierKind, PathId, ProductId, ProtectionId, RankId, TileKind, TraitEffect, WorkshopId } from './types';
 import type { Season } from './calendar';
 
 export interface ProductDef {
@@ -159,6 +160,20 @@ export interface ProgressionDef {
     perManorLevel: number;
     neglect: { days: number; growth: number; animal: number };
   };
+}
+
+/** Caminos: de donde salen los meritos, ritmos, coste de cambiar de foco y peldanos. */
+export interface PathsDef {
+  ids: PathId[];
+  icons: Record<PathId, string>;
+  /** Camino al que cuenta el favor de cada estamento y meritos por punto de favor ganado. */
+  estates: Partial<Record<EstateId, { path: PathId; perRep: number }>>;
+  /** Meritos por moneda: ventas (Comercio), caravanas (Comercio) y lo producido en talleres (Oficio). */
+  sales: { market: number; trade: number; artisan: number };
+  focusFrom: RankId;
+  rates: { before: number; focus: number; second: number; other: number };
+  switchLoss: number;
+  levels: number[];
 }
 
 /** Un rasgo del personaje: de donde sale y que cambia (ver character.ts). */
@@ -497,6 +512,7 @@ export const NOBILITY = nobilityJson as unknown as NobilityDef;
 export const TUTORIAL = tutorialJson as unknown as TutorialDef;
 export const ESTATES = estatesJson as unknown as EstatesDef;
 export const TRAITS = traitsJson as unknown as TraitsDef;
+export const PATHS = pathsJson as unknown as PathsDef;
 export const LAYOUT = layoutJson as unknown as LayoutDef;
 export const HAMLET_IDS = Object.keys(NOBILITY.hamlets);
 export const PATRONAGE_IDS = Object.keys(NOBILITY.patronage);

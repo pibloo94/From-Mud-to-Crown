@@ -1,12 +1,14 @@
 // Ficha de personaje (rasgos y relaciones) y las piezas que comparte con el cuestionario de origen.
 import { h, icon } from './dom';
 import { t } from '../i18n/i18n';
-import { TRAITS } from '../sim/data';
+import { PATHS, TRAITS } from '../sim/data';
+import { PATH_IDS, canChoosePath, pathLevel, pathRate } from '../sim/paths';
+import type { GameState, PathId } from '../sim/types';
 import { traitDef, traitLines, type TraitLine } from '../sim/character';
 import { ESTATE_IDS } from '../sim/estates';
 import { estateBar, pct, tabs, type PanelCtx } from './panels';
 
-export type CharacterTab = 'traits' | 'estates';
+export type CharacterTab = 'traits' | 'estates' | 'paths';
 
 const signed = (n: number) => (n > 0 ? `+${n}` : `−${Math.abs(n)}`);
 
@@ -35,11 +37,67 @@ function traitCard(id: string): HTMLElement | null {
   );
 }
 
+/** Un camino: peldano, barra de meritos, ritmo y botones para ponerlo en foco o de segundo. */
+function pathCard(ctx: PanelCtx, s: GameState, p: PathId): HTMLElement {
+  const { focus, second } = s.paths;
+  const merits = Math.floor(s.paths.merits[p]);
+  const lv = pathLevel(merits);
+  const max = PATHS.levels.length - 1;
+  const fill = lv.to === null ? 100 : Math.round(((merits - lv.from) / (lv.to - lv.from)) * 100);
+  const rate = Math.round(pathRate(s, p) * 100);
+  const role = p === focus ? 'focus' : p === second ? 'second' : focus ? 'other' : 'before';
+  const act = (fn: () => void) => () => (fn(), ctx.rerender());
+  const choose = canChoosePath(s);
+  return h(
+    'section',
+    { class: `path-card path-${role}` },
+    icon(PATHS.icons[p], 'icon big'),
+    h(
+      'div',
+      { class: 'up-info' },
+      h(
+        'div',
+        { class: 'path-head' },
+        h('b', {}, t(`path.${p}`)),
+        h('span', { class: 'pill' }, t(`paths.role.${role}`, { pct: rate })),
+        s.character.ambition === p && h('span', { class: 'pill ambition' }, t('paths.ambition')),
+      ),
+      h('small', {}, t('paths.level', { n: lv.level, max }), ' · ', lv.to === null ? t('paths.top', { n: merits }) : t('paths.merits', { n: merits, next: lv.to })),
+      h('span', { class: 'rep-bar' }, h('span', { class: 'rep-fill', style: `width:${fill}%` })),
+      h('small', {}, t(`path.${p}.desc`)),
+      choose &&
+        p !== focus &&
+        h(
+          'div',
+          { class: 'row-btns' },
+          h(
+            'button',
+            { class: 'btn small primary', onclick: act(() => ctx.sim.setPathFocus(p)) },
+            t('paths.setFocus'),
+            focus && h('small', {}, t('paths.switchLoss', { pct: Math.round(PATHS.switchLoss * 100), path: focus })),
+          ),
+          focus && p !== second ? h('button', { class: 'btn small', onclick: act(() => ctx.sim.setPathSecond(p)) }, t('paths.setSecond')) : null,
+        ),
+    ),
+  );
+}
+
+function pathsTab(ctx: PanelCtx, s: GameState): HTMLElement {
+  const hint = !canChoosePath(s) ? t('paths.before', { rank: PATHS.focusFrom, pct: Math.round(PATHS.rates.before * 100) }) : s.paths.focus ? t('paths.hint') : t('paths.choose');
+  // El camino en foco y el segundo, arriba.
+  const order = [...PATH_IDS].sort((a, b) => rank(s, a) - rank(s, b));
+  return h('div', { class: 'path-list' }, h('p', { class: `hint left ${canChoosePath(s) && !s.paths.focus ? 'fair-banner' : ''}` }, hint), ...order.map((p) => pathCard(ctx, s, p)));
+}
+
+const rank = (s: GameState, p: PathId) => (p === s.paths.focus ? 0 : p === s.paths.second ? 1 : 2);
+
 export function characterView(ctx: PanelCtx, tab: CharacterTab, openTab: (tab: CharacterTab) => void): HTMLElement {
   const s = ctx.sim.state;
   const c = s.character;
   const body =
-    tab === 'traits'
+    tab === 'paths'
+      ? pathsTab(ctx, s)
+      : tab === 'traits'
       ? h(
           'div',
           { class: 'trait-list' },
@@ -55,6 +113,7 @@ export function characterView(ctx: PanelCtx, tab: CharacterTab, openTab: (tab: C
     tabs<CharacterTab>(
       [
         { id: 'traits', label: t('character.tab.traits'), icon: 'icon_scroll' },
+        { id: 'paths', label: t('character.tab.paths'), icon: 'icon_banner' },
         { id: 'estates', label: t('character.tab.estates'), icon: 'icon_crown' },
       ],
       tab,

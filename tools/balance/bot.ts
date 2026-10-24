@@ -6,7 +6,7 @@ import { Game } from '../../src/sim/game';
 import { createNewGame } from '../../src/sim/state';
 import * as R from '../../src/sim/rules';
 import { optionAvailable } from '../../src/sim/events';
-import { BUILDING_IDS, CROPS, EVENTS, HAMLET_IDS, NOBILITY, PATRONAGE_IDS, PRODUCT_IDS, PROGRESSION, TOWN_IDS, TRADE, WORKSHOPS, WORKSHOP_IDS } from '../../src/sim/data';
+import { BUILDING_IDS, CROPS, EVENTS, HAMLET_IDS, NOBILITY, PATHS, PATRONAGE_IDS, PRODUCT_IDS, PROGRESSION, TOWN_IDS, TRADE, WORKSHOPS, WORKSHOP_IDS } from '../../src/sim/data';
 import { priceOf } from '../../src/sim/market';
 import { nextUpgrade } from '../../src/sim/buildings';
 import { materialsPrice, missingMaterials } from '../../src/sim/materials';
@@ -19,7 +19,8 @@ import { mainRanks, rankDef } from '../../src/sim/progress';
 import { seasonBill } from '../../src/sim/taxes';
 import { upkeepBill } from '../../src/sim/upkeep';
 import { isProtected, protectionCost } from '../../src/sim/risk';
-import type { CropId, Difficulty, EstateId, GameState, JobId, MaterialId, ProductId } from '../../src/sim/types';
+import type { CropId, Difficulty, EstateId, GameState, JobId, MaterialId, PathId, ProductId } from '../../src/sim/types';
+import { PATH_IDS, canChoosePath, pathLevel } from '../../src/sim/paths';
 
 /** Lo que mide una partida del bot. Los dias son dias de juego (10 s reales a velocidad x1). */
 export interface BalanceReport {
@@ -30,6 +31,15 @@ export interface BalanceReport {
   levelDay: Record<number, number>;
   /** Dia en que se consigue cada rango o titulo de rama. */
   rankDay: Record<string, number>;
+  /** Camino en foco y segundo (los elige el bot al poder: los de mas meritos). */
+  focus: string | null;
+  second: string | null;
+  /** Dia en que el camino en foco llega a cada peldano. */
+  focusLevelDay: Record<number, number>;
+  /** Meritos de cada camino al final. */
+  merits: Record<string, number>;
+  /** Tandas hechas en los talleres. */
+  workshopBatches: number;
   /** Monedas cada 200 dias (dia -> monedas). */
   coinsAt: Record<number, number>;
   /** Mayor cantidad de monedas sin gastar en toda la partida. */
@@ -96,7 +106,8 @@ function seasonReserve(s: GameState): number {
   return bill.tribute + Math.round(bill.tithe * 1.2) + bill.upkeep + fixed.wages + fixed.maintenance;
 }
 
-export function simulate(seed: number, days: number, level: Difficulty = 'normal'): BalanceReport {
+export function simulate(seed: number, days: number, level: Difficulty = 'normal', focus: PathId | null = null): BalanceReport {
+  FORCED_FOCUS = focus;
   const game = new Game(createNewGame(seed, level));
   const s = (): GameState => game.state;
   const report: BalanceReport = {
@@ -105,6 +116,11 @@ export function simulate(seed: number, days: number, level: Difficulty = 'normal
     days,
     levelDay: {},
     rankDay: {},
+    focus: null,
+    second: null,
+    focusLevelDay: {},
+    merits: {},
+    workshopBatches: 0,
     coinsAt: {},
     maxCoins: 0,
     taxesPaid: 0,
@@ -168,7 +184,14 @@ export function simulate(seed: number, days: number, level: Difficulty = 'normal
     report.maxCoins = Math.max(report.maxCoins, s().coins);
     // Rango y titulos se leen del estado: no todos llegan con su propio aviso (Granjero libre va con el nivel).
     for (const id of [s().rank, ...s().titles]) report.rankDay[id] ??= s().day;
+    choosePaths(game);
+    const f = s().paths.focus;
+    if (f) report.focusLevelDay[pathLevel(s().paths.merits[f]).level] ??= s().day;
   }
+  report.focus = s().paths.focus;
+  report.second = s().paths.second;
+  report.workshopBatches = Object.values(s().workshops).reduce((n, w) => n + (w?.made ?? 0), 0);
+  report.merits = Object.fromEntries(PATH_IDS.map((p) => [p, Math.round(s().paths.merits[p])]));
 
   const st = s();
   const maxXp = PROGRESSION.levels[PROGRESSION.levels.length - 1].xp;
@@ -191,6 +214,20 @@ export function simulate(seed: number, days: number, level: Difficulty = 'normal
   return report;
 }
 
+/** Camino en foco que se fuerza en esta partida (BALANCE_FOCUS), para medir cada camino. */
+let FORCED_FOCUS: PathId | null = null;
+
+/** En cuanto puede, pone en foco el camino con mas meritos y de segundo el siguiente. */
+function choosePaths(game: Game): void {
+  const st = game.state;
+  if (st.paths.focus || !canChoosePath(st)) return;
+  // BALANCE_FOCUS fuerza el camino en foco (para medir cada camino); si no, el de mas meritos.
+  const forced = FORCED_FOCUS && PATH_IDS.includes(FORCED_FOCUS) ? FORCED_FOCUS : null;
+  const order = [...PATH_IDS].sort((a, b) => st.paths.merits[b] - st.paths.merits[a]).filter((p) => p !== forced);
+  game.setPathFocus(forced ?? order[0]);
+  game.setPathSecond(forced ? order[0] : order[1]);
+}
+
 /**
  * Contesta el evento como alguien que va a por el siguiente rango: elige la opcion que mas le acerca
  * a las relaciones que ese rango pide (y no deja caer las que hay que mantener). A igualdad, acepta
@@ -208,6 +245,8 @@ function answerEvent(game: Game): void {
     const rep = { ...(o.effects?.rep ?? {}) };
     let v = 0;
     for (const [e, n] of Object.entries(rep)) v += (n ?? 0) * (1 + need(e as EstateId) / 5);
+    // Con un camino forzado, prefiere lo que agrada a su estamento.
+    for (const [e, n] of Object.entries(rep)) if (FORCED_FOCUS && PATHS.estates[e as EstateId]?.path === FORCED_FOCUS) v += (n ?? 0) * 1.5;
     if (['refuse', 'decline', 'risk'].includes(o.id)) v -= 0.5;
     return v;
   };

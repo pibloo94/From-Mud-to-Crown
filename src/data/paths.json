@@ -1,0 +1,59 @@
+{
+  "ids": [
+    "crown",
+    "faith",
+    "craft",
+    "trade",
+    "people"
+  ],
+  "icons": {
+    "crown": "icon_crown",
+    "faith": "icon_scroll",
+    "craft": "icon_hammer",
+    "trade": "icon_cart",
+    "people": "icon_worker"
+  },
+  "estates": {
+    "king": {
+      "path": "crown",
+      "perRep": 12
+    },
+    "nobles": {
+      "path": "crown",
+      "perRep": 12
+    },
+    "church": {
+      "path": "faith",
+      "perRep": 17
+    },
+    "artisans": {
+      "path": "craft",
+      "perRep": 20
+    },
+    "commoners": {
+      "path": "people",
+      "perRep": 25
+    }
+  },
+  "sales": {
+    "market": 0.014,
+    "trade": 0.034,
+    "artisan": 0.03
+  },
+  "focusFrom": "landowner",
+  "rates": {
+    "before": 0.5,
+    "focus": 1,
+    "second": 0.5,
+    "other": 0
+  },
+  "switchLoss": 0.25,
+  "levels": [
+    0,
+    200,
+    600,
+    1400,
+    2800,
+    5000
+  ]
+}
