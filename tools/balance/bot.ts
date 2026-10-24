@@ -18,7 +18,7 @@ import { mainRanks, rankDef } from '../../src/sim/progress';
 import { seasonBill } from '../../src/sim/taxes';
 import { upkeepBill } from '../../src/sim/upkeep';
 import { isProtected, protectionCost } from '../../src/sim/risk';
-import type { Difficulty, EstateId, GameState, JobId, MaterialId, PathId, ProductId } from '../../src/sim/types';
+import type { CropId, Difficulty, EstateId, GameState, JobId, MaterialId, PathId, ProductId, WorkshopId } from '../../src/sim/types';
 import { PATH_IDS, canChoosePath, pathLevel } from '../../src/sim/paths';
 import { commissionDef, commissionProgress } from '../../src/sim/commissions';
 import { MONUMENT_IDS, monumentDone, monumentUnlocked, nextStage } from '../../src/sim/monuments';
@@ -407,11 +407,13 @@ function spend(game: Game): void {
       if (farmers.length > 2) game.assignArtisan(farmers[farmers.length - 1].id, id);
     }
   }
-  // Como haria un jugador: con molino trabajando, un labrador siembra trigo para el molino.
-  if (s.workshops.mill && artisansOf(s, 'mill').length > 0) {
+  // Como haria un jugador: con molino o cerveceria trabajando, un labrador siembra lo que piden.
+  const feeds: [WorkshopId, CropId][] = [['mill', 'wheat'], ['brewery', 'barley']];
+  feeds.forEach(([ws, crop], i) => {
+    if (!s.workshops[ws] || artisansOf(s, ws).length === 0) return;
     const farmers = s.villagers.filter((v) => v.job === 'farmer');
-    if (farmers.length > 0 && !farmers.some((v) => v.crop === 'wheat')) game.setFarmerCrop(farmers[0].id, 'wheat');
-  }
+    if (farmers.length > i && !farmers.some((v) => v.crop === crop)) game.setFarmerCrop(farmers[i].id, crop);
+  });
   for (const id of builtWorkshops(s)) {
     const up = nextWorkshopUpgrade(s, id);
     if (up && spare(s) > priceWith(s, up.cost, up.materials) + 300) {

@@ -158,5 +158,59 @@
         "title": "artisan"
       }
     ]
+  },
+  "brewery": {
+    "unlockLevel": 13,
+    "cost": 450,
+    "materials": {
+      "wood": 25,
+      "stone": 15,
+      "iron": 3
+    },
+    "recipe": {
+      "in": {
+        "barley": 3
+      },
+      "out": {
+        "beer": 2
+      }
+    },
+    "batchesPerDay": 1,
+    "xpPerBatch": 4,
+    "upgrades": [
+      {
+        "id": "casks",
+        "cost": 400,
+        "level": 14,
+        "materials": {
+          "wood": 30,
+          "iron": 4
+        },
+        "batches": 1
+      },
+      {
+        "id": "copper",
+        "cost": 700,
+        "level": 16,
+        "materials": {
+          "iron": 12,
+          "stone": 15
+        },
+        "batches": 1,
+        "title": "artisan"
+      },
+      {
+        "id": "guildBrewery",
+        "cost": 1300,
+        "level": 18,
+        "materials": {
+          "wood": 30,
+          "stone": 40,
+          "iron": 10
+        },
+        "batches": 2,
+        "title": "artisan"
+      }
+    ]
   }
 }

@@ -97,5 +97,30 @@
     },
     "xpCollect": 0,
     "artisan": true
+  },
+  "barley": {
+    "price": 3,
+    "icon": "icon_barley",
+    "volatility": 0.15,
+    "season": {
+      "spring": 1.1,
+      "summer": 1.0,
+      "autumn": 0.85,
+      "winter": 1.2
+    },
+    "xpCollect": 0
+  },
+  "beer": {
+    "price": 11,
+    "icon": "icon_beer",
+    "volatility": 0.1,
+    "season": {
+      "spring": 1.0,
+      "summer": 1.2,
+      "autumn": 1.0,
+      "winter": 0.95
+    },
+    "xpCollect": 0,
+    "artisan": true
   }
 }

@@ -136,3 +136,35 @@ describe('partida version 10', () => {
     expect(claimRenown(back)).toBe(0);
   });
 });
+
+describe('partida version 22', () => {
+  const load = (s: GameState) => deserialize(JSON.stringify({ format: 'from-mud-to-crown-save', version: 22, savedAt: '2026-10-24T10:00:00Z', state: s }));
+  const sites = (s: GameState) => s.map.tiles.filter((t) => t.kind === 'site' || t.kind === 'workshop').length;
+  const old = () => {
+    const s = createNewGame(5);
+    const inv = s.inventory as Record<string, number>;
+    delete inv.barley;
+    delete inv.beer;
+    delete (s.priceMult as Record<string, number>).beer;
+    delete (s.pantry.eat as Record<string, boolean>).beer;
+    // El solar nuevo no existia: era hierba.
+    s.map.tiles.find((t) => t.x === 5 && t.y === 8)!.kind = 'grass';
+    return s;
+  };
+
+  it('anade la cebada y la cerveza a cero y el cuarto solar en su sitio', () => {
+    const back = load(old());
+    expect(back.inventory.barley).toBe(0);
+    expect(back.inventory.beer).toBe(0);
+    expect(back.priceMult.beer).toBe(1);
+    expect(back.map.tiles.find((t) => t.x === 5 && t.y === 8)!.kind).toBe('site');
+    expect(sites(back)).toBe(sites(createNewGame(5)));
+  });
+
+  it('si la casilla nueva esta ocupada, pone el solar en hierba junto a un camino', () => {
+    const s = old();
+    s.map.tiles.find((t) => t.x === 5 && t.y === 8)!.kind = 'house';
+    const back = load(s);
+    expect(sites(back)).toBe(sites(createNewGame(5)));
+  });
+});

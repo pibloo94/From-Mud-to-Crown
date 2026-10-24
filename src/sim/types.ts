@@ -1,14 +1,14 @@
 // Tipos del estado de la partida. La simulacion no sabe nada de Phaser ni del DOM.
 
-export type ProductId = 'wheat' | 'carrot' | 'cabbage' | 'egg' | 'milk' | 'flour' | 'bread' | 'cheese';
-export type CropId = 'wheat' | 'carrot' | 'cabbage';
+export type ProductId = 'wheat' | 'carrot' | 'cabbage' | 'barley' | 'egg' | 'milk' | 'flour' | 'bread' | 'cheese' | 'beer';
+export type CropId = 'wheat' | 'carrot' | 'cabbage' | 'barley';
 /** Materiales de construccion: se compran en el mercado y se guardan aparte del granero. */
 export type MaterialId = 'wood' | 'stone' | 'iron';
 export type AnimalId = 'chicken' | 'cow';
 export type BuildingId = 'house' | 'granary' | 'coop' | 'pen';
 export type JobId = 'farmer' | 'herder' | 'carter' | 'artisan';
 /** Talleres que transforman productos: se construyen en los solares del mapa. */
-export type WorkshopId = 'mill' | 'bakery' | 'cheesery';
+export type WorkshopId = 'mill' | 'bakery' | 'cheesery' | 'brewery';
 /**
  * Rangos de la escalera principal (de campesino a conde) y titulos de rama (Artesano, Burgues),
  * que se suman sin sustituir el rango.

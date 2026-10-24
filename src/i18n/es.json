@@ -1253,5 +1253,17 @@
   "plant.soilTired": "Tierra cansada: al {pct} %. Rota de cultivo o déjala descansar.",
   "plant.last": "Antes: {crop}.",
   "plant.repeat": "Repetir cansa más la tierra",
-  "msg.harvestedTired": "+{amount} {product} · tierra al {pct} %"
+  "msg.harvestedTired": "+{amount} {product} · tierra al {pct} %",
+  "crop.barley": "cebada",
+  "product.barley": "Cebada",
+  "product.beer": "Cerveza",
+  "workshop.brewery": "Cervecería",
+  "workshop.brewery.desc": "Fermenta la cebada en cubas y la convierte en cerveza, que se paga bien en las villas y en las fiestas.",
+  "wsUpgrade.brewery.casks": "Cubas de roble",
+  "wsUpgrade.brewery.copper": "Caldera de cobre",
+  "wsUpgrade.brewery.guildBrewery": "Cervecería del gremio",
+  "commission.guildBarley": "Cebada para los cerveceros del gremio: {n}.",
+  "commission.lordBeer": "Cerveza para la mesa de tu señor: {n}.",
+  "commission.villageBeer": "Cerveza para la fiesta del pueblo: {n}.",
+  "farmerCrop.barley": "Cebada"
 }
