@@ -100,6 +100,8 @@ export function tipMet(state: GameState, tip: TipDef): boolean {
   if (tip.events && (Object.keys(state.events.cooldowns).length === 0 || state.events.pending)) return false;
   if (tip.rank && !hasRank(state, tip.rank)) return false;
   if (tip.charter && !charterReady(state)) return false;
+  // (las partidas muy antiguas, al migrar, aun no tienen encargos)
+  if (tip.commissions && (state.commissions?.offers.length ?? 0) === 0) return false;
   return true;
 }
 

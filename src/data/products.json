@@ -133,7 +133,8 @@
       "autumn": 1.05,
       "winter": 1.2
     },
-    "xpCollect": 1
+    "xpCollect": 1,
+    "food": false
   },
   "cloth": {
     "price": 34,
@@ -146,6 +147,7 @@
       "winter": 1.25
     },
     "xpCollect": 0,
-    "artisan": true
+    "artisan": true,
+    "food": false
   }
 }

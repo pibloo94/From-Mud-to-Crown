@@ -1,14 +1,14 @@
 // Despensa: que productos comen los aldeanos, en que orden y cuanto se guarda sin vender.
-import { PRODUCT_IDS, VILLAGERS } from './data';
+import { PRODUCTS, PRODUCT_IDS, VILLAGERS } from './data';
 import { buildingStat } from './buildings';
 import { priceOf } from './market';
-import { multiplier } from './modifiers';
+import { multiplier, nextSeasonStart } from './modifiers';
 import { difficulty } from './difficulty';
 import type { CommandResult, GameState, Pantry, ProductId } from './types';
 
 export function defaultPantry(): Pantry {
   const eat = {} as Record<ProductId, boolean>;
-  for (const p of PRODUCT_IDS) eat[p] = VILLAGERS.pantry.eat.includes(p);
+  for (const p of PRODUCT_IDS) eat[p] = isFood(p) && VILLAGERS.pantry.eat.includes(p);
   return { eat, reserveDays: VILLAGERS.pantry.reserveDays };
 }
 
@@ -19,9 +19,20 @@ export function dailyFood(state: GameState): number {
   return state.villagers.length * VILLAGERS.foodPerDay * (1 - saving) * multiplier(state, 'food') * difficulty(state).food;
 }
 
+/** Si un producto es comida (la lana y el pano no). */
+export const isFood = (p: ProductId): boolean => PRODUCTS[p].food !== false;
+
+/** Reserva «hasta las cuentas»: guarda lo que se comera hasta el proximo cierre de estacion. */
+export const UNTIL_ACCOUNTS = -1;
+
+/** Dias que cubre la reserva elegida (la de «hasta las cuentas» cambia cada dia). */
+export function reserveDays(state: GameState): number {
+  return state.pantry.reserveDays === UNTIL_ACCOUNTS ? nextSeasonStart(state.day) - state.day : state.pantry.reserveDays;
+}
+
 /** Productos que se pueden comer, del mas barato al mas caro: se come primero lo que menos vale. */
 export function eatingOrder(state: GameState): ProductId[] {
-  return PRODUCT_IDS.filter((p) => state.pantry.eat[p]).sort((a, b) => priceOf(state, a) - priceOf(state, b));
+  return PRODUCT_IDS.filter((p) => isFood(p) && state.pantry.eat[p]).sort((a, b) => priceOf(state, a) - priceOf(state, b));
 }
 
 export function foodStock(state: GameState): number {
@@ -37,7 +48,7 @@ export function foodDays(state: GameState): number {
 
 /** Raciones que hay que guardar para los dias de reserva elegidos. */
 export function reserveTotal(state: GameState): number {
-  return Math.ceil(dailyFood(state) * state.pantry.reserveDays);
+  return Math.ceil(dailyFood(state) * reserveDays(state));
 }
 
 /** Cuanto de cada producto queda apartado para comer (en el orden en que se comeria). */
@@ -59,11 +70,12 @@ export function surplus(state: GameState, p: ProductId): number {
 }
 
 export function setEdible(state: GameState, p: ProductId, eat: boolean): CommandResult {
+  if (eat && !isFood(p)) return { ok: false, msg: 'msg.notFood', params: { product: p } };
   state.pantry.eat[p] = eat;
   return { ok: true, msg: eat ? 'msg.pantryEat' : 'msg.pantryKeep', params: { product: p } };
 }
 
 export function setReserveDays(state: GameState, days: number): CommandResult {
-  state.pantry.reserveDays = Math.max(0, Math.round(days));
-  return { ok: true, msg: 'msg.pantryReserve', params: { days: state.pantry.reserveDays } };
+  state.pantry.reserveDays = days === UNTIL_ACCOUNTS ? UNTIL_ACCOUNTS : Math.max(0, Math.round(days));
+  return { ok: true, msg: days === UNTIL_ACCOUNTS ? 'msg.pantryReserveAccounts' : 'msg.pantryReserve', params: { days: reserveDays(state) } };
 }

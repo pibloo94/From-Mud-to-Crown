@@ -33,6 +33,8 @@ export interface ProductDef {
   xpCollect: number;
   /** Producto de taller: sube de precio con el titulo de Artesano. */
   artisan?: boolean;
+  /** false si no se come (lana, pano): no sale en la despensa. */
+  food?: boolean;
 }
 
 export interface CropDef {
@@ -408,6 +410,8 @@ export interface TipDef {
   rank?: RankId;
   /** Que el rey ya venda la carta de nobleza. */
   charter?: number;
+  /** Que ya haya encargos de los estamentos. */
+  commissions?: number;
 }
 
 export interface TutorialDef {

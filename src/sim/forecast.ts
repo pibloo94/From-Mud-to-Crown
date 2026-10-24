@@ -4,7 +4,7 @@
 // reglas que el cobro de verdad (taxes.ts) y nunca se desvia de el.
 import { PROGRESSION, VILLAGERS } from './data';
 import { nextSeasonStart } from './modifiers';
-import { dailyFood, foodDays, foodStock } from './pantry';
+import { dailyFood, foodDays, foodStock, reserveDays, reserveTotal } from './pantry';
 import { settleSeason } from './taxes';
 import type { GameState, Notice } from './types';
 
@@ -42,8 +42,13 @@ export interface FoodForecast {
   days: number;
   /** Raciones que harian falta hasta las cuentas. */
   needed: number;
-  /** Si se acaba antes de las cuentas. */
+  /** Si se acaba antes de las cuentas (sin contar lo que se coseche o recoja hasta entonces). */
   short: boolean;
+  /** Reserva de la despensa: dias que cubre y raciones. */
+  reserveDays: number;
+  reserve: number;
+  /** Por debajo de la reserva elegida: es lo que avisa en rojo (lo que la despensa promete guardar). */
+  below: boolean;
   /** Dias de hambre que aguanta un aldeano antes de irse. */
   hungerDays: number;
 }
@@ -60,6 +65,9 @@ export function foodForecast(state: GameState): FoodForecast {
     days,
     needed: Math.ceil(perDay * daysLeft),
     short: state.villagers.length > 0 && days < daysLeft,
+    reserveDays: reserveDays(state),
+    reserve: reserveTotal(state),
+    below: state.villagers.length > 0 && foodStock(state) < reserveTotal(state),
     hungerDays: VILLAGERS.hungerDays,
   };
 }

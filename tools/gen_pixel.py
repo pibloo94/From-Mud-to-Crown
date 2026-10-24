@@ -166,6 +166,12 @@ class Spr:
         self.poly([m1, (B[0], B[1]), (R[0] + over, R[1]), m2], back)
         self.poly([F, (R[0] + over, R[1]), m2], gable)
         self.poly([L, F, m2, m1], front)
+        # el hastial no queda liso: sillares si es de piedra, tablas si es de madera
+        tri = [F, (R[0] + over, R[1]), m2]
+        if gable in STONE_DARKER:
+            masonry(self, tri, gable, rnd)
+        elif gable in WOOD:
+            planks(self, tri, gable)
         if texture and rnd:
             texture(self, L, F, m2, m1, rnd)
         return m1, m2
@@ -264,6 +270,59 @@ def banner(s: Spr, x, y, h=9, flip=False):
         s.px(x + d * (k + 1), y - h + 2, "red2" if k < 3 else "red1")
         if k < 3:
             s.px(x + d * (k + 1), y - h + 3, "red0")
+
+
+# Tonos de piedra: la junta va un tono mas oscura y alguna piedra suelta, uno mas clara.
+STONE_DARKER = {"r4": "r3", "r3": "r2", "r2": "r1", "r1": "r0", "r0": "#2c2a25"}
+STONE_LIGHTER = {"r0": "r1", "r1": "r2", "r2": "r3", "r3": "r4", "r4": "r4"}
+WOOD = {"w1", "w2", "w3", "w4"}
+
+
+def masonry(s: Spr, pts, base, rnd=None):
+    """Sillares sobre lo pintado de color `base` dentro del recuadro de `pts`: hiladas de 3 px con
+    juntas verticales alternas. Asi ningun pano de piedra queda liso."""
+    col = rgba(base)
+    joint, light = STONE_DARKER[base], STONE_LIGHTER[base]
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    for y in range(max(0, int(min(ys))), min(s.h, int(max(ys)) + 1)):
+        for x in range(max(0, int(min(xs))), min(s.w, int(max(xs)) + 1)):
+            if s.im.getpixel((x, y)) != col:
+                continue
+            if y % 3 == 2 or (x + (y // 3 % 2) * 2) % 4 == 0:
+                s.px(x, y, joint)
+            elif rnd is not None and rnd.random() < 0.07:
+                s.px(x, y, light)
+
+
+def planks(s: Spr, pts, base):
+    """Tablas horizontales sobre lo pintado de color `base` (hastiales de madera)."""
+    col = rgba(base)
+    dark = {"w4": "w3", "w3": "w2", "w2": "w1", "w1": "w0"}[base]
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    for y in range(max(0, int(min(ys))), min(s.h, int(max(ys)) + 1)):
+        if y % 3 != 2:
+            continue
+        for x in range(max(0, int(min(xs))), min(s.w, int(max(xs)) + 1)):
+            if s.im.getpixel((x, y)) == col:
+                s.px(x, y, dark)
+
+
+def fill_holes(s: Spr, c="r0"):
+    """Rellena los huecos transparentes encerrados por el dibujo (no se ve hierba a traves de un muro)."""
+    seen = set()
+    stack = [(x, y) for x in range(s.w) for y in (0, s.h - 1)] + [(x, y) for y in range(s.h) for x in (0, s.w - 1)]
+    while stack:
+        x, y = stack.pop()
+        if (x, y) in seen or not (0 <= x < s.w and 0 <= y < s.h) or s.im.getpixel((x, y))[3] >= 128:
+            continue
+        seen.add((x, y))
+        stack += [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+    for y in range(s.h):
+        for x in range(s.w):
+            if (x, y) not in seen and s.im.getpixel((x, y))[3] < 128:
+                s.px(x, y, c)
 
 
 def touching_border(s: Spr):
@@ -1140,8 +1199,13 @@ def crenel_wall(s: Spr, a, b, h, c_face, rnd):
         s.rect(x, y - h, x, y, c_face)
         if k % 4 < 2:
             s.rect(x, y - h - 2, x, y - h - 1, c_face)
-        if rnd.random() < 0.15:
-            s.px(x, y - rnd.randint(1, h - 1), "r0")
+        # sillares que siguen la pendiente del muro: hiladas de 3 px y juntas alternas
+        joint = STONE_DARKER.get(c_face, "r0")
+        for z in range(h):
+            if z % 3 == 2 or (k + (z // 3 % 2) * 2) % 4 == 0:
+                s.px(x, y - z, joint)
+            elif rnd.random() < 0.06:
+                s.px(x, y - z, STONE_LIGHTER.get(c_face, c_face))
 
 
 def manor(stage: int) -> Spr:
@@ -1170,6 +1234,11 @@ def manor(stage: int) -> Spr:
         for (x, y) in ((cx - 28, by - 16), (cx, by - 31), (cx + 28, by - 16)):
             s.rect(x - 2, y - 11, x + 2, y, "r2")
             s.rect(x + 1, y - 11, x + 2, y, "r1")
+            for z in (2, 5, 8):
+                s.rect(x - 2, y - z, x, y - z, "r1")
+                s.rect(x + 1, y - z, x + 2, y - z, "r0")
+            for z, dx in ((1, -1), (4, 0), (7, -1), (10, 0)):
+                s.px(x + dx, y - z, "r1")
             s.px(x - 2, y - 12, "r3")
             s.px(x + 2, y - 12, "r3")
     if stage >= 3:
@@ -1219,6 +1288,7 @@ def manor(stage: int) -> Spr:
         # tramos delanteros de la muralla, bajos
         crenel_wall(s, (cx - 30, by - 16), (cx - 18, by - 10), 4, "r2", rnd)
         crenel_wall(s, (cx + 19, by - 10), (cx + 30, by - 16), 4, "r1", rnd)
+    fill_holes(s)
     return finish(s)
 
 
@@ -1352,6 +1422,12 @@ def resource_site(s: Spr, material: str, by, stage: int, rnd):
                 y0 = by - 15 - z + (x - 9) // 2
                 s.line((x, y0), (x, y0 + 2), "r2")
         s.line((19, by - 10), (19, by - 20), "r1")
+        masonry(s, [(19, by - 23), (25, by - 10)], "r2", rnd)
+        # vetas y grietas en la pena
+        for _ in range(14):
+            x, y = rnd.randint(7, 27), rnd.randint(by - 28, by - 14)
+            if s.im.getpixel((x, y)) == rgba("r0"):
+                s.px(x, y, "r1")
         if old:
             s.line((11, by - 22), (16, by - 14), "r1")
             s.ellipse(22, by - 7, 1, 1, "r2")

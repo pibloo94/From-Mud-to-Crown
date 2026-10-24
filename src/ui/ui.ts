@@ -462,10 +462,10 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     const f = seasonForecast(s);
     const due = f.total - f.income;
     ledgerText.textContent = t('hud.ledgerShort', { n: Math.max(0, due), days: f.daysLeft });
-    ledgerPill.classList.toggle('warn', f.short > 0 || f.food.short);
+    ledgerPill.classList.toggle('warn', f.short > 0 || f.food.below);
     ledgerPill.title = f.grace
       ? t('hud.ledgerGrace', { days: f.daysLeft })
-      : `${t('hud.ledger', { days: f.daysLeft, n: Math.max(0, due), coins: s.coins })}${f.short > 0 ? ` ${t('ledger.short', { n: f.short })}` : ''}${f.food.short ? ` ${t('hud.ledgerFood', { days: f.food.days })}` : ''}`;
+      : `${t('hud.ledger', { days: f.daysLeft, n: Math.max(0, due), coins: s.coins })}${f.short > 0 ? ` ${t('ledger.short', { n: f.short })}` : ''}${f.food.below ? ` ${t('hud.ledgerFood', { days: f.food.days, reserve: f.food.reserveDays })}` : ''}`;
     ledgerPill.setAttribute('aria-label', ledgerPill.title);
   }
 

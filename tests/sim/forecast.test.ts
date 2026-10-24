@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { createNewGame } from '../../src/sim/state';
 import { settleSeason } from '../../src/sim/taxes';
 import { seasonForecast } from '../../src/sim/forecast';
-import { advanceDay } from '../../src/sim/rules';
+import { advanceDay, sell } from '../../src/sim/rules';
+import { surplus } from '../../src/sim/pantry';
 import { hireVillager, setJob } from '../../src/sim/villagers';
 import { upgradeBuilding } from '../../src/sim/buildings';
 import { nextSeasonStart } from '../../src/sim/modifiers';
@@ -79,6 +80,22 @@ describe('parte de la estacion', () => {
     const f = seasonForecast(s);
     expect(f.food.short).toBe(true);
     expect(f.food.needed).toBeGreaterThan(f.food.stock);
+  });
+
+  it('vender solo lo que sobra nunca deja la comida por debajo de la reserva (no avisa en rojo)', () => {
+    const s = farm();
+    for (const p of PRODUCT_IDS) s.inventory[p] = 0;
+    s.inventory.wheat = 200;
+    s.pantry.reserveDays = 7;
+    sell(s, 'wheat', surplus(s, 'wheat'));
+    const f = seasonForecast(s);
+    expect(f.food.stock).toBe(f.food.reserve);
+    expect(f.food.below).toBe(false);
+    // Aunque no llegue hasta las cuentas: eso es un dato, no un aviso
+    expect(f.food.short).toBe(true);
+    // Si se vende de la reserva, si avisa
+    sell(s, 'wheat', 1);
+    expect(seasonForecast(s).food.below).toBe(true);
   });
 
   it('unos dias antes de las cuentas avisa si no llega el dinero', () => {

@@ -3,7 +3,8 @@ import { createNewGame, plotKey } from '../../src/sim/state';
 import { advanceDay, bestCrop, isRipe, plant } from '../../src/sim/rules';
 import { upgradeBuilding } from '../../src/sim/buildings';
 import { buyMaterial, buyMissing, materialsPrice, missingMaterials } from '../../src/sim/materials';
-import { eatingOrder, reserved, reserveTotal, surplus } from '../../src/sim/pantry';
+import { UNTIL_ACCOUNTS, dailyFood, eatingOrder, reserveDays, reserved, reserveTotal, setEdible, setReserveDays, surplus } from '../../src/sim/pantry';
+import { nextSeasonStart } from '../../src/sim/modifiers';
 import { carterSells, farmerPlots, hireVillager, setFarmerCrop, setJob, upgradeTool } from '../../src/sim/villagers';
 import { BUILDINGS, MATERIALS, PRODUCT_IDS, VILLAGERS } from '../../src/sim/data';
 import { DAYS_PER_SEASON } from '../../src/sim/calendar';
@@ -117,6 +118,27 @@ describe('despensa', () => {
     days(s, 1);
     expect(s.inventory.wheat).toBe(10);
     expect(s.villagers[0].hungry).toBe(1);
+  });
+
+  it('la lana y el pano no son comida: ni se pueden marcar ni se comen', () => {
+    const s = village(1);
+    expect(setEdible(s, 'wool', true).ok).toBe(false);
+    expect(s.pantry.eat.wool).toBe(false);
+    // Una partida antigua con la lana marcada: no cuenta como comida.
+    s.pantry.eat.cloth = true;
+    s.inventory.cloth = 50;
+    expect(eatingOrder(s)).not.toContain('cloth');
+    expect(reserved(s).cloth).toBe(0);
+  });
+
+  it('la reserva «hasta las cuentas» guarda lo que se comera hasta el cierre de la estacion', () => {
+    const s = village(2);
+    s.day = 10;
+    expect(setReserveDays(s, UNTIL_ACCOUNTS).ok).toBe(true);
+    expect(reserveDays(s)).toBe(nextSeasonStart(10) - 10);
+    expect(reserveTotal(s)).toBe(Math.ceil(dailyFood(s) * (nextSeasonStart(10) - 10)));
+    s.day = 25;
+    expect(reserveDays(s)).toBe(nextSeasonStart(25) - 25);
   });
 
   it('el carretero no vende la reserva de la despensa', () => {

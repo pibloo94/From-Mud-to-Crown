@@ -1470,9 +1470,10 @@ button.level-box:hover .rank-text {
 }
 
 .job-btn.active {
+  /* El marco claro (border-image con fill) tapa el fondo: el elegido usa el marco oscuro */
+  border-image: url('../public/assets/ui/btn.png') 4 fill / 6px / 0 round;
   background: var(--iron-2);
   color: var(--gold-3);
-  border-color: #000;
 }
 
 .job-desc {

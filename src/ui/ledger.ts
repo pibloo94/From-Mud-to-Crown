@@ -59,12 +59,17 @@ export function ledgerView(ctx: PanelCtx): HTMLElement {
           { class: 'accounts' },
           row(t('ledger.foodPerDay'), food.perDay.toLocaleString(getLang())),
           row(t('ledger.foodStock'), String(food.stock)),
-          row(t('ledger.foodDays'), t('ledger.days', { n: food.days }), food.short ? 'total warn-text' : 'total'),
+          row(t('ledger.foodReserve', { days: food.reserveDays }), String(food.reserve), food.below ? 'warn-text' : ''),
+          row(t('ledger.foodDays'), t('ledger.days', { n: food.days }), food.below ? 'total warn-text' : 'total'),
         ),
+    // En rojo solo si se esta por debajo de la reserva elegida en la despensa (lo que se promete guardar).
+    // Que no llegue hasta las cuentas es un dato, no un fallo: lo que se coseche y se recoja tambien cuenta.
     fed &&
-      (food.short
-        ? h('p', { class: 'fair-banner ledger-verdict' }, t('ledger.foodShort', { n: food.needed - food.stock, hunger: food.hungerDays }))
-        : h('p', { class: 'ledger-ok' }, t('ledger.foodOk', { n: food.needed }))),
+      (food.below
+        ? h('p', { class: 'fair-banner ledger-verdict' }, t('ledger.foodBelow', { n: food.reserve - food.stock, days: food.reserveDays, hunger: food.hungerDays }))
+        : food.short
+          ? h('p', { class: 'hint left' }, t('ledger.foodProduce', { needed: food.needed, stock: food.stock, days: f.daysLeft }))
+          : h('p', { class: 'ledger-ok' }, t('ledger.foodOk', { n: food.needed }))),
     h('p', { class: 'hint' }, t('ledger.tip')),
     h(
       'div',

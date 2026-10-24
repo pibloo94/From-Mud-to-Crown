@@ -29,7 +29,8 @@ import {
   type UpgradeDef,
 } from '../sim/data';
 import { hasMaterials, materialsList, materialsPrice, missingMaterials } from '../sim/materials';
-import { eatingOrder, reserved, reserveTotal } from '../sim/pantry';
+import { UNTIL_ACCOUNTS, eatingOrder, isFood, reserveDays, reserved, reserveTotal } from '../sim/pantry';
+import { obtainable } from '../sim/commissions';
 import { cropUnlocked, hasFeature } from '../sim/progress';
 import { plantableCrops } from '../sim/rules';
 import { builtWorkshops } from '../sim/workshops';
@@ -430,7 +431,8 @@ function pantryView(ctx: PanelCtx): HTMLElement {
         ? t('pantry.needs', { perDay, days: Number.isFinite(days) ? days : '∞' })
         : t('pantry.noVillagers'),
     ),
-    ...PRODUCT_IDS.map((p) => {
+    // Solo comida (la lana y el pano no se comen) que ya se tiene o se puede conseguir.
+    ...PRODUCT_IDS.filter((p) => isFood(p) && (s.inventory[p] > 0 || obtainable(s, p))).map((p) => {
       const eat = s.pantry.eat[p];
       const rank = order.indexOf(p);
       return h(
@@ -459,11 +461,12 @@ function pantryView(ctx: PanelCtx): HTMLElement {
         h(
           'button',
           { class: `job-btn ${s.pantry.reserveDays === d ? 'active' : ''}`, 'aria-pressed': String(s.pantry.reserveDays === d), onclick: () => ctx.sim.setReserveDays(d) },
-          d === 0 ? t('pantry.noReserve') : t('pantry.days', { n: d }),
+          d === 0 ? t('pantry.noReserve') : d === UNTIL_ACCOUNTS ? t('pantry.untilAccounts') : t('pantry.days', { n: d }),
         ),
       ),
     ),
-    h('p', { class: 'panel-stats' }, t('pantry.reserveTotal', { n: reserveTotal(s) })),
+    h('p', { class: 'panel-stats' }, t('pantry.reserveTotal', { n: reserveTotal(s), days: reserveDays(s) })),
+    s.pantry.reserveDays !== UNTIL_ACCOUNTS && h('p', { class: 'hint left' }, t('pantry.accountsHint')),
   );
 }
 

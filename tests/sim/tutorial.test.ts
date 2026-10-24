@@ -3,7 +3,8 @@ import { createNewGame } from '../../src/sim/state';
 import { Game } from '../../src/sim/game';
 import { advanceDay, isRipe } from '../../src/sim/rules';
 import { ackStep, advanceTutorial, currentStep, noteAction, pendingTip, tutorialTiles } from '../../src/sim/tutorial';
-import { TUTORIAL } from '../../src/sim/data';
+import { PROGRESSION, TUTORIAL } from '../../src/sim/data';
+import { DAYS_PER_SEASON } from '../../src/sim/calendar';
 import { deserialize, serialize } from '../../src/save/serialize';
 
 function fresh(): Game {
@@ -95,6 +96,20 @@ describe('consejos', () => {
     g.state.day = 3;
     g.setTips(false);
     expect(pendingTip(g.state)).toBeNull();
+  });
+
+  it('las cuentas se explican antes de las primeras que cobran, y los encargos al llegar el primero', () => {
+    const g = fresh();
+    const s = g.state;
+    g.skipTutorial();
+    const taxes = TUTORIAL.tips.find((t) => t.id === 'taxes')!;
+    expect(taxes.days!).toBeLessThan(PROGRESSION.taxes.graceSeasons * DAYS_PER_SEASON + DAYS_PER_SEASON);
+    // Todo lo demas ya visto: solo falta el de los encargos
+    s.tutorial.seen = TUTORIAL.tips.map((t) => t.id).filter((id) => id !== 'commissions');
+    s.day = 200;
+    expect(pendingTip(s)).toBeNull();
+    s.commissions.offers = [{ id: 'kingLevy', estate: 'king', need: {}, coins: 100, pay: 0, rep: 5, done: false } as never];
+    expect(pendingTip(s)).toBe('commissions');
   });
 
   it('todos los consejos tienen una condicion', () => {

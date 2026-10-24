@@ -7,7 +7,7 @@ import { dateFromDay } from '../sim/calendar';
 import { hasFeature } from '../sim/progress';
 import { animalCapacity } from '../sim/rules';
 import { materialPrice, materialUnlocked } from '../sim/materials';
-import { reserved, surplus } from '../sim/pantry';
+import { reserveDays, reserveTotal, reserved, surplus } from '../sim/pantry';
 import { isProtected, protectionCost } from '../sim/risk';
 import { seasonForecast } from '../sim/forecast';
 import type { AnimalId, MaterialId, ProductId, ProtectionId } from '../sim/types';
@@ -97,7 +97,17 @@ function sellTab(ctx: PanelCtx): HTMLElement[] {
       (!Object.values(CROPS).some((c) => c.product === p && s.level < c.unlockLevel) &&
         (!PRODUCTS[p].artisan || builtWorkshops(s).some((id) => WORKSHOPS[id].recipe.out[p]))),
   );
-  return products.map((p) => {
+  // La reserva de la despensa, a la vista: lo que no se vende por defecto (y se puede cambiar).
+  const reserveLine =
+    s.villagers.length > 0
+      ? h(
+          'button',
+          { class: 'ledger-line', onclick: () => ctx.openBuilding('granary', 'pantry') },
+          icon('icon_granary', 'icon tiny'),
+          t('market.reserveLine', { days: reserveDays(s), n: reserveTotal(s) }),
+        )
+      : null;
+  const rows = products.map((p) => {
     const have = s.inventory[p];
     const price = priceOf(s, p);
     const keep = res[p];
@@ -136,6 +146,7 @@ function sellTab(ctx: PanelCtx): HTMLElement[] {
       }),
     );
   });
+  return reserveLine ? [reserveLine, ...rows] : rows;
 }
 
 function buyTab(ctx: PanelCtx): HTMLElement[] {
