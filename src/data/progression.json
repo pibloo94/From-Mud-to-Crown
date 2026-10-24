@@ -216,8 +216,8 @@
       "pathRole": "any",
       "effects": { "tolls": 0.9 }
     },
-    { "id": "master", "level": 15, "branch": true, "path": "craft", "pathLevel": 3, "pathRole": "main", "workshops": 3, "artisans": 65, "effects": { "materials": 0.85 } },
-    { "id": "grandMaster", "level": 18, "branch": true, "path": "craft", "pathLevel": 4, "pathRole": "focus", "workshops": 3, "artisans": 80, "effects": { "priceAll": 1.05 } },
+    { "id": "master", "level": 15, "branch": true, "path": "craft", "pathLevel": 3, "pathRole": "main", "workshops": 3, "artisans": 50, "effects": { "materials": 0.85 } },
+    { "id": "grandMaster", "level": 18, "branch": true, "path": "craft", "pathLevel": 4, "pathRole": "focus", "workshops": 3, "artisans": 60, "effects": { "priceAll": 1.05 } },
     { "id": "merchant", "level": 16, "branch": true, "path": "trade", "pathLevel": 3, "pathRole": "main", "trades": 15, "effects": { "priceAll": 1.04 } },
     { "id": "mayor", "level": 19, "branch": true, "path": "trade", "pathLevel": 4, "pathRole": "focus", "trades": 40, "king": 55, "effects": { "tolls": 0.75, "priceAll": 1.04 } },
     { "id": "layBrother", "level": 10, "branch": true, "path": "faith", "pathLevel": 1, "pathRole": "any", "church": 55, "effects": { "tithe": 0.9 } },

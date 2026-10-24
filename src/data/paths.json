@@ -38,7 +38,7 @@
   "sales": {
     "market": 0.014,
     "trade": 0.034,
-    "artisan": 0.03
+    "artisan": 0.045
   },
   "focusFrom": "landowner",
   "rates": {

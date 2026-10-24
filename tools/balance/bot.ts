@@ -11,7 +11,7 @@ import { priceOf } from '../../src/sim/market';
 import { nextUpgrade } from '../../src/sim/buildings';
 import { materialsPrice, missingMaterials } from '../../src/sim/materials';
 import { freeBeds, toolMaterials } from '../../src/sim/villagers';
-import { artisansOf, builtWorkshops, nextWorkshopUpgrade } from '../../src/sim/workshops';
+import { artisansOf, batchesPerDay, builtWorkshops, nextWorkshopUpgrade } from '../../src/sim/workshops';
 import { dailyFood, surplus } from '../../src/sim/pantry';
 import * as T from '../../src/sim/trade';
 import * as N from '../../src/sim/noble';
@@ -280,15 +280,44 @@ function farm(game: Game): void {
   }
 }
 
-const cropValue = (s: GameState, c: CropId): number => (CROPS[c].yield * priceOf(s, CROPS[c].product)) / CROPS[c].growDays;
+const cropValue = (s: GameState, c: CropId): number => (CROPS[c].yield * unitValue(s, CROPS[c].product)) / CROPS[c].growDays;
 
-/** Vende todo menos 10 dias de comida para los aldeanos. */
+/** Lo que vale una unidad: su precio o, si un taller con artesano la transforma sola, lo que sale. */
+function unitValue(s: GameState, p: ProductId): number {
+  let best = priceOf(s, p);
+  for (const id of builtWorkshops(s)) {
+    const { in: inputs, out } = WORKSHOPS[id].recipe;
+    const keys = Object.keys(inputs);
+    if (artisansOf(s, id).length === 0 || keys.length !== 1 || keys[0] !== p) continue;
+    const made = Object.entries(out).reduce((sum, [q, n]) => sum + (n ?? 0) * priceOf(s, q as ProductId), 0);
+    best = Math.max(best, made / (inputs[p] ?? 1));
+  }
+  return best;
+}
+
+/** Lo que piden los talleres con artesano para unos dias de trabajo. */
+function workshopNeeds(s: GameState): Partial<Record<ProductId, number>> {
+  const need: Partial<Record<ProductId, number>> = {};
+  for (const id of builtWorkshops(s)) {
+    if (artisansOf(s, id).length === 0) continue;
+    const batches = Math.ceil(batchesPerDay(s, id) * WORKSHOP_STOCK_DAYS);
+    for (const [p, n] of Object.entries(WORKSHOPS[id].recipe.in)) need[p as ProductId] = (need[p as ProductId] ?? 0) + (n ?? 0) * batches;
+  }
+  return need;
+}
+
+/** Dias de trabajo de los talleres que se guardan sin vender. */
+const WORKSHOP_STOCK_DAYS = 4;
+
+/** Vende todo menos 10 dias de comida para los aldeanos y lo que piden los talleres. */
 function sell(game: Game): void {
   const s = game.state;
   let reserve = Math.ceil(dailyFood(s) * 10);
+  const forWorkshops = workshopNeeds(s);
   for (const p of PRODUCT_IDS) {
-    const keep = Math.min(s.inventory[p], reserve);
-    reserve -= keep;
+    const food = Math.min(s.inventory[p], reserve);
+    reserve -= food;
+    const keep = Math.min(s.inventory[p], food + (forWorkshops[p] ?? 0));
     const qty = s.inventory[p] - keep;
     if (qty > 0) game.sell(p, qty);
   }
@@ -347,7 +376,18 @@ function spend(game: Game): void {
       const before = s.villagers.length;
       game.hireVillager();
       if (s.villagers.length > before) game.assignArtisan(s.villagers[s.villagers.length - 1].id, id);
+    } else if (artisansOf(s, id).length === 0) {
+      // Sin camas libres, un labrador pasa al taller si quedan al menos dos en el campo.
+      const farmers = s.villagers.filter((v) => v.job === 'farmer');
+      if (farmers.length > 2) game.assignArtisan(farmers[farmers.length - 1].id, id);
     }
+  }
+  // Como haria un jugador: con molino trabajando, un labrador siembra trigo para el molino.
+  if (s.workshops.mill && artisansOf(s, 'mill').length > 0) {
+    const farmers = s.villagers.filter((v) => v.job === 'farmer');
+    if (farmers.length > 0 && !farmers.some((v) => v.crop === 'wheat')) game.setFarmerCrop(farmers[0].id, 'wheat');
+  }
+  for (const id of builtWorkshops(s)) {
     const up = nextWorkshopUpgrade(s, id);
     if (up && spare(s) > priceWith(s, up.cost, up.materials) + 300) {
       game.buyMissingForWorkshop(id);
