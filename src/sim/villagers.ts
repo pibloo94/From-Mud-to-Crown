@@ -9,7 +9,7 @@ import { hasMaterials, materialsList, missingMaterials, payMaterials } from './m
 import { changeRep, estateMult } from './estates';
 import { meritsFromSales } from './paths';
 import type { CommandResult, CropId, GameState, JobId, Notice, ProductId, Villager } from './types';
-import { ownedRanks } from './progress';
+import { bonusBeds } from './character';
 
 export { dailyFood, foodDays } from './pantry';
 
@@ -17,8 +17,8 @@ const ok = (msg: string, params?: CommandResult['params']): CommandResult => ({ 
 const no = (msg: string, params?: CommandResult['params']): CommandResult => ({ ok: false, msg, params });
 
 export function beds(state: GameState): number {
-  // Los rangos del camino del Pueblo dan camas de mas.
-  return buildingStat(state, 'house', 'beds') + ownedRanks(state).reduce((n, r) => n + (r.beds ?? 0), 0);
+  // Rasgos (Hombre del pueblo) y rangos del camino del Pueblo dan camas de mas.
+  return buildingStat(state, 'house', 'beds') + bonusBeds(state);
 }
 
 export function freeBeds(state: GameState): number {
@@ -164,6 +164,7 @@ export function feedVillagers(state: GameState): Notice[] {
     if (starving) {
       state.villagers = state.villagers.filter((v) => v !== starving);
       changeRep(state, 'commoners', -5);
+      state.stats.leftHunger++;
       notices.push({ ok: false, msg: 'msg.villagerLeftHunger', params: { name: starving.name } });
     } else {
       notices.push({ ok: false, msg: 'msg.villagersHungry' });

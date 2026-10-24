@@ -5,6 +5,7 @@ import { hasMaterials, payMaterials } from './materials';
 import { hasRank, mainRanks, meetsRank, rankDef } from './progress';
 import { applyRep, changeRep, repFrom } from './estates';
 import type { CommandResult, GameState, LiegeId, MaterialId, NobleState, ProductId, RankId } from './types';
+import { recordDeeds } from './character';
 
 export function defaultNoble(): NobleState {
   return {
@@ -219,6 +220,7 @@ export function doPatronage(state: GameState, id: string): CommandResult {
   state.noble.patronage[id] = seasonIndex(state.day);
   state.noble.prestige += def.prestige;
   applyRep(state, def.rep);
+  recordDeeds(state, def.rep);
   return { ok: true, msg: `noble.patronage.${id}.done`, params: { prestige: def.prestige } };
 }
 

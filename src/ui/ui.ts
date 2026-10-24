@@ -39,7 +39,7 @@ import { createCoach, tipView } from './coach';
 import { pendingTip } from '../sim/tutorial';
 import { manorView, type ManorTab } from './noble';
 import { ledgerView } from './ledger';
-import { characterView, randomName, traitLinesEl, type CharacterTab } from './character';
+import { characterView, randomName, traitEarnedView, traitLinesEl, type CharacterTab } from './character';
 import type { CharacterAnswers } from '../sim/character';
 import { isNoble } from '../sim/noble';
 
@@ -71,10 +71,11 @@ type Modal =
   | { kind: 'event'; id: string; result?: CommandResult }
   | { kind: 'tip'; id: string }
   | { kind: 'ledger' }
-  | { kind: 'character'; tab: CharacterTab };
+  | { kind: 'character'; tab: CharacterTab }
+  | { kind: 'trait'; id: string };
 
 /** Todas las ventanas detienen el tiempo mientras estan abiertas; al cerrarlas vuelve la velocidad anterior. */
-const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'levelup', 'season', 'rank', 'caravan', 'event', 'tip', 'ledger', 'character'];
+const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'levelup', 'season', 'rank', 'caravan', 'event', 'tip', 'ledger', 'character', 'trait'];
 /** Ventanas que se cierran con Escape o tocando fuera. */
 const DISMISSABLE: Modal['kind'][] = ['menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'ledger', 'character'];
 /** Ventanas desde las que se puede ir a otra y volver con "Atras". */
@@ -292,6 +293,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
         if (e.notice.card === 'season') showCard({ kind: 'season', params: e.notice.params ?? {} });
         else if (e.notice.card === 'rank') showCard({ kind: 'rank', rank: e.notice.params?.rank as RankId });
         else if (e.notice.card === 'caravan') showCard({ kind: 'caravan', params: e.notice.params ?? {} });
+        else if (e.notice.card === 'trait') showCard({ kind: 'trait', id: String(e.notice.params?.trait) });
         else toast(t(e.notice.msg, e.notice.params), e.notice.ok ? 'good' : 'warn');
         break;
       case 'result':
@@ -538,6 +540,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       event: eventView,
       tip: () => tipView(sim, (modal as Extract<Modal, { kind: 'tip' }>).id, () => closeModal()),
       ledger: () => ledgerView(panelCtx),
+      trait: () => traitEarnedView(panelCtx, (modal as Extract<Modal, { kind: 'trait' }>).id, () => openModal({ kind: 'character', tab: 'traits' })),
       character: () => characterView(panelCtx, (modal as Extract<Modal, { kind: 'character' }>).tab, (tab) => openModal({ kind: 'character', tab })),
     };
     // Al repintar la misma ventana se conserva el desplazamiento (p. ej. al mejorar algo de la lista).

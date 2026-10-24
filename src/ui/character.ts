@@ -5,7 +5,7 @@ import { PATHS, PROGRESSION, TRAITS, type RankDef } from '../sim/data';
 import { hasRank } from '../sim/progress';
 import { PATH_IDS, canChoosePath, pathLevel, pathRate } from '../sim/paths';
 import type { GameState, PathId } from '../sim/types';
-import { traitDef, traitLines, type TraitLine } from '../sim/character';
+import { EARNED_IDS, earnStatus, traitDef, traitLines, type TraitLine } from '../sim/character';
 import { ESTATE_IDS } from '../sim/estates';
 import { estateBar, pct, tabs, type PanelCtx } from './panels';
 
@@ -17,6 +17,7 @@ const signed = (n: number) => (n > 0 ? `+${n}` : `−${Math.abs(n)}`);
 export function traitLineText(l: TraitLine): string {
   if (l.type === 'startRep') return t('traitFx.startRep', { estate: l.key, n: signed(l.value) });
   if (l.type === 'repGain') return t('traitFx.repGain', { estate: l.key, pct: pct(l.value) });
+  if (l.type === 'beds') return t('rankFx.beds', { n: l.value });
   return t(`traitFx.${l.key}`, { pct: pct(l.value) });
 }
 
@@ -32,6 +33,50 @@ export function traitLinesEl(id: string): HTMLElement | null {
   const def = traitDef(id);
   if (!def) return null;
   return h('ul', { class: 'trait-lines' }, ...traitLines(def).map((l) => h('li', { class: l.good ? 'good' : 'bad' }, `${l.good ? '▲' : '▼'} ${traitLineText(l)}`)));
+}
+
+/** Tarjeta al ganar un rasgo con las decisiones de la partida. */
+export function traitEarnedView(ctx: PanelCtx, id: string, openSheet: () => void): HTMLElement {
+  const def = traitDef(id);
+  return h(
+    'div',
+    { class: 'sheet event trait-earned' },
+    h('div', { class: 'event-seal' }, icon(def?.icon ?? 'icon_scroll', 'event-icon')),
+    h('span', { class: 'event-cat cat-offer' }, t('traitKind.earned')),
+    h('h2', {}, t('traitCard.title', { trait: id })),
+    h('p', { class: 'event-text' }, t(`trait.${id}.desc`)),
+    traitLinesEl(id),
+    h('p', { class: 'hint' }, t('traitCard.hint', { max: TRAITS.earned.max })),
+    h('button', { class: 'btn primary', onclick: () => ctx.close() }, t('seasonCard.ok')),
+    h('button', { class: 'btn', onclick: openSheet }, t('traitCard.sheet')),
+  );
+}
+
+/** Rasgos que se pueden ganar y cuanto falta, con la barra de lo hecho. */
+function earnableList(s: GameState): HTMLElement {
+  const full = s.character.earned.length >= TRAITS.earned.max;
+  const rows = EARNED_IDS.filter((id) => !s.character.earned.includes(id)).map((id) => {
+    const def = traitDef(id)!;
+    const { have, need } = earnStatus(s, id);
+    const e = def.earn!;
+    const how = e.estate
+      ? t(e.net! > 0 ? 'character.earn.for' : 'character.earn.against', { estate: e.estate, n: Math.min(have, need), need })
+      : t(`character.earn.${e.stat}`, { n: Math.min(have, need), need });
+    return h(
+      'div',
+      { class: 'earnable' },
+      h('div', { class: 'rep-head' }, h('b', {}, t(`trait.${id}`)), h('span', {}, how)),
+      h('span', { class: 'rep-bar' }, h('span', { class: 'rep-fill', style: `width:${Math.min(100, Math.round((have / need) * 100))}%` })),
+      traitLinesEl(id),
+    );
+  });
+  return h(
+    'div',
+    { class: 'earnable-list' },
+    h('h3', { class: 'market-section' }, t('character.earnable')),
+    h('p', { class: `hint left ${full ? 'warn-text' : ''}` }, t(full ? 'character.earnFull' : 'character.earnHint', { max: TRAITS.earned.max })),
+    ...rows,
+  );
 }
 
 function traitCard(id: string): HTMLElement | null {
@@ -132,6 +177,10 @@ export function characterView(ctx: PanelCtx, tab: CharacterTab, openTab: (tab: C
           { class: 'trait-list' },
           c.traits.length > 0 ? h('p', { class: 'hint left' }, t('character.traitsHint')) : h('p', { class: 'hint left' }, t('character.noTraits')),
           ...c.traits.map(traitCard),
+          h('h3', { class: 'market-section' }, t('character.earnedTitle', { n: c.earned.length, max: TRAITS.earned.max })),
+          c.earned.length === 0 && h('p', { class: 'hint left' }, t('character.noEarned')),
+          ...c.earned.map(traitCard),
+          earnableList(s),
         )
       : h('div', {}, h('p', { class: 'hint left' }, t('progress.estatesHint')), ...ESTATE_IDS.map((e) => estateBar(s, e)));
   return h(

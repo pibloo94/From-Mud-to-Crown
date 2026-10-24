@@ -11,9 +11,10 @@ import { relayFief } from '../sim/layout';
 import { rankDef, renownProgress } from '../sim/progress';
 import { startReps } from '../sim/estates';
 import { startPaths } from '../sim/paths';
+import { emptyCharacter } from '../sim/character';
 
 export const SAVE_FORMAT = 'from-mud-to-crown-save';
-export const SAVE_VERSION = 17;
+export const SAVE_VERSION = 18;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;
@@ -120,6 +121,11 @@ export function migrate(state: Record<string, unknown>, from: number): GameState
   // v16 -> v17: rangos por camino. Quien ya era Senor, Baron o Conde sigue la Corona: se le pone en
   // foco si no tenia, con los meritos que pide su rango, para que pueda seguir subiendo.
   if (from < 17) s = { ...s, paths: crownForNobles(s as GameState) };
+  // v17 -> v18: rasgos ganados. Se empieza sin decisiones contadas ni rasgos ganados.
+  if (from < 18) {
+    const blank = emptyCharacter();
+    s = { ...s, character: { ...blank, ...s.character, earned: [], deeds: blank.deeds }, stats: { ...s.stats, leftHunger: 0 } };
+  }
   return s as GameState;
 }
 

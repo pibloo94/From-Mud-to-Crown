@@ -17,6 +17,7 @@ import { buildableWorkshops, workshopAt, workshopsWork } from './workshops';
 import { caravansReturn } from './trade';
 import { settleSeason } from './taxes';
 import type { AnimalId, BuildingId, CommandResult, CropId, GameState, Notice, Plot, ProductId, Speed, WorkshopId } from './types';
+import { updateEarnedTraits } from './character';
 
 /** Avance maximo por fotograma, para que una pausa del navegador no salte muchos dias de golpe. */
 export const MAX_FRAME_MS = 250;
@@ -109,6 +110,8 @@ export function advanceDay(state: GameState): Notice[] {
     if (f.short > 0) notices.push({ ok: false, msg: 'msg.ledgerShort', params: { days: daysLeft, short: f.short, total: f.total } });
   }
   notices.push(...caravansReturn(state));
+  // Rasgos que se ganan o se pierden con lo que se ha hecho.
+  notices.push(...updateEarnedTraits(state));
   const sale = carterSells(state);
   if (sale) notices.push(sale);
   expireModifiers(state);

@@ -2864,6 +2864,21 @@ img[src^='assets/pixel/'] {
   margin-top: 12px;
 }
 
+.earnable {
+  padding: 10px 4px;
+  border-top: 1px solid rgba(110, 80, 40, 0.3);
+}
+
+.earnable .rep-head span {
+  font-size: 14px;
+  text-align: right;
+}
+
+.trait-earned .trait-lines {
+  margin: 0 auto 10px;
+  display: inline-block;
+}
+
 /* Caminos: el que esta en foco, resaltado; los parados, apagados. */
 .path-card {
   display: flex;

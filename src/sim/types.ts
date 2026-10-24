@@ -172,6 +172,10 @@ export interface Character {
   name: string;
   traits: string[];
   ambition: string | null;
+  /** Rasgos ganados con las decisiones, del mas antiguo al mas nuevo. */
+  earned: string[];
+  /** Decisiones a favor y en contra de cada estamento (eventos y mecenazgo). */
+  deeds: { for: Record<EstateId, number>; against: Record<EstateId, number> };
 }
 
 /** Dificultad elegida al crear la partida. */
@@ -268,7 +272,7 @@ export interface GameState {
   events: EventsState;
   /** Semilla del generador aleatorio: la partida es reproducible y se guarda con ella. */
   rng: number;
-  stats: { harvested: number; earned: number; seasonEarned: number; seasonFood: number; trades: number; tradeEarned: number };
+  stats: { harvested: number; earned: number; seasonEarned: number; seasonFood: number; trades: number; tradeEarned: number; leftHunger: number };
 }
 
 /** Resultado de una orden del jugador; `msg` es una clave de traduccion. */
@@ -280,7 +284,7 @@ export interface CommandResult {
 
 /** Aviso que la simulacion genera por si sola al pasar los dias. `card` pide mostrarlo como tarjeta. */
 export interface Notice extends CommandResult {
-  card?: 'season' | 'rank' | 'levelup' | 'caravan';
+  card?: 'season' | 'rank' | 'levelup' | 'caravan' | 'trait';
   /** Baldosa donde ocurrio (p. ej. una cosecha de los labradores), para mostrarlo sobre el mapa. */
   tile?: { x: number; y: number };
 }

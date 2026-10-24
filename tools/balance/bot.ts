@@ -40,6 +40,9 @@ export interface BalanceReport {
   merits: Record<string, number>;
   /** Tandas hechas en los talleres. */
   workshopBatches: number;
+  /** Rasgos ganados: dia en que llega cada uno (los perdidos tambien cuentan) y los que quedan al final. */
+  traitDay: Record<string, number>;
+  earned: string[];
   /** Monedas cada 200 dias (dia -> monedas). */
   coinsAt: Record<number, number>;
   /** Mayor cantidad de monedas sin gastar en toda la partida. */
@@ -121,6 +124,8 @@ export function simulate(seed: number, days: number, level: Difficulty = 'normal
     focusLevelDay: {},
     merits: {},
     workshopBatches: 0,
+    traitDay: {},
+    earned: [],
     coinsAt: {},
     maxCoins: 0,
     taxesPaid: 0,
@@ -185,11 +190,13 @@ export function simulate(seed: number, days: number, level: Difficulty = 'normal
     // Rango y titulos se leen del estado: no todos llegan con su propio aviso (Granjero libre va con el nivel).
     for (const id of [s().rank, ...s().titles]) report.rankDay[id] ??= s().day;
     choosePaths(game);
+    for (const id of s().character.earned) report.traitDay[id] ??= s().day;
     const f = s().paths.focus;
     if (f) report.focusLevelDay[pathLevel(s().paths.merits[f]).level] ??= s().day;
   }
   report.focus = s().paths.focus;
   report.second = s().paths.second;
+  report.earned = [...s().character.earned];
   report.workshopBatches = Object.values(s().workshops).reduce((n, w) => n + (w?.made ?? 0), 0);
   report.merits = Object.fromEntries(PATH_IDS.map((p) => [p, Math.round(s().paths.merits[p])]));
 

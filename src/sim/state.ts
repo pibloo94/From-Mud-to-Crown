@@ -5,7 +5,7 @@ import { newSeed } from './random';
 import { addVillager } from './villagers';
 import { defaultNoble } from './noble';
 import { startReps } from './estates';
-import { createCharacter, type CharacterAnswers } from './character';
+import { createCharacter, emptyCharacter, type CharacterAnswers } from './character';
 import { startPaths } from './paths';
 import type { AnimalId, BuildingId, Difficulty, GameState, Herd, Plot, ProductId, Tile } from './types';
 
@@ -69,7 +69,7 @@ export function createNewGame(seed: number = newSeed(), difficulty: Difficulty =
     rankWarning: false,
     difficulty,
     // Sin cuestionario (tests, bot, partidas antiguas): sin rasgos. La interfaz lo rellena.
-    character: { name: '', traits: [], ambition: null },
+    character: emptyCharacter(),
     paths: startPaths(),
     buildings,
     villagers: [],
@@ -83,7 +83,7 @@ export function createNewGame(seed: number = newSeed(), difficulty: Difficulty =
     marketBoost: null,
     events: { pending: null, lastDay: 0, cooldowns: {} },
     rng: seed >>> 0,
-    stats: { harvested: 0, earned: 0, seasonEarned: 0, seasonFood: 0, trades: 0, tradeEarned: 0 },
+    stats: { harvested: 0, earned: 0, seasonEarned: 0, seasonFood: 0, trades: 0, tradeEarned: 0, leftHunger: 0 },
   };
   for (let i = 0; i < (START.villagers ?? 0); i++) addVillager(state);
   rollPrices(state);
