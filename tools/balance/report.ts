@@ -68,6 +68,7 @@ export function formatReport(reports: BalanceReport[]): string {
   add('Rangos perdidos', (r) => r.ranksLost);
   add('Cosechas con el granero lleno', (r) => r.granaryFull);
   add('Tandas en los talleres', (r) => r.workshopBatches);
+  add('Encargos cumplidos', (r) => r.commissions);
   for (const id of [...new Set(reports.flatMap((r) => Object.keys(r.traitDay)))]) add(`Rasgo ${id} (día)`, (r) => r.traitDay[id] ?? null);
   add('Caravanas', (r) => r.caravans);
   add('Ganado con caravanas', (r) => r.caravanEarnings);

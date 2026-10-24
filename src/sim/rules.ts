@@ -18,6 +18,7 @@ import { caravansReturn } from './trade';
 import { settleSeason } from './taxes';
 import type { AnimalId, BuildingId, CommandResult, CropId, GameState, Notice, Plot, ProductId, Speed, WorkshopId } from './types';
 import { updateEarnedTraits } from './character';
+import { offerCommissions } from './commissions';
 
 /** Avance maximo por fotograma, para que una pausa del navegador no salte muchos dias de golpe. */
 export const MAX_FRAME_MS = 250;
@@ -100,6 +101,7 @@ export function advanceDay(state: GameState): Notice[] {
     notices.push(settleSeason(state, season));
     rollPrices(state);
     notices.push({ ok: true, msg: `msg.season.${newSeason}` });
+    notices.push(...offerCommissions(state));
   } else if (state.day % PROGRESSION.priceDays === 0) {
     rollPrices(state);
   }

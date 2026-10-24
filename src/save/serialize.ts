@@ -14,7 +14,7 @@ import { startPaths } from '../sim/paths';
 import { emptyCharacter } from '../sim/character';
 
 export const SAVE_FORMAT = 'from-mud-to-crown-save';
-export const SAVE_VERSION = 18;
+export const SAVE_VERSION = 19;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;
@@ -126,6 +126,8 @@ export function migrate(state: Record<string, unknown>, from: number): GameState
     const blank = emptyCharacter();
     s = { ...s, character: { ...blank, ...s.character, earned: [], deeds: blank.deeds }, stats: { ...s.stats, leftHunger: 0 } };
   }
+  // v18 -> v19: encargos. Llegan con la siguiente estacion.
+  if (from < 19) s = { ...s, commissions: { offers: [] } };
   return s as GameState;
 }
 
