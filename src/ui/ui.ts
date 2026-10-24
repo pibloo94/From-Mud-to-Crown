@@ -41,6 +41,7 @@ import { manorView, type ManorTab } from './noble';
 import { ledgerView } from './ledger';
 import { commissionsView } from './commissions';
 import { legacyView, monumentView } from './monuments';
+import { bookView, type BookTab } from './book';
 import { openCommissions } from '../sim/commissions';
 import { characterView, randomName, traitEarnedView, traitLinesEl, type CharacterTab } from './character';
 import type { CharacterAnswers } from '../sim/character';
@@ -78,14 +79,15 @@ type Modal =
   | { kind: 'trait'; id: string }
   | { kind: 'commissions' }
   | { kind: 'monument'; monument: string }
-  | { kind: 'legacy'; monument: string };
+  | { kind: 'legacy'; monument: string }
+  | { kind: 'book'; tab: BookTab };
 
 /** Todas las ventanas detienen el tiempo mientras estan abiertas; al cerrarlas vuelve la velocidad anterior. */
-const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'levelup', 'season', 'rank', 'caravan', 'event', 'tip', 'ledger', 'character', 'trait', 'commissions', 'monument', 'legacy'];
+const PAUSES: Modal['kind'][] = ['start', 'menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'levelup', 'season', 'rank', 'caravan', 'event', 'tip', 'ledger', 'character', 'trait', 'commissions', 'monument', 'legacy', 'book'];
 /** Ventanas que se cierran con Escape o tocando fuera. */
-const DISMISSABLE: Modal['kind'][] = ['menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'ledger', 'character', 'commissions', 'monument'];
+const DISMISSABLE: Modal['kind'][] = ['menu', 'market', 'plant', 'land', 'lease', 'building', 'site', 'workshop', 'manor', 'progress', 'ledger', 'character', 'commissions', 'monument', 'book'];
 /** Ventanas desde las que se puede ir a otra y volver con "Atras". */
-const NAVIGABLE: Modal['kind'][] = ['market', 'building', 'workshop', 'site', 'manor', 'progress', 'levelup', 'ledger', 'character', 'commissions', 'monument'];
+const NAVIGABLE: Modal['kind'][] = ['market', 'building', 'workshop', 'site', 'manor', 'progress', 'levelup', 'ledger', 'character', 'commissions', 'monument', 'book'];
 
 export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI {
   let lastSpeed: Speed = 1;
@@ -563,6 +565,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
       tip: () => tipView(sim, (modal as Extract<Modal, { kind: 'tip' }>).id, () => closeModal()),
       ledger: () => ledgerView(panelCtx),
       commissions: () => commissionsView(panelCtx),
+      book: () => bookView(panelCtx, (modal as Extract<Modal, { kind: 'book' }>).tab, (tab) => openModal({ kind: 'book', tab })),
       monument: () => monumentView(panelCtx, (modal as Extract<Modal, { kind: 'monument' }>).monument),
       legacy: () => legacyView(panelCtx, (modal as Extract<Modal, { kind: 'legacy' }>).monument),
       trait: () => traitEarnedView(panelCtx, (modal as Extract<Modal, { kind: 'trait' }>).id, () => openModal({ kind: 'character', tab: 'traits' })),
@@ -617,6 +620,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     if (m.kind === 'manor') return `manor:${m.tab}`;
     if (m.kind === 'character') return `character:${m.tab}`;
     if (m.kind === 'monument') return `monument:${m.monument}`;
+    if (m.kind === 'book') return `book:${m.tab}`;
     return m.kind;
   }
 
@@ -630,6 +634,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
     openWorkshop: (id) => openModal({ kind: 'workshop', workshop: id }),
     openLedger: () => openModal({ kind: 'ledger' }),
     openMonument: (id) => openModal({ kind: 'monument', monument: id }),
+    openBook: (tab = 'money') => openModal({ kind: 'book', tab }),
   };
 
   overlay.addEventListener('click', (e) => {
@@ -800,6 +805,7 @@ export function createUI(sim: Game, root: HTMLElement, onLayout: () => void): UI
           h('button', { class: 'btn', onclick: () => void saveFlow(false) }, t('menu.save')),
           supportsFilePicker() && hasLinkedFile() && h('button', { class: 'btn', onclick: () => void saveFlow(true) }, t('menu.saveAs')),
           h('button', { class: 'btn', onclick: () => void loadFlow(false) }, t('menu.load')),
+          h('button', { class: 'btn', onclick: () => openModal({ kind: 'book', tab: 'money' }) }, t('book.title')),
           h('button', { class: 'btn danger', onclick: () => ((confirmingNew = true), resetQuiz(), renderModal()) }, t('menu.newGame')),
           h(
             'button',

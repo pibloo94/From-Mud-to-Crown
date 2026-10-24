@@ -20,6 +20,7 @@ import type { AnimalId, BuildingId, CommandResult, CropId, GameState, Notice, Pl
 import { updateEarnedTraits } from './character';
 import { offerCommissions } from './commissions';
 import { monumentAt } from './monuments';
+import { checkAchievements } from './achievements';
 
 /** Avance maximo por fotograma, para que una pausa del navegador no salte muchos dias de golpe. */
 export const MAX_FRAME_MS = 250;
@@ -115,6 +116,7 @@ export function advanceDay(state: GameState): Notice[] {
   notices.push(...caravansReturn(state));
   // Rasgos que se ganan o se pierden con lo que se ha hecho.
   notices.push(...updateEarnedTraits(state));
+  notices.push(...checkAchievements(state));
   const sale = carterSells(state);
   if (sale) notices.push(sale);
   expireModifiers(state);

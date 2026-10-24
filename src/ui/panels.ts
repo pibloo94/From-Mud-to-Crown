@@ -59,6 +59,7 @@ export interface PanelCtx {
   openWorkshop: (id: WorkshopId) => void;
   openLedger: () => void;
   openMonument: (id: string) => void;
+  openBook: (tab?: 'money' | 'estates' | 'farm' | 'achievements') => void;
 }
 
 export const BUILDING_ICON: Record<BuildingId, string> = {

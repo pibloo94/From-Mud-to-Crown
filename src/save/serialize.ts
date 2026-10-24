@@ -1,6 +1,6 @@
 // Formato del archivo de partida. Puro (sin DOM) para poder probarlo.
 import type { GameState } from '../sim/types';
-import { BUILDING_IDS, ESTATES, MATERIAL_IDS, PATHS, PRODUCT_IDS, PROGRESSION, START } from '../sim/data';
+import { ACHIEVEMENTS, BUILDING_IDS, ESTATES, MATERIAL_IDS, PATHS, PRODUCT_IDS, PROGRESSION, START } from '../sim/data';
 import { defaultPantry } from '../sim/pantry';
 import { rollPrices } from '../sim/market';
 import { buildingStat, storageCapacity, storageUsed } from '../sim/buildings';
@@ -12,9 +12,10 @@ import { rankDef, renownProgress } from '../sim/progress';
 import { startReps } from '../sim/estates';
 import { startPaths } from '../sim/paths';
 import { emptyCharacter } from '../sim/character';
+import { achievementMet } from '../sim/achievements';
 
 export const SAVE_FORMAT = 'from-mud-to-crown-save';
-export const SAVE_VERSION = 20;
+export const SAVE_VERSION = 21;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;
@@ -130,6 +131,12 @@ export function migrate(state: Record<string, unknown>, from: number): GameState
   if (from < 19) s = { ...s, commissions: { offers: [] } };
   // v19 -> v20: monumentos. Ninguno empezado.
   if (from < 20) s = { ...s, monuments: {} };
+  // v20 -> v21: libro de cuentas y logros. El libro empieza vacio; los logros que ya se cumplen se
+  // dan por conseguidos sin aviso (no llegan veinte de golpe al cargar).
+  if (from < 21) {
+    s = { ...s, history: [], achievements: {}, stats: { ...s.stats, commissionsDone: 0, commissionSeasons: 0, lastHungerDay: s.day ?? 0 } };
+    for (const a of ACHIEVEMENTS.achievements) if (achievementMet(s as GameState, a)) s.achievements[a.id] = s.day;
+  }
   return s as GameState;
 }
 

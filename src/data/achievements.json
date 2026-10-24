@@ -1,0 +1,27 @@
+{
+  "historyMax": 60,
+  "achievements": [
+    { "id": "firstHarvest", "icon": "icon_wheat", "stat": "harvested", "min": 1 },
+    { "id": "bigHarvest", "icon": "icon_wheat", "stat": "harvested", "min": 1000 },
+    { "id": "thousandCoins", "icon": "icon_coin", "coins": 1000 },
+    { "id": "richMan", "icon": "icon_coin", "coins": 20000 },
+    { "id": "firstHire", "icon": "icon_worker", "villagers": 1 },
+    { "id": "fullHouse", "icon": "icon_house", "villagers": 8 },
+    { "id": "freeFarmer", "icon": "icon_crown", "rank": "freeFarmer" },
+    { "id": "landowner", "icon": "icon_crown", "rank": "landowner" },
+    { "id": "lord", "icon": "icon_banner", "rank": "lord" },
+    { "id": "count", "icon": "icon_crown", "rank": "count" },
+    { "id": "firstCaravan", "icon": "icon_cart", "stat": "trades", "min": 1 },
+    { "id": "roadKing", "icon": "icon_cart", "stat": "trades", "min": 30 },
+    { "id": "firstBatch", "icon": "icon_hammer", "batches": 1 },
+    { "id": "busyWorkshops", "icon": "icon_hammer", "batches": 500 },
+    { "id": "noHunger", "icon": "icon_bread", "noHungerDays": 120 },
+    { "id": "firstCommission", "icon": "icon_banner", "stat": "commissionsDone", "min": 1 },
+    { "id": "allCommissions", "icon": "icon_banner", "stat": "commissionSeasons", "min": 1 },
+    { "id": "beloved", "icon": "icon_scroll", "devoted": 3 },
+    { "id": "knownAs", "icon": "icon_scroll", "earnedTraits": 3 },
+    { "id": "pathTop", "icon": "icon_scroll", "pathLevel": 4 },
+    { "id": "tenYears", "icon": "icon_scroll", "years": 10 },
+    { "id": "legacy", "icon": "icon_prestige", "monument": true }
+  ]
+}

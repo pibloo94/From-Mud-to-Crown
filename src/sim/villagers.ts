@@ -158,6 +158,7 @@ export function feedVillagers(state: GameState): Notice[] {
   state.stats.seasonFood += eaten;
   const fed = state.foodDebt < 1;
   for (const v of state.villagers) v.hungry = fed ? 0 : v.hungry + 1;
+  if (!fed) state.stats.lastHungerDay = state.day;
   if (!fed) {
     state.foodDebt = Math.min(state.foodDebt, 1);
     const starving = state.villagers.find((v) => v.hungry > VILLAGERS.hungerDays);
