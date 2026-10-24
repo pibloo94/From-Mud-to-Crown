@@ -891,19 +891,29 @@ def stall() -> Spr:
 
 
 def cart() -> Spr:
-    """Carreta de dos ruedas con sacos bajo una lona."""
-    s = Spr(TW, 22)
-    by = 20
-    ground_shadow(s, 15, by, 11, 3)
-    s.line((22, by - 6), (31, by - 10), "w1")
-    s.line((21, by - 5), (30, by - 9), "w1")
-    s.poly([(4, by - 9), (22, by - 4), (22, by - 9), (4, by - 14)], "w3")
-    s.poly([(22, by - 4), (25, by - 6), (25, by - 11), (22, by - 9)], "w2")
-    s.poly([(4, by - 14), (8, by - 18), (20, by - 17), (25, by - 11), (22, by - 9)], "cream0")
-    s.line((8, by - 16), (22, by - 10), "cream")
-    s.ellipse(12, by - 4, 4, 4, "w1")
-    s.ellipse(12, by - 4, 2, 2, "w3")
-    s.px(12, by - 4, "w0")
+    """Carretilla de mano pequena y abierta, de lado (como los aldeanos), cargada de fruta y verdura."""
+    s = Spr(16, 12)
+    by = 11
+    ground_shadow(s, 7, by, 6, 1)
+    # varal hacia la derecha
+    s.line((11, by - 4), (15, by - 5), "w1")
+    # caja de tablas
+    s.rect(1, by - 7, 11, by - 3, "w4")
+    s.rect(1, by - 5, 11, by - 5, "w3")
+    s.rect(1, by - 3, 11, by - 3, "w2")
+    s.rect(1, by - 7, 1, by - 3, "w3")
+    s.rect(11, by - 7, 11, by - 3, "w3")
+    # carga: manzanas, coles y zanahorias asomando
+    load = {2: "red2", 3: "red1", 4: "cab", 5: "cab1", 6: "carrot", 7: "red2", 8: "cab", 9: "carrot", 10: "red1"}
+    for x, c in load.items():
+        s.px(x, by - 8, c)
+        if 3 <= x <= 9:
+            s.px(x, by - 9, load[x + 1] if x % 2 else c)
+    s.px(5, by - 10, "cab1")
+    s.px(7, by - 10, "red2")
+    # rueda
+    s.ellipse(6, by - 2, 2.2, 2.2, "w1")
+    s.px(6, by - 2, "w4")
     return finish(s)
 
 
@@ -2013,10 +2023,13 @@ def _carrot(s):
 
 
 def _cabbage(s):
-    s.ellipse(5.5, 6, 4.5, 4, "cab0")
-    s.ellipse(5, 5.5, 3, 3, "cab")
-    s.ellipse(4.5, 5, 1.5, 1.5, "cab1")
-    s.px(5, 9, "cab1")
+    # col con hojas abiertas y nervios claros
+    s.ellipse(5.5, 6.5, 5, 4, "cab0")
+    s.ellipse(5.5, 5.5, 3.5, 3, "cab")
+    s.ellipse(5, 4.5, 1.8, 1.5, "cab1")
+    s.line((5, 6), (2, 9), "cab1")
+    s.line((6, 6), (9, 9), "cab1")
+    s.line((5.5, 7), (5.5, 10), "cab1")
 
 
 def _egg(s):
@@ -2026,18 +2039,30 @@ def _egg(s):
 
 
 def _milk(s):
-    s.rect(3, 4, 8, 10, "clay" if "clay" in P else "#8f5534")
-    s.rect(2, 3, 9, 3, "#5c331d")
-    s.rect(3, 4, 8, 4, "milk")
-    s.rect(9, 5, 10, 8, "#5c331d")
-    s.px(4, 6, "#b06a40")
+    # cubo de madera lleno de leche, con aros y asa
+    s.poly([(2, 4), (9, 4), (8, 10), (3, 10)], "w3")
+    s.poly([(7, 4), (9, 4), (8, 10), (7, 10)], "w2")
+    s.rect(2, 5, 9, 5, "iron1")
+    s.rect(3, 9, 8, 9, "iron1")
+    s.ellipse(5.5, 3.6, 3.6, 1.1, "milk")
+    s.line((1, 4), (3, 1), "iron1")
+    s.line((3, 1), (8, 1), "iron1")
+    s.line((8, 1), (10, 4), "iron1")
 
 
 def _flour(s):
-    s.poly([(2, 3), (9, 3), (10, 10), (1, 10)], "cream")
-    s.rect(3, 2, 8, 2, "cream0")
-    s.rect(5, 5, 6, 8, "red1")
-    s.rect(4, 6, 7, 7, "red1")
+    # saco atado arriba, con una espiga pintada
+    s.poly([(2, 5), (9, 5), (10, 10), (1, 10)], "cream")
+    s.poly([(3, 3), (8, 3), (9, 5), (2, 5)], "cream0")
+    s.rect(4, 2, 7, 2, "w2")
+    s.px(4, 1, "cream0")
+    s.px(7, 1, "cream0")
+    s.rect(5, 6, 5, 9, "st1")
+    s.px(4, 7, "st1")
+    s.px(6, 7, "st1")
+    s.px(4, 6, "st1")
+    s.px(6, 6, "st1")
+    s.rect(8, 6, 9, 10, "cream0")
 
 
 def _bread(s):
@@ -2097,18 +2122,24 @@ def _cloth(s):
 
 
 def _cheese(s):
-    s.poly([(1, 8), (10, 4), (10, 10), (1, 10)], "gold")
-    s.poly([(1, 8), (6, 3), (10, 4)], "glow")
-    s.px(6, 8, "#8d6c2c")
-    s.px(8, 6, "#8d6c2c")
-    s.px(3, 9, "#8d6c2c")
+    # cuna de queso: cara superior clara, cara de corte con agujeros y corteza detras
+    s.poly([(0, 7), (8, 3), (11, 4), (11, 5)], "glow")
+    s.poly([(0, 7), (11, 5), (11, 9), (0, 10)], "gold")
+    s.rect(10, 4, 11, 9, "#a8853a")
+    s.rect(3, 7, 4, 8, "#8d6c2c")
+    s.rect(7, 6, 8, 7, "#8d6c2c")
+    s.px(6, 9, "#8d6c2c")
+    s.px(9, 8, "#8d6c2c")
+    s.px(2, 9, "#8d6c2c")
 
 
 def _wood(s):
-    for (x, y) in ((3, 7), (8, 7), (5, 3)):
-        s.ellipse(x, y, 2.5, 2.5, "w3")
+    # pila de troncos: dos abajo y uno encima, con los anillos a la vista
+    for (x, y) in ((3, 8), (8, 8), (5.5, 4)):
+        s.ellipse(x, y, 2.5, 2.5, "w2")
         s.ellipse(x, y, 1.5, 1.5, "w4")
-        s.px(x, y, "w2")
+        s.px(x, y, "w3")
+    s.rect(1, 10, 10, 10, "w1")
 
 
 def _stone(s):
@@ -2177,11 +2208,16 @@ def _crown(s):
 
 
 def _cart(s):
-    s.rect(1, 3, 8, 6, "w3")
-    s.rect(1, 3, 8, 3, "w4")
-    s.line((8, 6), (11, 5), "w1")
-    s.ellipse(4, 8, 2.5, 2.5, "w1")
-    s.px(4, 8, "w4")
+    # carretilla de lado: caja abierta con fruta y verdura, una rueda y el varal
+    s.rect(1, 5, 8, 8, "w3")
+    s.rect(1, 5, 8, 5, "w4")
+    s.rect(1, 8, 8, 8, "w2")
+    for (x, y, c) in ((1, 4, "red2"), (2, 3, "red2"), (2, 4, "red1"), (3, 4, "cab"), (4, 3, "cab1"), (4, 4, "cab"),
+                      (5, 3, "carrot"), (5, 4, "carrot"), (6, 4, "red2"), (7, 3, "cab1"), (7, 4, "cab"), (8, 4, "red1")):
+        s.px(x, y, c)
+    s.ellipse(4.5, 9.5, 1.8, 1.8, "w1")
+    s.px(4, 9, "w4")
+    s.line((8, 7), (11, 6), "w1")
 
 
 def _charter(s):
@@ -2240,6 +2276,31 @@ def _menu(s):
         s.rect(2, y, 9, y + 1, "cream")
 
 
+def _scarecrow(s):
+    # espantapajaros: palo, brazos de paja, camisa y sombrero
+    s.rect(5, 4, 6, 11, "w2")
+    s.rect(1, 5, 10, 5, "w3")
+    s.rect(3, 5, 8, 8, "red1")
+    s.rect(3, 8, 8, 8, "red0")
+    s.px(0, 5, "st3")
+    s.px(11, 5, "st3")
+    s.px(0, 6, "st3")
+    s.px(11, 6, "st3")
+    s.rect(4, 2, 7, 4, "cream")
+    s.rect(3, 1, 8, 1, "st2")
+    s.rect(4, 0, 7, 0, "st3")
+
+
+def _fence(s):
+    # cerca de estacas con dos travesanos
+    for x in (1, 4, 7, 10):
+        s.rect(x, 2, x + 1, 10, "w4")
+        s.px(x, 1, "w4")
+        s.rect(x + 1, 2, x + 1, 10, "w3")
+    s.rect(0, 4, 11, 4, "w2")
+    s.rect(0, 8, 11, 8, "w2")
+
+
 ICONS = {
     "icon_coin": _coin, "icon_wheat": _wheat, "icon_carrot": _carrot, "icon_cabbage": _cabbage,
     "icon_egg": _egg, "icon_milk": _milk, "icon_flour": _flour, "icon_bread": _bread, "icon_cheese": _cheese,
@@ -2249,6 +2310,7 @@ ICONS = {
     "icon_crown": _crown, "icon_cart": _cart, "icon_charter": _charter, "icon_prestige": _prestige,
     "icon_soldier": _soldier, "icon_manor": _manor, "icon_pause": _pause, "icon_play": _play, "icon_menu": _menu,
     "icon_check": _check, "icon_up": _up, "icon_down": _down,
+    "icon_scarecrow": _scarecrow, "icon_fence": _fence,
 }
 
 

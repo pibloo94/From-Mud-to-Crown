@@ -1281,5 +1281,9 @@
   "wsUpgrade.loom.fullingMill": "Batán",
   "commission.guildWool": "Lana para los tejedores del gremio: {n}.",
   "commission.churchCloth": "Paño para los hábitos de la abadía: {n}.",
-  "commission.kingCloth": "Paño para la librea de la guardia del Rey: {n}."
+  "commission.kingCloth": "Paño para la librea de la guardia del Rey: {n}.",
+  "hud.foods": "Alimentos",
+  "hud.status": "Estado",
+  "hud.scrollPrev": "Ver los anteriores",
+  "hud.scrollNext": "Ver más"
 }
