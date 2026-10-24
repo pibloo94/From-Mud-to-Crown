@@ -1,7 +1,8 @@
 // Ficha de personaje (rasgos y relaciones) y las piezas que comparte con el cuestionario de origen.
 import { h, icon } from './dom';
 import { t } from '../i18n/i18n';
-import { PATHS, TRAITS } from '../sim/data';
+import { PATHS, PROGRESSION, TRAITS, type RankDef } from '../sim/data';
+import { hasRank } from '../sim/progress';
 import { PATH_IDS, canChoosePath, pathLevel, pathRate } from '../sim/paths';
 import type { GameState, PathId } from '../sim/types';
 import { traitDef, traitLines, type TraitLine } from '../sim/character';
@@ -17,6 +18,13 @@ export function traitLineText(l: TraitLine): string {
   if (l.type === 'startRep') return t('traitFx.startRep', { estate: l.key, n: signed(l.value) });
   if (l.type === 'repGain') return t('traitFx.repGain', { estate: l.key, pct: pct(l.value) });
   return t(`traitFx.${l.key}`, { pct: pct(l.value) });
+}
+
+/** Lo que da un rango (progression.json, effects y beds), como texto. */
+export function rankFxText(r: RankDef): string[] {
+  const out = Object.entries(r.effects ?? {}).map(([k, v]) => traitLineText({ type: 'effect', key: k, value: v!, good: true }));
+  if (r.beds) out.push(t('rankFx.beds', { n: r.beds }));
+  return out;
 }
 
 /** Ventajas en verde y desventajas en rojo, una por linea. */
@@ -65,6 +73,7 @@ function pathCard(ctx: PanelCtx, s: GameState, p: PathId): HTMLElement {
       h('small', {}, t('paths.level', { n: lv.level, max }), ' · ', lv.to === null ? t('paths.top', { n: merits }) : t('paths.merits', { n: merits, next: lv.to })),
       h('span', { class: 'rep-bar' }, h('span', { class: 'rep-fill', style: `width:${fill}%` })),
       h('small', {}, t(`path.${p}.desc`)),
+      pathRanks(s, p),
       choose &&
         p !== focus &&
         h(
@@ -79,6 +88,26 @@ function pathCard(ctx: PanelCtx, s: GameState, p: PathId): HTMLElement {
           focus && p !== second ? h('button', { class: 'btn small', onclick: act(() => ctx.sim.setPathSecond(p)) }, t('paths.setSecond')) : null,
         ),
     ),
+  );
+}
+
+/** Los rangos de un camino: peldano que piden, lo que dan y si ya se tienen. */
+function pathRanks(s: GameState, p: PathId): HTMLElement | null {
+  const ranks = PROGRESSION.ranks.filter((r) => r.path === p);
+  if (ranks.length === 0) return null;
+  return h(
+    'ul',
+    { class: 'path-ranks', 'aria-label': t('paths.ranks') },
+    ...ranks.map((r) => {
+      const got = hasRank(s, r.id);
+      const fx = rankFxText(r);
+      return h(
+        'li',
+        { class: got ? 'got' : '' },
+        h('b', {}, got ? '✓ ' : '', t(`rank.${r.id}`)),
+        h('span', {}, [r.pathLevel ? t('paths.level', { n: r.pathLevel, max: PATHS.levels.length - 1 }) : '', ...fx].filter(Boolean).map((x) => ` · ${x}`).join('')),
+      );
+    }),
   );
 }
 

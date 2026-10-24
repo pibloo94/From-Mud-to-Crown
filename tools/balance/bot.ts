@@ -217,15 +217,16 @@ export function simulate(seed: number, days: number, level: Difficulty = 'normal
 /** Camino en foco que se fuerza en esta partida (BALANCE_FOCUS), para medir cada camino. */
 let FORCED_FOCUS: PathId | null = null;
 
-/** En cuanto puede, pone en foco el camino con mas meritos y de segundo el siguiente. */
+/** En cuanto puede, elige el camino en foco y el segundo. */
 function choosePaths(game: Game): void {
   const st = game.state;
   if (st.paths.focus || !canChoosePath(st)) return;
-  // BALANCE_FOCUS fuerza el camino en foco (para medir cada camino); si no, el de mas meritos.
-  const forced = FORCED_FOCUS && PATH_IDS.includes(FORCED_FOCUS) ? FORCED_FOCUS : null;
-  const order = [...PATH_IDS].sort((a, b) => st.paths.merits[b] - st.paths.merits[a]).filter((p) => p !== forced);
-  game.setPathFocus(forced ?? order[0]);
-  game.setPathSecond(forced ? order[0] : order[1]);
+  // BALANCE_FOCUS fuerza el camino en foco (para medir cada camino); si no, la Corona, que es la
+  // que lleva a Conde. De segundo, el que mas meritos tenga.
+  const focus = FORCED_FOCUS && PATH_IDS.includes(FORCED_FOCUS) ? FORCED_FOCUS : 'crown';
+  const order = [...PATH_IDS].sort((a, b) => st.paths.merits[b] - st.paths.merits[a]).filter((p) => p !== focus);
+  game.setPathFocus(focus);
+  game.setPathSecond(order[0]);
 }
 
 /**

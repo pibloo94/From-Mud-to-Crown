@@ -104,6 +104,15 @@ export interface RankDef {
   hamletLevels?: number;
   soldiers?: number;
   prestige?: number;
+  /** Camino al que pertenece y peldano que pide (ver paths.ts). */
+  path?: PathId;
+  pathLevel?: number;
+  /** Cuando cuenta el camino: 'any' siempre, 'main' en foco o de segundo, 'focus' solo en foco. */
+  pathRole?: 'any' | 'main' | 'focus';
+  /** Lo que da tener el rango, como los rasgos (se acumula con los demas rangos conseguidos). */
+  effects?: Partial<Record<TraitEffect, number>>;
+  /** Camas de mas en la casa. */
+  beds?: number;
 }
 
 export interface ProgressionDef {

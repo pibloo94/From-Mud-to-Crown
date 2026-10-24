@@ -159,6 +159,9 @@
       "commoners": 50,
       "branches": 1,
       "charter": true,
+      "path": "crown",
+      "pathLevel": 0,
+      "pathRole": "any",
       "keep": { "nobles": 40, "commoners": 30 }
     },
     {
@@ -170,7 +173,11 @@
       "soldiers": 6,
       "prestige": 800,
       "nobles": 60,
-      "keep": { "nobles": 45 }
+      "keep": { "nobles": 45 },
+      "path": "crown",
+      "pathLevel": 3,
+      "pathRole": "main",
+      "effects": { "tolls": 0.85 }
     },
     {
       "id": "count",
@@ -182,21 +189,43 @@
       "prestige": 3000,
       "king": 70,
       "nobles": 60,
-      "keep": { "king": 50, "nobles": 45 }
+      "keep": { "king": 50, "nobles": 45 },
+      "path": "crown",
+      "pathLevel": 4,
+      "pathRole": "focus",
+      "effects": { "tribute": 0.9 }
     },
     {
       "id": "artisan",
       "level": 12,
       "branch": true,
-      "workshops": 2
+      "workshops": 2,
+      "path": "craft",
+      "pathLevel": 0,
+      "pathRole": "any",
+      "effects": { "materials": 0.95 }
     },
     {
       "id": "burgher",
       "level": 15,
       "branch": true,
       "trades": 5,
-      "stall": true
-    }
+      "stall": true,
+      "path": "trade",
+      "pathLevel": 0,
+      "pathRole": "any",
+      "effects": { "tolls": 0.9 }
+    },
+    { "id": "master", "level": 15, "branch": true, "path": "craft", "pathLevel": 3, "pathRole": "main", "workshops": 3, "artisans": 65, "effects": { "materials": 0.85 } },
+    { "id": "grandMaster", "level": 18, "branch": true, "path": "craft", "pathLevel": 4, "pathRole": "focus", "workshops": 3, "artisans": 80, "effects": { "priceAll": 1.05 } },
+    { "id": "merchant", "level": 16, "branch": true, "path": "trade", "pathLevel": 3, "pathRole": "main", "trades": 15, "effects": { "priceAll": 1.04 } },
+    { "id": "mayor", "level": 19, "branch": true, "path": "trade", "pathLevel": 4, "pathRole": "focus", "trades": 40, "king": 55, "effects": { "tolls": 0.75, "priceAll": 1.04 } },
+    { "id": "layBrother", "level": 10, "branch": true, "path": "faith", "pathLevel": 1, "pathRole": "any", "church": 55, "effects": { "tithe": 0.9 } },
+    { "id": "prior", "level": 15, "branch": true, "path": "faith", "pathLevel": 3, "pathRole": "main", "church": 70, "effects": { "tithe": 0.8, "xp": 1.05 } },
+    { "id": "faithEnvoy", "level": 18, "branch": true, "path": "faith", "pathLevel": 4, "pathRole": "focus", "church": 85, "effects": { "tithe": 0.7, "priceAll": 1.03 } },
+    { "id": "goodMan", "level": 10, "branch": true, "path": "people", "pathLevel": 1, "pathRole": "any", "commoners": 60, "effects": { "hire": 0.85 } },
+    { "id": "spokesman", "level": 15, "branch": true, "path": "people", "pathLevel": 3, "pathRole": "main", "commoners": 75, "beds": 2, "effects": { "wages": 0.9 } },
+    { "id": "leader", "level": 18, "branch": true, "path": "people", "pathLevel": 4, "pathRole": "focus", "commoners": 85, "beds": 4, "effects": { "food": 0.9 } }
   ],
   "xpPerCoinSold": 0.15,
   "land": {

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { createNewGame } from '../../src/sim/state';
-import { PATHS } from '../../src/sim/data';
-import { changeRep } from '../../src/sim/estates';
+import { PATHS, PROGRESSION } from '../../src/sim/data';
+import { pathOk, updateRank } from '../../src/sim/progress';
+import { beds } from '../../src/sim/villagers';
+import { changeRep, estateMult } from '../../src/sim/estates';
 import { canChoosePath, meritsFromSales, pathLevel, pathRate, setPathFocus, setPathSecond } from '../../src/sim/paths';
 import { deserialize, serialize } from '../../src/save/serialize';
 import type { GameState } from '../../src/sim/types';
@@ -84,5 +86,67 @@ describe('caminos', () => {
     const back = deserialize(JSON.stringify(old));
     expect(back.paths.focus).toBeNull();
     expect(Object.values(back.paths.merits).every((n) => n === 0)).toBe(true);
+  });
+});
+
+describe('rangos de cada camino', () => {
+  const faithful = (): GameState => {
+    const s = landowner();
+    s.level = 20;
+    s.day = 2000;
+    s.rep.church = 90;
+    s.paths.merits.faith = PATHS.levels[4];
+    return s;
+  };
+
+  it('el primero solo pide favor y peldano; los siguientes, el camino en foco o de segundo', () => {
+    const s = faithful();
+    updateRank(s);
+    expect(s.titles).toContain('layBrother');
+    // Prior pide la Fe en foco o de segundo; Emisario, en foco.
+    expect(s.titles).not.toContain('prior');
+    setPathFocus(s, 'crown');
+    setPathSecond(s, 'faith');
+    updateRank(s);
+    expect(s.titles).toContain('prior');
+    expect(s.titles).not.toContain('faithEnvoy');
+    setPathFocus(s, 'faith');
+    updateRank(s);
+    expect(s.titles).toContain('faithEnvoy');
+  });
+
+  it('lo que dan los rangos se acumula como los rasgos', () => {
+    const s = faithful();
+    s.rep.church = 50; // tramo neutral: solo cuentan los rangos
+    const before = estateMult(s, 'tithe');
+    s.titles.push('layBrother', 'prior');
+    expect(estateMult(s, 'tithe')).toBeCloseTo(before * 0.9 * 0.8);
+  });
+
+  it('los rangos del Pueblo dan camas', () => {
+    const s = landowner();
+    const n = beds(s);
+    s.titles.push('spokesman', 'leader');
+    expect(beds(s)).toBe(n + 6);
+  });
+
+  it('Baron pide la Corona en foco o de segundo', () => {
+    const baron = PROGRESSION.ranks.find((r) => r.id === 'baron')!;
+    const s = landowner();
+    s.paths.merits.crown = 9999;
+    expect(pathOk(s, baron)).toBe(false);
+    setPathFocus(s, 'trade');
+    setPathSecond(s, 'crown');
+    expect(pathOk(s, baron)).toBe(true);
+  });
+
+  it('una partida anterior de un noble sigue la Corona', () => {
+    const s = landowner();
+    s.rank = 'baron';
+    const old = JSON.parse(serialize(s));
+    old.version = 16;
+    const back = deserialize(JSON.stringify(old));
+    expect(back.paths.focus).toBe('crown');
+    expect(back.paths.merits.crown).toBeGreaterThanOrEqual(PATHS.levels[3]);
   });
 });

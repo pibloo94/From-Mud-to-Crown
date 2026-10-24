@@ -4,6 +4,8 @@ import type { BalanceReport } from './bot';
 import type { EstateId } from '../../src/sim/types';
 
 const RANKS = ['freeFarmer', 'artisan', 'landowner', 'burgher', 'lord', 'baron', 'count'];
+// Rangos de los demas caminos (solo salen en el informe si alguna partida llega).
+const PATH_RANKS = ['master', 'grandMaster', 'merchant', 'mayor', 'layBrother', 'prior', 'faithEnvoy', 'goodMan', 'spokesman', 'leader'];
 const RANK_NAMES: Record<string, string> = {
   freeFarmer: 'Granjero libre',
   artisan: 'Artesano',
@@ -12,6 +14,16 @@ const RANK_NAMES: Record<string, string> = {
   lord: 'Señor',
   baron: 'Barón',
   count: 'Conde',
+  master: 'Maestro',
+  grandMaster: 'Gran maestre',
+  merchant: 'Mercader',
+  mayor: 'Alcalde',
+  layBrother: 'Hermano lego',
+  prior: 'Prior',
+  faithEnvoy: 'Emisario',
+  goodMan: 'Hombre bueno',
+  spokesman: 'Portavoz',
+  leader: 'Caudillo',
 };
 const LEVELS = [2, 5, 8, 10, 12, 15, 17, 20];
 const ESTATE_NAMES: Record<EstateId, string> = { king: 'Rey', nobles: 'Nobleza', artisans: 'Artesanos', commoners: 'Pueblo llano', church: 'Iglesia' };
@@ -38,6 +50,7 @@ export function formatReport(reports: BalanceReport[]): string {
 
   for (const L of LEVELS) add(`Nivel ${L} (día)`, (r) => r.levelDay[L] ?? null);
   for (const id of RANKS) add(`${RANK_NAMES[id]} (día)`, (r) => r.rankDay[id] ?? null);
+  for (const id of PATH_RANKS) if (reports.some((r) => r.rankDay[id])) add(`${RANK_NAMES[id]} (día)`, (r) => r.rankDay[id] ?? null);
   for (const d of Object.keys(reports[0].coinsAt).map(Number)) add(`Monedas el día ${d}`, (r) => r.coinsAt[d] ?? null);
   add('Máximo de monedas sin gastar', (r) => r.maxCoins);
   add('Impuestos pagados', (r) => r.taxesPaid);

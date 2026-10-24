@@ -13,6 +13,7 @@ import {
   MATERIAL_IDS,
   MAX_LEVEL,
   NOBILITY,
+  PATHS,
   PRODUCTS,
   PRODUCT_IDS,
   PROGRESSION,
@@ -37,7 +38,8 @@ import { beds, dailyFood, efficiency, farmerPlots, foodDays, freeBeds, hireCost,
 import { activeModifiers } from '../sim/modifiers';
 import { ESTATE_IDS, rivalsOf, tierEffects, tierOf } from '../sim/estates';
 import { buildingUpkeep, upkeepBill } from '../sim/upkeep';
-import { branchCount, branchRanks, hamletLevelSum, hamletsTaken, hasRank, levelDef, levelOnlyRank, mainRanks, rankDef, unlocksAt, workshopCount } from '../sim/progress';
+import { branchCount, branchRanks, hamletLevelSum, hamletsTaken, hasRank, levelDef, levelOnlyRank, mainRanks, pathOk, rankDef, unlocksAt, workshopCount } from '../sim/progress';
+import { rankFxText } from './character';
 import { charterReady, liegeBefore, liegeOf } from '../sim/noble';
 import { buildingOf } from '../sim/rules';
 import type { AnimalId, BuildingId, CropId, EstateId, GameState, JobId, Modifier, RankId, Villager, WorkshopId } from '../sim/types';
@@ -711,6 +713,11 @@ function ranksTab(ctx: PanelCtx): HTMLElement {
     if (r.hamletLevels) reqs.push([t('progress.req.hamletLevels', { n: r.hamletLevels, have: hamletLevelSum(s) }), hamletLevelSum(s) >= r.hamletLevels]);
     if (r.soldiers) reqs.push([t('progress.req.soldiers', { n: r.soldiers, have: s.noble.soldiers }), s.noble.soldiers >= r.soldiers]);
     if (r.prestige) reqs.push([t('progress.req.prestige', { n: r.prestige, have: s.noble.prestige }), s.noble.prestige >= r.prestige]);
+    if (r.path && (r.pathLevel || r.pathRole !== 'any')) {
+      const key = r.pathRole === 'focus' ? 'progress.req.path.focus' : r.pathRole === 'main' ? 'progress.req.path.main' : 'progress.req.path';
+      reqs.push([t(key, { path: r.path, n: r.pathLevel ?? 0 }), pathOk(s, r)]);
+    }
+    const fx = rankFxText(r);
     // Con todo lo demas cumplido, el rey vende la carta desde aqui.
     const charter =
       r.charter && charterReady(s)
@@ -724,12 +731,13 @@ function ranksTab(ctx: PanelCtx): HTMLElement {
     return h(
       'section',
       { class: `tree-rank ${got ? 'got' : ''} ${current ? 'current' : ''}` },
-      icon(r.branch ? 'icon_hammer' : 'icon_crown', 'icon big'),
+      icon(r.path ? PATHS.icons[r.path] : r.branch ? 'icon_hammer' : 'icon_crown', 'icon big'),
       h(
         'div',
         { class: 'up-info' },
         h('b', {}, t(`rank.${r.id}`), current ? h('span', { class: 'pill' }, t(r.branch ? 'progress.titleNow' : 'progress.rankNow')) : null),
         h('small', {}, t(`rank.${r.id}.desc`)),
+        fx.length > 0 && h('small', { class: 'rank-fx' }, fx.join(' · ')),
         !got && h('ul', { class: 'reqs' }, ...reqs.map(([txt, ok]) => h('li', { class: ok ? 'ok' : '' }, txt))),
         !got && charter,
       ),

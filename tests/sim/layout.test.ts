@@ -18,6 +18,7 @@ function lordWithFief(): GameState {
   s.titles = ['artisan'];
   s.rep = { ...s.rep, nobles: 80, commoners: 70 };
   s.coins = 99999;
+  s.paths.merits.crown = 9999;
   buyCharter(s);
   checkRank(s);
   return s;

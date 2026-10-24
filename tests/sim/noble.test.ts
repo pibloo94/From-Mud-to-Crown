@@ -32,6 +32,8 @@ function candidate(): GameState {
   s.titles = ['artisan'];
   s.day = 600;
   s.coins = 100_000;
+  // Camino de la Corona en foco y con meritos de sobra (Baron y Conde lo piden).
+  s.paths = { merits: { crown: 9999, faith: 0, craft: 0, trade: 0, people: 0 }, focus: 'crown', second: null };
   s.rep = { ...s.rep, nobles: 80, commoners: 70 };
   s.materials = { wood: 2000, stone: 2000, iron: 2000 };
   s.buildings.granary = 5;

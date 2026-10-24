@@ -13,7 +13,25 @@ export type WorkshopId = 'mill' | 'bakery' | 'cheesery';
  * Rangos de la escalera principal (de campesino a conde) y titulos de rama (Artesano, Burgues),
  * que se suman sin sustituir el rango.
  */
-export type RankId = 'peasant' | 'freeFarmer' | 'landowner' | 'lord' | 'baron' | 'count' | 'artisan' | 'burgher';
+export type RankId =
+  | 'peasant'
+  | 'freeFarmer'
+  | 'landowner'
+  | 'lord'
+  | 'baron'
+  | 'count'
+  | 'artisan'
+  | 'burgher'
+  | 'master'
+  | 'grandMaster'
+  | 'merchant'
+  | 'mayor'
+  | 'layBrother'
+  | 'prior'
+  | 'faithEnvoy'
+  | 'goodMan'
+  | 'spokesman'
+  | 'leader';
 /** Senor feudal al que se rinde tributo: cambia al subir en la escalera noble. */
 export type LiegeId = 'baron' | 'count' | 'king';
 export type Speed = 0 | 1 | 2 | 3;

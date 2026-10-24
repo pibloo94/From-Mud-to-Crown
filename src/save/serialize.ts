@@ -1,6 +1,6 @@
 // Formato del archivo de partida. Puro (sin DOM) para poder probarlo.
 import type { GameState } from '../sim/types';
-import { BUILDING_IDS, ESTATES, MATERIAL_IDS, PRODUCT_IDS, PROGRESSION, START } from '../sim/data';
+import { BUILDING_IDS, ESTATES, MATERIAL_IDS, PATHS, PRODUCT_IDS, PROGRESSION, START } from '../sim/data';
 import { defaultPantry } from '../sim/pantry';
 import { rollPrices } from '../sim/market';
 import { buildingStat, storageCapacity, storageUsed } from '../sim/buildings';
@@ -8,12 +8,12 @@ import { addVillager, beds } from '../sim/villagers';
 import { defaultNoble } from '../sim/noble';
 import { finishedTutorial } from '../sim/tutorial';
 import { relayFief } from '../sim/layout';
-import { renownProgress } from '../sim/progress';
+import { rankDef, renownProgress } from '../sim/progress';
 import { startReps } from '../sim/estates';
 import { startPaths } from '../sim/paths';
 
 export const SAVE_FORMAT = 'from-mud-to-crown-save';
-export const SAVE_VERSION = 16;
+export const SAVE_VERSION = 17;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;
@@ -117,7 +117,20 @@ export function migrate(state: Record<string, unknown>, from: number): GameState
   if (from < 15) s = { ...s, character: { name: '', traits: [], ambition: null } };
   // v15 -> v16: caminos. Se empieza sin meritos y sin foco (se elige en la ficha).
   if (from < 16) s = { ...s, paths: startPaths() };
+  // v16 -> v17: rangos por camino. Quien ya era Senor, Baron o Conde sigue la Corona: se le pone en
+  // foco si no tenia, con los meritos que pide su rango, para que pueda seguir subiendo.
+  if (from < 17) s = { ...s, paths: crownForNobles(s as GameState) };
   return s as GameState;
+}
+
+function crownForNobles(s: GameState): GameState['paths'] {
+  const paths = { ...s.paths, merits: { ...s.paths.merits } };
+  const r = rankDef(s.rank);
+  if (r?.path !== 'crown') return paths;
+  paths.focus ??= 'crown';
+  if (paths.second === paths.focus) paths.second = null;
+  paths.merits.crown = Math.max(paths.merits.crown, PATHS.levels[r.pathLevel ?? 0] ?? 0);
+  return paths;
 }
 
 /** v4 -> v5 (fase 3a): talleres en solares, productos de taller y titulos de rama. */
