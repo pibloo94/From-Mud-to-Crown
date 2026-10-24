@@ -189,6 +189,10 @@ export interface PathsDef {
 export interface TraitDef {
   kind: 'origin' | 'nature' | 'ambition' | 'earned';
   icon: string;
+  /** Rasgos ganados: por lo que se hace con un estamento (neto de decisiones a favor y en contra) o por un contador. */
+  earn?: { estate?: EstateId; net?: number; stat?: 'trades' | 'leftHunger'; min?: number };
+  /** Camas de mas en la casa. */
+  beds?: number;
   startRep?: Partial<Record<EstateId, number>>;
   repGain?: Partial<Record<EstateId, number>>;
   effects?: Partial<Record<TraitEffect, number>>;
@@ -198,6 +202,8 @@ export interface TraitDef {
 export interface TraitsDef {
   names: string[];
   questions: { id: 'origin' | 'nature' | 'ambition'; options: string[] }[];
+  /** Rasgos ganados: cuantos a la vez y en que parte del umbral se pierden. */
+  earned: { max: number; loseAt: number };
   traits: Record<string, TraitDef>;
 }
 

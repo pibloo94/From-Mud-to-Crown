@@ -25,6 +25,7 @@ import type { AnimalId, CommandResult, EstateId, GameState, MaterialId, Notice, 
 import { delayCaravans } from './trade';
 import { hasRank, mainRanks } from './progress';
 import { meritsFromSales } from './paths';
+import { recordDeeds } from './character';
 
 /**
  * Condiciones de eventos y opciones. Claves admitidas:
@@ -171,6 +172,7 @@ function applyEffects(state: GameState, source: string, fx: EventEffects = {}, p
   }
   if (fx.villagers) for (let i = 0; i < fx.villagers; i++) addVillager(state);
   applyRep(state, fx.rep);
+  recordDeeds(state, fx.rep);
   if (fx.modifier) {
     const m = fx.modifier;
     addModifier(state, source, m.kind, m.value, { days: m.days, seasons: m.seasons });

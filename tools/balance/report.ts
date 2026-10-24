@@ -68,6 +68,7 @@ export function formatReport(reports: BalanceReport[]): string {
   add('Rangos perdidos', (r) => r.ranksLost);
   add('Cosechas con el granero lleno', (r) => r.granaryFull);
   add('Tandas en los talleres', (r) => r.workshopBatches);
+  for (const id of [...new Set(reports.flatMap((r) => Object.keys(r.traitDay)))]) add(`Rasgo ${id} (día)`, (r) => r.traitDay[id] ?? null);
   add('Caravanas', (r) => r.caravans);
   add('Ganado con caravanas', (r) => r.caravanEarnings);
   add('Experiencia sobrante (> nivel 20)', (r) => r.spareXp);
@@ -101,7 +102,7 @@ export function formatReport(reports: BalanceReport[]): string {
         `  semilla ${r.seed}: nivel ${r.final.level}, ${RANK_NAMES[r.final.rank] ?? r.final.rank}` +
         `${r.final.titles.length ? ` (${r.final.titles.map((t) => RANK_NAMES[t] ?? t).join(', ')})` : ''}, ` +
         `${r.final.plots} parcelas, ${r.final.villagers} aldeanos, casa solariega ${r.final.manor}, ` +
-        `aldeas ${Object.values(r.final.hamlets).join('/')}, ${r.final.soldiers} soldados, foco ${r.focus} y ${r.second}`,
+        `aldeas ${Object.values(r.final.hamlets).join('/')}, ${r.final.soldiers} soldados, foco ${r.focus} y ${r.second}, rasgos ${r.earned.join('/') || '—'}`,
     ),
   ];
   return out.join('\n');

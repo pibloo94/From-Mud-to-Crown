@@ -5,6 +5,7 @@
     { "id": "nature", "options": ["pious", "generous", "greedy", "diligent", "shrewd"] },
     { "id": "ambition", "options": ["crown", "faith", "craft", "trade", "people"] }
   ],
+  "earned": { "max": 3, "loseAt": 0.5 },
   "traits": {
     "peasantBorn": { "kind": "origin", "icon": "icon_wheat", "startRep": { "commoners": 15, "nobles": -10 }, "effects": { "hire": 0.8 } },
     "craftBorn": { "kind": "origin", "icon": "icon_hammer", "startRep": { "artisans": 15, "nobles": -5 }, "effects": { "materials": 0.9 } },
@@ -21,6 +22,15 @@
     "faith": { "kind": "ambition", "icon": "icon_scroll", "repGain": { "church": 1.5, "artisans": 0.8 } },
     "craft": { "kind": "ambition", "icon": "icon_hammer", "repGain": { "artisans": 1.5, "nobles": 0.8 } },
     "trade": { "kind": "ambition", "icon": "icon_cart", "repGain": { "church": 0.8 }, "effects": { "tolls": 0.85, "priceAll": 1.03 } },
-    "people": { "kind": "ambition", "icon": "icon_worker", "repGain": { "commoners": 1.5, "nobles": 0.8 } }
+    "people": { "kind": "ambition", "icon": "icon_worker", "repGain": { "commoners": 1.5, "nobles": 0.8 } },
+
+    "manOfFaith": { "kind": "earned", "icon": "icon_scroll", "earn": { "estate": "church", "net": 6 }, "repGain": { "church": 1.3, "artisans": 0.85 }, "effects": { "tithe": 0.85 } },
+    "manOfPeople": { "kind": "earned", "icon": "icon_worker", "earn": { "estate": "commoners", "net": 6 }, "beds": 2, "repGain": { "nobles": 0.85 }, "effects": { "hire": 0.85 } },
+    "loyalVassal": { "kind": "earned", "icon": "icon_banner", "earn": { "estate": "nobles", "net": 6 }, "repGain": { "nobles": 1.2, "commoners": 0.85 }, "effects": { "tribute": 0.9 } },
+    "guildFriend": { "kind": "earned", "icon": "icon_hammer", "earn": { "estate": "artisans", "net": 4 }, "repGain": { "artisans": 1.3, "church": 0.85 }, "effects": { "materials": 0.9 } },
+    "bornMerchant": { "kind": "earned", "icon": "icon_cart", "earn": { "stat": "trades", "min": 20 }, "repGain": { "church": 0.9 }, "effects": { "tolls": 0.85, "priceAll": 1.03 } },
+    "hardHand": { "kind": "earned", "icon": "icon_prestige", "earn": { "estate": "commoners", "net": -4 }, "repGain": { "commoners": 0.7 }, "effects": { "wages": 0.9 } },
+    "impious": { "kind": "earned", "icon": "icon_coin", "earn": { "estate": "church", "net": -4 }, "repGain": { "church": 0.7 }, "effects": { "tithe": 1.2, "priceAll": 1.02 } },
+    "hungerLord": { "kind": "earned", "icon": "icon_bread", "earn": { "stat": "leftHunger", "min": 3 }, "repGain": { "commoners": 0.7 }, "effects": { "hire": 1.2, "food": 0.95 } }
   }
 }

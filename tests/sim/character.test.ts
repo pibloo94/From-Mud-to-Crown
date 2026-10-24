@@ -3,7 +3,8 @@ import es from '../../src/i18n/es.json';
 import en from '../../src/i18n/en.json';
 import { createNewGame } from '../../src/sim/state';
 import { TRAITS } from '../../src/sim/data';
-import { defaultAnswers, traitLines, traitMult } from '../../src/sim/character';
+import { EARNED_IDS, defaultAnswers, recordDeeds, traitLines, traitMult, updateEarnedTraits } from '../../src/sim/character';
+import { beds } from '../../src/sim/villagers';
 import { changeRep, estateMult } from '../../src/sim/estates';
 import { multiplier } from '../../src/sim/modifiers';
 import { addXp } from '../../src/sim/progress';
@@ -14,7 +15,7 @@ const game = (origin: string, nature: string, ambition: string) => createNewGame
 describe('personaje y rasgos', () => {
   it('el cuestionario da un rasgo por respuesta y la relacion inicial', () => {
     const s = game('peasantBorn', 'diligent', 'people');
-    expect(s.character).toEqual({ name: 'Elvira', traits: ['peasantBorn', 'diligent', 'people'], ambition: 'people' });
+    expect(s.character).toMatchObject({ name: 'Elvira', traits: ['peasantBorn', 'diligent', 'people'], ambition: 'people', earned: [] });
     expect(s.rep.commoners).toBe(65);
     expect(s.rep.nobles).toBe(40);
   });
@@ -84,6 +85,78 @@ describe('personaje y rasgos', () => {
     const old = JSON.parse(serialize(createNewGame(2)));
     delete old.state.character;
     old.version = 14;
-    expect(deserialize(JSON.stringify(old)).character).toEqual({ name: '', traits: [], ambition: null });
+    expect(deserialize(JSON.stringify(old)).character).toMatchObject({ name: '', traits: [], ambition: null, earned: [] });
+  });
+});
+
+describe('rasgos ganados', () => {
+  const deeds = (s: ReturnType<typeof createNewGame>, estate: 'church' | 'commoners' | 'nobles' | 'artisans', n: number) => {
+    for (let i = 0; i < Math.abs(n); i++) recordDeeds(s, { [estate]: Math.sign(n) * 3 });
+  };
+
+  it('se gana repitiendo decisiones a favor de un estamento, con tarjeta', () => {
+    const s = createNewGame(1);
+    deeds(s, 'church', 5);
+    expect(updateEarnedTraits(s)).toEqual([]);
+    deeds(s, 'church', 1);
+    const notices = updateEarnedTraits(s);
+    expect(s.character.earned).toEqual(['manOfFaith']);
+    expect(notices[0]).toMatchObject({ card: 'trait', params: { trait: 'manOfFaith' } });
+    // Y cuenta como cualquier rasgo.
+    s.rep.church = 50;
+    expect(estateMult(s, 'tithe')).toBeCloseTo(0.85);
+  });
+
+  it('se pierde al cambiar de conducta, y su contrario no llega mientras se tiene', () => {
+    const s = createNewGame(1);
+    deeds(s, 'church', 6);
+    updateEarnedTraits(s);
+    deeds(s, 'church', -3); // neto 3: todavia la mitad del umbral
+    updateEarnedTraits(s);
+    expect(s.character.earned).toContain('manOfFaith');
+    deeds(s, 'church', -1);
+    const notices = updateEarnedTraits(s);
+    expect(s.character.earned).not.toContain('manOfFaith');
+    expect(notices.some((n) => n.msg === 'msg.traitLost')).toBe(true);
+    deeds(s, 'church', -8);
+    updateEarnedTraits(s);
+    expect(s.character.earned).toContain('impious');
+  });
+
+  it('como mucho tres a la vez: con el maximo lleno no se gana otro', () => {
+    const s = createNewGame(1);
+    deeds(s, 'church', 6);
+    deeds(s, 'commoners', 6);
+    deeds(s, 'nobles', 6);
+    deeds(s, 'artisans', 6);
+    updateEarnedTraits(s);
+    expect(s.character.earned.length).toBe(TRAITS.earned.max);
+    updateEarnedTraits(s);
+    expect(s.character.earned.length).toBe(TRAITS.earned.max);
+  });
+
+  it('los de contador (caravanas) no se pierden', () => {
+    const s = createNewGame(1);
+    s.stats.trades = 20;
+    updateEarnedTraits(s);
+    expect(s.character.earned).toContain('bornMerchant');
+    updateEarnedTraits(s);
+    expect(s.character.earned).toContain('bornMerchant');
+  });
+
+  it('Hombre del pueblo da camas', () => {
+    const s = createNewGame(1);
+    const n = beds(s);
+    s.character.earned.push('manOfPeople');
+    expect(beds(s)).toBe(n + 2);
+  });
+
+  it('cada rasgo ganado tiene ventajas, desventajas y textos', () => {
+    for (const id of EARNED_IDS) {
+      const lines = traitLines(TRAITS.traits[id]);
+      expect(lines.some((l) => l.good), `${id} sin ventajas`).toBe(true);
+      expect(lines.some((l) => !l.good), `${id} sin desventajas`).toBe(true);
+      for (const dict of [es, en] as Record<string, string>[]) expect(dict[`trait.${id}.desc`], id).toBeTruthy();
+    }
   });
 });
