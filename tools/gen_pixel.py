@@ -54,6 +54,8 @@ P = {
     "hen": "#8a5b3a", "hen0": "#5f3d26", "comb": "#8c2a1d", "beak": "#c08a35",
     "carrot": "#b8652c", "cab": "#6f8a52", "cab1": "#8aa36a", "cab0": "#4e6a3c",
     "iron": "#2f2e2b", "iron1": "#4a4843", "milk": "#e4dcc8",
+    # interior oscuro de vanos, arcos y bocas (antes un color suelto fuera de la paleta)
+    "win": "#141612",
     # nieve (fria y apagada, no blanca pura) y barro cocido del horno
     "sn0": "#7f8a8e", "sn1": "#a3abac", "sn2": "#c3c8c4", "sn3": "#dcdfd8",
     "cl0": "#5c3424", "cl1": "#7e4a31", "cl2": "#9c613d", "fire": "#d0702a",
@@ -325,6 +327,17 @@ def fill_holes(s: Spr, c="r0"):
         for x in range(s.w):
             if (x, y) not in seen and s.im.getpixel((x, y))[3] < 128:
                 s.px(x, y, c)
+
+
+def poly_pixels(pts):
+    """Pixeles dentro de un poligono (para pintar solo ahi, sin tocar lo de alrededor)."""
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    x0, y0 = int(min(xs)), int(min(ys))
+    w, h = int(max(xs)) - x0 + 1, int(max(ys)) - y0 + 1
+    mask = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(mask).polygon([(x - x0, y - y0) for (x, y) in pts], fill=255)
+    return [(x0 + x, y0 + y) for y in range(h) for x in range(w) if mask.getpixel((x, y))]
 
 
 def touching_border(s: Spr):
@@ -695,12 +708,12 @@ def rocks() -> Spr:
 def well() -> Spr:
     s = Spr(TW, 28)
     by = 26
-    ground_shadow(s, 16, by - 2, 7, 3)
+    ground_shadow(s, 16, by, 9, 3)
     # brocal de piedra redondo
     s.ellipse(16, by - 6, 6, 3, "r1")
     s.rect(10, by - 9, 22, by - 6, "r2")
     s.ellipse(16, by - 9, 6, 3, "r3")
-    s.ellipse(16, by - 9, 4, 1.6, "#141612")
+    s.ellipse(16, by - 9, 4, 1.6, "win")
     for x in range(11, 22, 3):
         s.px(x, by - 7, "r0")
     # postes y tejadillo
@@ -780,7 +793,7 @@ def house(stage: int) -> Spr:
             for k in range(3):
                 s.ellipse(cx + ar - 4 - k * 2, by - ar // 2 + 3 + k, 1, 1, "w3")
     else:
-        b = s.box2(cx, by, al, ar, h, "r2", "r1")
+        b = s.box2(cx, by, al, ar, h, "r3", "r1")
         stone_low = 7
         for side in ("l", "r"):
             a = side_width(b, side)
@@ -954,6 +967,7 @@ def pen_shed() -> Spr:
     by = 28
     cx = 16
     b = {"L": (cx - 12, by - 6 - 10), "F": (cx, by - 10), "R": (cx + 11, by - 6 - 10), "B": (cx, by - 12 - 10), "a": 12, "h": 10, "cx": cx, "by": by}
+    ground_shadow(s, cx, by + 1, 12, 4)
     for (x, y) in ((cx - 11, by - 6), (cx, by), (cx + 10, by - 6), (cx, by - 12)):
         s.rect(x, y - 10, x, y, "w1")
     s.ellipse(cx, by - 5, 7, 3, "st2")
@@ -1070,7 +1084,7 @@ def bakery() -> Spr:
         for j in range(3 - k):
             s.ellipse(3 + j * 2 + k, by - 11 - k * 2, 1, 1, "w3")
             s.px(3 + j * 2 + k, by - 11 - k * 2, "w4")
-    b = s.box2(cx, by, al, ar, h, "r2", "r1")
+    b = s.box2(cx, by, al, ar, h, "r3", "r1")
     stone_texture(s, cx, by, al, h, rnd, ar=ar)
     door(s, b, "l", 0.62, 3, 6, "w2")
     shutters(s, b, "l", 0.18, 4)
@@ -1133,7 +1147,7 @@ def brewery() -> Spr:
     al, ar, h = 12, 8, 7
     cx = 14
     ground_shadow(s, 16, by + 1, 14, 4)
-    b = s.box2(cx, by, al, ar, h, "r2", "r1")
+    b = s.box2(cx, by, al, ar, h, "r3", "r1")
     stone_texture(s, cx, by, al, h, rnd, ar=ar)
     up = s.box2(cx, by - h, al, ar, 5, "pl2", "pl0")
     frame_walls(s, up, 0, 5)
@@ -1152,9 +1166,12 @@ def brewery() -> Spr:
     # cubas de roble delante, a la derecha: dos abajo y una encima
     for (x, y) in ((22, by - 2), (27, by - 4), (24, by - 7)):
         s.ellipse(x, y - 2, 2, 3, "w3")
-        s.rect(x - 2, y - 3, x + 2, y - 3, "iron1")
-        s.rect(x - 2, y - 1, x + 2, y - 1, "iron1")
-        s.ellipse(x + 1, y - 2, 1, 2, "w2")
+        s.rect(x - 2, y - 4, x - 1, y, "w4")
+        s.rect(x + 2, y - 4, x + 2, y, "w2")
+        s.rect(x - 2, y - 4, x + 2, y - 4, "iron1")
+        s.rect(x - 2, y, x + 2, y, "iron1")
+        # canto oscuro: separa una cuba de la de al lado
+        s.rect(x + 3, y - 3, x + 3, y - 1, "w0")
     return finish(s)
 
 
@@ -1291,7 +1308,7 @@ def manor(stage: int) -> Spr:
         crenel_wall(s, (cx - 30, by - 16), (cx - 18, by - 10), 4, "r2", rnd)
         crenel_wall(s, (cx + 19, by - 10), (cx + 30, by - 16), 4, "r1", rnd)
     fill_holes(s)
-    return finish(s)
+    return finish(s, g)
 
 
 def cottage(s: Spr, cx, by, stone=False, ruined=False, rnd=None, al=6, ar=4, h=4):
@@ -1308,9 +1325,12 @@ def cottage(s: Spr, cx, by, stone=False, ruined=False, rnd=None, al=6, ar=4, h=4
             s.ellipse(cx + dx, by + dy - 1, 1, 1, "r3")
         return b
     b = s.box2(cx, by, al, ar, h, *walls)
-    if not stone:
+    if stone:
+        stone_texture(s, cx, by, al, h, rnd or random.Random(1), ar=ar)
+    else:
         frame_walls(s, b, 0, h)
-    door(s, b, "l", 0.7, 2, 3, "w1")
+    # puerta a escala de los aldeanos (lo alto que deje la pared)
+    door(s, b, "l", 0.7, 2, max(3, h - 2), "w1")
     window(s, b, "l", 0.1, 2, True, 1, 1)
     s.gable_roof(b, 4, "sh2" if stone else "st2", "sh0" if stone else "st1", walls[1], 1,
                  shingle_texture("sh1", "sh2") if stone else straw_texture, rnd or random.Random(1))
@@ -1320,14 +1340,14 @@ def cottage(s: Spr, cx, by, stone=False, ruined=False, rnd=None, al=6, ar=4, h=4
 def chapel(s: Spr, cx, by, rnd):
     """Capilla con espadana: nave pequena de piedra y torrecilla con campana."""
     b = s.box2(cx, by, 12, 6, 9, "r3", "r1")
-    stone_texture(s, cx, by, 6, 9, rnd)
+    stone_texture(s, cx, by, 12, 9, rnd, ar=6)
     door(s, b, "r", 0.3, 2, 5, "w1")
     window(s, b, "l", 0.5, 4, True, 1, 3)
     m1, m2 = s.gable_roof(b, 6, "sh2", "sh0", "r2", 1, shingle_texture("sh1", "sh2"), rnd)
     # espadana sobre el hastial con la campana
     x, y = int(m2[0]) - 1, int(m2[1])
     s.rect(x - 2, y - 7, x + 1, y, "r3")
-    s.rect(x - 1, y - 5, x, y - 3, "#141612")
+    s.rect(x - 1, y - 5, x, y - 3, "win")
     s.px(x - 1, y - 4, "gold")
     s.px(x, y - 4, "gold")
     s.line((x - 2, y - 8), (x - 1, y - 9), "r2")
@@ -1454,7 +1474,7 @@ def resource_site(s: Spr, material: str, by, stage: int, rnd):
         # brocal del pozo: cuadro de maderos con el hueco negro
         px_, py_ = 25, by - 11
         s.box(px_, py_, 6, 2, "w3", "w2", "w4")
-        s.poly([(px_ - 4, py_ - 4), (px_, py_ - 2), (px_ + 3, py_ - 4), (px_, py_ - 6)], "#141612")
+        s.poly([(px_ - 4, py_ - 4), (px_, py_ - 2), (px_ + 3, py_ - 4), (px_, py_ - 6)], "win")
         if old:
             # tapado con tablas y el torno caido
             for k in range(3):
@@ -1664,10 +1684,13 @@ def castle() -> Spr:
     cur = s.box2(cx, wb, al, ar, h, "r3", "r1")
     stone_texture(s, cx, wb, al, h, rnd, "r3", "r1", ar)
     # patio enlosado, en sombra dentro de los muros
-    s.poly([cur["L"], cur["F"], cur["R"], cur["B"]], "r1")
-    for _ in range(24):
-        x, y = rnd.randint(cx - 14, cx + 14), rnd.randint(cur["B"][1] + 4, cur["F"][1] - 4)
-        s.px(x, y, rnd.choice(["r0", "r2"]))
+    court = [cur["L"], cur["F"], cur["R"], cur["B"]]
+    s.poly(court, "r1")
+    for (x, y) in poly_pixels(court):
+        if s.im.getpixel((x, y)) == rgba("r1") and ((x // 2 + y) % 4 == 0 or (y - x // 2) % 4 == 0):
+            s.px(x, y, "r0")
+        elif rnd.random() < 0.05:
+            s.px(x, y, "r2")
     battlements(s, cur["L"], cur["B"], "r3", "r2")
     battlements(s, cur["B"], cur["R"], "r2", "r1")
     # torre del homenaje en medio del patio
@@ -1694,7 +1717,8 @@ def great_church() -> Spr:
     """Gran iglesia: nave larga de piedra con contrafuertes, roseton y campanario alto."""
     rnd = random.Random(320)
     s, g = Spr(64, 96), Spr(64, 96)
-    by, cx = 94, 30
+    # la nave queda a la izquierda y el campanario a la derecha: el conjunto, centrado en su cuadro
+    by, cx = 94, 32
     ground_shadow(g, cx, by, 30, 8)
     al, ar, h = 26, 12, 18
     nave = s.box2(cx, by - 2, al, ar, h, "r3", "r1")
@@ -1731,18 +1755,19 @@ def guild_hall() -> Spr:
     """Casa del gremio: tres plantas de entramado sobre soportales de piedra, con el emblema."""
     rnd = random.Random(330)
     s, g = Spr(64, 96), Spr(64, 96)
-    by, cx = 94, 32
-    ground_shadow(g, cx, by, 28, 8)
+    by = 94
     al, ar = 24, 16
+    cx = 32 + (al - ar) // 2
+    ground_shadow(g, 32, by, 28, 8)
     base = s.box2(cx, by - 2, al, ar, 9, "r3", "r1")
     stone_texture(s, cx, by - 2, al, 9, rnd, "r3", "r1", ar)
     # arcos de los soportales
     for f in (0.15, 0.4, 0.65, 0.9):
         x = cx - int(al * f)
-        s.wall(cx, by - 2, al, "l", x - 1, x + 1, 0, 6, "#141612")
+        s.wall(cx, by - 2, al, "l", x - 1, x + 1, 0, 6, "win")
     for f in (0.3, 0.75):
         x = cx + int(ar * f)
-        s.wall(cx, by - 2, ar, "r", x - 1, x + 1, 0, 6, "#141612")
+        s.wall(cx, by - 2, ar, "r", x - 1, x + 1, 0, 6, "win")
     up = s.box2(cx, by - 11, al, ar, 20, "pl2", "pl0")
     frame_walls(s, up, 0, 20)
     for f in (0.2, 0.5, 0.8):
@@ -1765,8 +1790,10 @@ def exchange() -> Spr:
     """Lonja: gran sala gotica de piedra clara con ventanales, pinaculos, tejado alto y torre."""
     rnd = random.Random(340)
     s, g = Spr(64, 96), Spr(64, 96)
-    by, cx = 94, 34
-    ground_shadow(g, cx - 2, by, 30, 8)
+    by = 94
+    al, ar, h = 26, 14, 20
+    cx = 32 + (al - ar) // 2
+    ground_shadow(g, 32, by, 30, 8)
     # torre de la lonja detras, a la izquierda
     tb = by - 22
     t = s.box(cx - 14, tb, 5, 36, "r4", "r2", "r3")
@@ -1775,19 +1802,18 @@ def exchange() -> Spr:
     battlements(s, t["F"], t["R"], "r3", "r2")
     s.ellipse(cx - 16, tb - 28, 1, 1, "cream")
     banner(s, cx - 14, t["B"][1] + 3, 10)
-    al, ar, h = 26, 14, 20
     hall = s.box2(cx, by - 2, al, ar, h, "r4", "r2")
     stone_texture(s, cx, by - 2, al, h, rnd, "r4", "r2", ar)
     # ventanales apuntados
     for f in (0.14, 0.38, 0.62, 0.86):
         x = cx - int(al * f)
-        s.wall(cx, by - 2, al, "l", x - 1, x + 1, 3, 13, "#141612")
-        s.wall(cx, by - 2, al, "l", x, x, 13, 15, "#141612")
+        s.wall(cx, by - 2, al, "l", x - 1, x + 1, 3, 13, "win")
+        s.wall(cx, by - 2, al, "l", x, x, 13, 15, "win")
         s.wall(cx, by - 2, al, "l", x, x, 7, 8, "r4")
     for f in (0.3, 0.75):
         x = cx + int(ar * f)
-        s.wall(cx, by - 2, ar, "r", x - 1, x + 1, 0, 11, "#141612")
-        s.wall(cx, by - 2, ar, "r", x, x, 11, 13, "#141612")
+        s.wall(cx, by - 2, ar, "r", x - 1, x + 1, 0, 11, "win")
+        s.wall(cx, by - 2, ar, "r", x, x, 11, 13, "win")
     s.gable_roof(hall, 13, "sl2", "sl0", "r3", 1, shingle_texture("sl1", "sl2"), rnd)
     # pinaculos en las esquinas
     for (x, y) in (hall["L"], hall["F"], hall["R"]):
@@ -1802,14 +1828,25 @@ def council() -> Spr:
     """Concejo: casa de reuniones de piedra con tejado de paja, campana y el olmo del pueblo."""
     rnd = random.Random(350)
     s, g = Spr(64, 96), Spr(64, 96)
-    by, cx = 94, 32
-    ground_shadow(g, cx, by, 28, 8)
-    # olmo detras a la izquierda
-    s.rect(cx - 19, by - 38, cx - 17, by - 24, "w1")
-    s.ellipse(cx - 18, by - 46, 11, 9, "l2")
-    s.ellipse(cx - 20, by - 50, 7, 5, "l3")
-    s.ellipse(cx - 13, by - 42, 6, 4, "l1")
+    by = 94
     al, ar, h = 24, 16, 14
+    cx = 32 + (al - ar) // 2
+    ground_shadow(g, 32, by, 28, 8)
+    # olmo detras a la izquierda
+    tx = cx - 22
+    s.rect(tx - 1, by - 38, tx + 1, by - 24, "w2")
+    s.rect(tx + 1, by - 38, tx + 1, by - 24, "w1")
+    blobs = [(tx, by - 46, 10), (tx - 6, by - 43, 6), (tx + 6, by - 43, 6), (tx - 3, by - 51, 6), (tx + 4, by - 51, 5)]
+    for (x, y, r) in blobs:
+        s.ellipse(x, y, r, r * 0.85, "l1")
+    for (x, y, r) in blobs:
+        s.ellipse(x - 1, y - 1, r - 2, (r - 2) * 0.85, "l2")
+    for (x, y, r) in blobs[3:]:
+        s.ellipse(x - 1, y - 2, r - 3, (r - 3) * 0.85, "l3")
+    for _ in range(30):
+        x, y = rnd.randint(tx - 12, tx + 12), rnd.randint(by - 58, by - 36)
+        if 0 <= x < s.w and s.im.getpixel((x, y))[:3] in (rgba("l1")[:3], rgba("l2")[:3], rgba("l3")[:3]):
+            s.px(x, y, rnd.choice(["l4", "l0", "l3"]))
     hall = s.box2(cx, by - 2, al, ar, h, "r3", "r1")
     stone_texture(s, cx, by - 2, al, h, rnd, "r3", "r1", ar)
     for f in (0.2, 0.5, 0.8):
@@ -1821,7 +1858,7 @@ def council() -> Spr:
     # espadana con la campana del concejo
     bx, byy = int(m2[0]) - 2, int(m2[1])
     s.rect(bx - 2, byy - 8, bx + 2, byy, "r3")
-    s.rect(bx - 1, byy - 6, bx + 1, byy - 3, "#141612")
+    s.rect(bx - 1, byy - 6, bx + 1, byy - 3, "win")
     s.px(bx, byy - 4, "gold")
     banner(s, int(m1[0]) + 2, int(m1[1]) + 2, 9)
     return finish(s, g)
@@ -2531,8 +2568,22 @@ def generate() -> dict:
 
 
 def main() -> None:
-    os.makedirs(OUT, exist_ok=True)
+    import argparse
+    ap = argparse.ArgumentParser(description="Genera el pixel art del juego.")
+    ap.add_argument("--out", help="carpeta de salida para los sprites del mapa (por defecto, public/assets/pixel); con ella no se toca la interfaz ni el manifiesto")
+    ap.add_argument("--only", help="solo estos sprites, separados por comas")
+    args = ap.parse_args()
     sprites = generate()
+    if args.only:
+        keep = set(args.only.split(","))
+        sprites = {k: v for k, v in sprites.items() if k in keep}
+    if args.out:
+        os.makedirs(args.out, exist_ok=True)
+        for name, spr in sprites.items():
+            spr.im.save(os.path.join(args.out, f"{name}.png"))
+        print(f"{len(sprites)} sprites en {os.path.normpath(args.out)}")
+        return
+    os.makedirs(OUT, exist_ok=True)
     manifest = {}
     for name, spr in sprites.items():
         spr.im.save(os.path.join(OUT, f"{name}.png"))
